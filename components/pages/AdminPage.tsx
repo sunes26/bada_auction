@@ -99,9 +99,9 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const [statusRes, imageRes, dbRes] = await Promise.all([
-        fetch('http://localhost:8000/api/admin/system/status'),
-        fetch('http://localhost:8000/api/admin/images/stats'),
-        fetch('http://localhost:8000/api/admin/database/stats')
+        fetch('${API_BASE_URL}/api/admin/system/status'),
+        fetch('${API_BASE_URL}/api/admin/images/stats'),
+        fetch('${API_BASE_URL}/api/admin/database/stats')
       ]);
 
       const [statusData, imageData, dbData] = await Promise.all([
@@ -318,7 +318,7 @@ function DashboardTab({ systemStatus, imageStats, databaseStats, onRefresh }: {
   // 빠른 액션 핸들러들
   const handleBackupDB = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/admin/database/backup', { method: 'POST' });
+      const res = await fetch('${API_BASE_URL}/api/admin/database/backup', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert('✓ 데이터베이스 백업 완료!');
@@ -332,7 +332,7 @@ function DashboardTab({ systemStatus, imageStats, databaseStats, onRefresh }: {
   const handleOptimizeDB = async () => {
     if (!confirm('데이터베이스를 최적화하시겠습니까?')) return;
     try {
-      const res = await fetch('http://localhost:8000/api/admin/database/optimize', { method: 'POST' });
+      const res = await fetch('${API_BASE_URL}/api/admin/database/optimize', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert('✓ 데이터베이스 최적화 완료!');
@@ -574,7 +574,7 @@ function ImagesTab() {
         return;
       }
       try {
-        const res = await fetch(`http://localhost:8000/api/categories/levels?level1=${encodeURIComponent(newLevel1)}`);
+        const res = await fetch(`${API_BASE_URL}/api/categories/levels?level1=${encodeURIComponent(newLevel1)}`);
         const data = await res.json();
         if (data.success) {
           setCategoryOptions(prev => ({ ...prev, level2: data.options, level3: [], level4: [] }));
@@ -598,7 +598,7 @@ function ImagesTab() {
         return;
       }
       try {
-        const res = await fetch(`http://localhost:8000/api/categories/levels?level1=${encodeURIComponent(newLevel1)}&level2=${encodeURIComponent(newLevel2)}`);
+        const res = await fetch(`${API_BASE_URL}/api/categories/levels?level1=${encodeURIComponent(newLevel1)}&level2=${encodeURIComponent(newLevel2)}`);
         const data = await res.json();
         if (data.success) {
           setCategoryOptions(prev => ({ ...prev, level3: data.options, level4: [] }));
@@ -621,7 +621,7 @@ function ImagesTab() {
         return;
       }
       try {
-        const res = await fetch(`http://localhost:8000/api/categories/levels?level1=${encodeURIComponent(newLevel1)}&level2=${encodeURIComponent(newLevel2)}&level3=${encodeURIComponent(newLevel3)}`);
+        const res = await fetch(`${API_BASE_URL}/api/categories/levels?level1=${encodeURIComponent(newLevel1)}&level2=${encodeURIComponent(newLevel2)}&level3=${encodeURIComponent(newLevel3)}`);
         const data = await res.json();
         if (data.success) {
           setCategoryOptions(prev => ({ ...prev, level4: data.options }));
@@ -637,7 +637,7 @@ function ImagesTab() {
 
   const loadNextFolderNumber = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/categories/next-number');
+      const res = await fetch('${API_BASE_URL}/api/categories/next-number');
       const data = await res.json();
       if (data.success) {
         setNextFolderNumber(data.next_number);
@@ -650,7 +650,7 @@ function ImagesTab() {
   const loadCategoryOptions = async () => {
     try {
       // 대분류만 로드 (level1)
-      const res = await fetch('http://localhost:8000/api/categories/levels');
+      const res = await fetch('${API_BASE_URL}/api/categories/levels');
       const data = await res.json();
       if (data.success) {
         setCategoryOptions({ level1: data.options, level2: [], level3: [], level4: [] });
@@ -662,7 +662,7 @@ function ImagesTab() {
 
   const loadImageStats = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/admin/images/stats');
+      const res = await fetch('${API_BASE_URL}/api/admin/images/stats');
       const data = await res.json();
       if (data.success) {
         setImageStats(data);
@@ -675,7 +675,7 @@ function ImagesTab() {
   const loadFolderImages = async (folderName: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/images/gallery/${folderName}`);
+      const res = await fetch(`${API_BASE_URL}/api/admin/images/gallery/${folderName}`);
       const data = await res.json();
       if (data.success) {
         setFolderImages(data.images);
@@ -691,7 +691,7 @@ function ImagesTab() {
   const handleDeleteImage = async (folderName: string, filename: string) => {
     if (!confirm(`"${filename}"을(를) 삭제하시겠습니까?`)) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/images/delete?folder_name=${folderName}&filename=${filename}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/images/delete?folder_name=${folderName}&filename=${filename}`, {
         method: 'DELETE'
       });
       const data = await res.json();
@@ -725,7 +725,7 @@ function ImagesTab() {
         level4: newLevel4.trim()
       });
 
-      const res = await fetch(`http://localhost:8000/api/admin/images/create-folder?${params}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/images/create-folder?${params}`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -756,7 +756,7 @@ function ImagesTab() {
     });
 
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/images/upload?folder_name=${encodeURIComponent(folderName)}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/images/upload?folder_name=${encodeURIComponent(folderName)}`, {
         method: 'POST',
         body: formData
       });
@@ -1014,7 +1014,7 @@ function ImagesTab() {
                 return (
                 <div key={`${selectedFolder}-${img.filename}-${index}`} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                   <img
-                    src={`http://localhost:8000${encodedPath}`}
+                    src={`${API_BASE_URL}${encodedPath}`}
                     alt={img.filename}
                     className="w-full h-40 object-cover rounded-lg mb-2"
                   />
@@ -1051,7 +1051,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
 
   const loadBackups = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/admin/database/backups');
+      const res = await fetch('${API_BASE_URL}/api/admin/database/backups');
       const data = await res.json();
       if (data.success) {
         setBackups(data.backups);
@@ -1063,7 +1063,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
 
   const handleBackup = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/admin/database/backup', { method: 'POST' });
+      const res = await fetch('${API_BASE_URL}/api/admin/database/backup', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert('✓ 백업 완료!');
@@ -1077,7 +1077,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
   const handleRestore = async (filename: string) => {
     if (!confirm(`"${filename}"으로 복원하시겠습니까?\n\n⚠️ 현재 데이터는 백업 후 덮어쓰기됩니다.`)) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/database/restore?backup_filename=${filename}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/database/restore?backup_filename=${filename}`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -1093,7 +1093,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
   const handleOptimize = async () => {
     if (!confirm('데이터베이스를 최적화하시겠습니까?')) return;
     try {
-      const res = await fetch('http://localhost:8000/api/admin/database/optimize', { method: 'POST' });
+      const res = await fetch('${API_BASE_URL}/api/admin/database/optimize', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert('✓ 최적화 완료!');
@@ -1198,7 +1198,7 @@ function LogsTab() {
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/admin/logs/recent?limit=100');
+      const res = await fetch('${API_BASE_URL}/api/admin/logs/recent?limit=100');
       const data = await res.json();
       if (data.success) {
         setLogs(data.logs);
@@ -1270,7 +1270,7 @@ function SettingsTab() {
 
   const loadEnvVars = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/admin/settings/env');
+      const res = await fetch('${API_BASE_URL}/api/admin/settings/env');
       const data = await res.json();
       if (data.success) {
         setEnvVars(data.environment_variables);
@@ -1283,7 +1283,7 @@ function SettingsTab() {
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/playauto/templates');
+      const res = await fetch('${API_BASE_URL}/api/playauto/templates');
       const data = await res.json();
       if (data.success) {
         setTemplates(data.data.template_info || []);
@@ -1297,7 +1297,7 @@ function SettingsTab() {
 
   const loadDefaultTemplates = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/playauto/templates/default');
+      const res = await fetch('${API_BASE_URL}/api/playauto/templates/default');
       const data = await res.json();
       if (data.success && data.templates) {
         setDefaultTemplates(data.templates);
@@ -1331,7 +1331,7 @@ function SettingsTab() {
 
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:8000/api/playauto/settings', {
+      const res = await fetch('${API_BASE_URL}/api/playauto/settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1363,7 +1363,7 @@ function SettingsTab() {
     }
 
     try {
-      const res = await fetch('http://localhost:8000/api/playauto/templates/save-default', {
+      const res = await fetch('${API_BASE_URL}/api/playauto/templates/save-default', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1592,7 +1592,7 @@ function CleanupTab() {
     if (!confirm(`${days}일 이전의 주문을 삭제하시겠습니까?`)) return;
 
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/cleanup/old-orders?days=${days}`, { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/api/admin/cleanup/old-orders?days=${days}`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert(`✓ ${data.deleted_count}개의 주문이 삭제되었습니다.`);
@@ -1606,7 +1606,7 @@ function CleanupTab() {
     if (!confirm('임시 파일을 정리하시겠습니까?')) return;
 
     try {
-      const res = await fetch('http://localhost:8000/api/admin/cleanup/temp-files', { method: 'POST' });
+      const res = await fetch('${API_BASE_URL}/api/admin/cleanup/temp-files', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert(`✓ ${data.deleted_files}개 파일 삭제 (${data.freed_mb} MB 확보)`);
@@ -1684,7 +1684,7 @@ function PerformanceTab() {
 
   const loadMetrics = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/admin/performance/metrics');
+      const res = await fetch('${API_BASE_URL}/api/admin/performance/metrics');
       const data = await res.json();
       if (data.success) {
         setMetrics(data);
@@ -1763,7 +1763,7 @@ function DevToolsTab() {
 
   const handleTestAPI = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/admin/api/test');
+      const res = await fetch('${API_BASE_URL}/api/admin/api/test');
       const data = await res.json();
       if (data.success) {
         setTestResults(data.tests);
@@ -1840,7 +1840,7 @@ function CategoryMappingTab() {
   const loadMappings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/api/category-infocode-mappings');
+      const response = await fetch('${API_BASE_URL}/api/category-infocode-mappings');
       if (!response.ok) throw new Error('매핑 조회 실패');
       const data = await response.json();
       setMappings(data);
@@ -1853,7 +1853,7 @@ function CategoryMappingTab() {
 
   const loadAvailableInfoCodes = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/available-infocodes');
+      const response = await fetch('${API_BASE_URL}/api/available-infocodes');
       if (!response.ok) throw new Error('infoCode 목록 조회 실패');
       const data = await response.json();
       setAvailableInfoCodes(data);
@@ -1889,7 +1889,7 @@ function CategoryMappingTab() {
       setLoading(true);
 
       if (editMode === 'add') {
-        const response = await fetch('http://localhost:8000/api/category-infocode-mappings', {
+        const response = await fetch('${API_BASE_URL}/api/category-infocode-mappings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
@@ -1900,7 +1900,7 @@ function CategoryMappingTab() {
           throw new Error(error.detail || '추가 실패');
         }
       } else if (editMode === 'edit' && editingId) {
-        const response = await fetch(`http://localhost:8000/api/category-infocode-mappings/${editingId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/category-infocode-mappings/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1930,7 +1930,7 @@ function CategoryMappingTab() {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/category-infocode-mappings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/category-infocode-mappings/${id}`, {
         method: 'DELETE'
       });
 

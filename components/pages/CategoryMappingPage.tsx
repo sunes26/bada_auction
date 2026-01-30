@@ -46,7 +46,7 @@ export default function CategoryMappingPage() {
   const loadMappings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/category-infocode-mappings');
+      const response = await fetch('${API_BASE_URL}/category-infocode-mappings');
       if (!response.ok) throw new Error('매핑 조회 실패');
       const data = await response.json();
       setMappings(data);
@@ -59,7 +59,7 @@ export default function CategoryMappingPage() {
 
   const loadAvailableInfoCodes = async () => {
     try {
-      const response = await fetch('http://localhost:8000/available-infocodes');
+      const response = await fetch('${API_BASE_URL}/available-infocodes');
       if (!response.ok) throw new Error('infoCode 목록 조회 실패');
       const data = await response.json();
       setAvailableInfoCodes(data);
@@ -96,7 +96,7 @@ export default function CategoryMappingPage() {
 
       if (editMode === 'add') {
         // 추가
-        const response = await fetch('http://localhost:8000/category-infocode-mappings', {
+        const response = await fetch('${API_BASE_URL}/category-infocode-mappings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
@@ -108,7 +108,7 @@ export default function CategoryMappingPage() {
         }
       } else if (editMode === 'edit' && editingId) {
         // 수정
-        const response = await fetch(`http://localhost:8000/category-infocode-mappings/${editingId}`, {
+        const response = await fetch(`${API_BASE_URL}/category-infocode-mappings/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -138,7 +138,7 @@ export default function CategoryMappingPage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/category-infocode-mappings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/category-infocode-mappings/${id}`, {
         method: 'DELETE'
       });
 

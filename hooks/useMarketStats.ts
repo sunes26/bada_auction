@@ -32,8 +32,7 @@ export function useMarketStats(days: number = 7): MarketStatsResult {
       setIsLoading(true);
       setError(null);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ${API_BASE_URL};
-      const response = await fetch(`${apiUrl}/api/playauto/stats/by-market?days=${days}`);
+      const response = await fetch(`${API_BASE_URL}/api/playauto/stats/by-market?days=${days}`);
 
       if (!response.ok) {
         throw new Error('마켓별 통계 조회 실패');

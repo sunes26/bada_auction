@@ -29,8 +29,7 @@ export function useOrderStatusStats(): OrderStatusStatsResult {
       setIsLoading(true);
       setError(null);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ${API_BASE_URL};
-      const response = await fetch(`${apiUrl}/api/playauto/stats/by-status`);
+      const response = await fetch(`${API_BASE_URL}/api/playauto/stats/by-status`);
 
       if (!response.ok) {
         throw new Error('상태별 통계 조회 실패');

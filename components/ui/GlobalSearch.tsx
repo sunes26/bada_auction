@@ -63,7 +63,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps) {
       const searchResults: SearchResult[] = [];
 
       // 주문 검색
-      const ordersRes = await fetch(`http://localhost:8000/api/orders/list?limit=50`);
+      const ordersRes = await fetch(`${API_BASE_URL}/api/orders/list?limit=50`);
       const ordersData = await ordersRes.json();
 
       if (ordersData.success && ordersData.orders) {
@@ -86,7 +86,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps) {
       }
 
       // 모니터링 상품 검색
-      const productsRes = await fetch(`http://localhost:8000/api/monitor/products`);
+      const productsRes = await fetch(`${API_BASE_URL}/api/monitor/products`);
       const productsData = await productsRes.json();
 
       if (productsData.success && productsData.products) {

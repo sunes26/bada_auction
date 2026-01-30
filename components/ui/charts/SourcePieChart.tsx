@@ -26,7 +26,7 @@ export default function SourcePieChart() {
       setIsLoading(true);
 
       // RPA 소싱처별 통계 가져오기
-      const statsRes = await fetch('http://localhost:8000/api/orders/rpa/stats/by-source');
+      const statsRes = await fetch('${API_BASE_URL}/api/orders/rpa/stats/by-source');
       const statsData = await statsRes.json();
 
       if (statsData.success && statsData.stats && statsData.stats.length > 0) {

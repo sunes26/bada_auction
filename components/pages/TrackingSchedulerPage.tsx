@@ -81,7 +81,7 @@ export default function TrackingSchedulerPage() {
 
   const loadConfig = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/tracking-scheduler/config')
+      const response = await fetch('${API_BASE_URL}/api/tracking-scheduler/config')
       if (response.ok) {
         const data = await response.json()
         setConfig(data)
@@ -93,7 +93,7 @@ export default function TrackingSchedulerPage() {
 
   const loadJobs = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/tracking-scheduler/jobs/recent?limit=10')
+      const response = await fetch('${API_BASE_URL}/api/tracking-scheduler/jobs/recent?limit=10')
       if (response.ok) {
         const data = await response.json()
         setJobs(data.jobs || [])
@@ -105,7 +105,7 @@ export default function TrackingSchedulerPage() {
 
   const loadPendingCount = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/tracking-scheduler/pending-count')
+      const response = await fetch('${API_BASE_URL}/api/tracking-scheduler/pending-count')
       if (response.ok) {
         const data = await response.json()
         setPendingCount(data.pending_count || 0)
@@ -118,7 +118,7 @@ export default function TrackingSchedulerPage() {
   const handleSaveConfig = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/tracking-scheduler/config', {
+      const response = await fetch('${API_BASE_URL}/api/tracking-scheduler/config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -142,7 +142,7 @@ export default function TrackingSchedulerPage() {
   const handleManualExecute = async () => {
     setExecuting(true)
     try {
-      const response = await fetch('http://localhost:8000/api/tracking-scheduler/execute', {
+      const response = await fetch('${API_BASE_URL}/api/tracking-scheduler/execute', {
         method: 'POST'
       })
 

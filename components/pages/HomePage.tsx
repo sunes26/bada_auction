@@ -54,11 +54,10 @@ export default function HomePage() {
       setLoading(true);
 
       // 병렬로 여러 API 호출 (공통 API 클라이언트 사용, 캐싱 적용)
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ${API_BASE_URL};
       const [rpaStats, playautoStats, monitorStats, ordersData, allOrdersData] = await Promise.all([
-        fetch(`${apiBaseUrl}/api/orders/rpa/stats`).then(r => r.json()),
+        fetch(`${API_BASE_URL}/api/orders/rpa/stats`).then(r => r.json()),
         playautoApi.stats(true),
-        fetch(`${apiBaseUrl}/api/monitor/dashboard/stats`).then(r => r.json()),
+        fetch(`${API_BASE_URL}/api/monitor/dashboard/stats`).then(r => r.json()),
         ordersApi.list(10, true),
         ordersApi.listWithItems(50, true), // limit를 1000 → 50으로 최적화
       ]);

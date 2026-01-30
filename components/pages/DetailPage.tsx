@@ -104,7 +104,7 @@ export default function DetailPage() {
 
     setIsExtractingUrl(true);
     try {
-      const response = await fetch('http://localhost:8000/api/monitor/extract-url-info', {
+      const response = await fetch('${API_BASE_URL}/api/monitor/extract-url-info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ product_url: productUrl }),
@@ -139,7 +139,7 @@ export default function DetailPage() {
 
         // 썸네일 추출 시도 (URL에서 직접)
         try {
-          const thumbnailResponse = await fetch(`http://localhost:8000/api/monitor/extract-thumbnail`, {
+          const thumbnailResponse = await fetch(`${API_BASE_URL}/api/monitor/extract-thumbnail`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ product_url: productUrl }),
@@ -732,7 +732,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
 
     setIsAddingToMonitoring(true);
     try {
-      const response = await fetch('http://localhost:8000/api/monitor/add', {
+      const response = await fetch('${API_BASE_URL}/api/monitor/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1365,7 +1365,7 @@ function AddProductFromDetailPageModal({
       let thumbnailUrl = formData.thumbnail_url;
       if (extractedThumbnail && extractedThumbnail.startsWith('http')) {
         try {
-          const response = await fetch('http://localhost:8000/api/monitor/save-thumbnail', {
+          const response = await fetch('${API_BASE_URL}/api/monitor/save-thumbnail', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1386,7 +1386,7 @@ function AddProductFromDetailPageModal({
       }
 
       // 상품 등록 API 호출
-      const response = await fetch('http://localhost:8000/api/products/create', {
+      const response = await fetch('${API_BASE_URL}/api/products/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1397,7 +1397,7 @@ function AddProductModal({ onClose, onSuccess }: {
   useEffect(() => {
     const loadCategoryStructure = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/categories/structure');
+        const res = await fetch('${API_BASE_URL}/api/categories/structure');
         const data = await res.json();
         if (data.success) {
           setCategoryStructure(data.structure);
@@ -1441,7 +1441,7 @@ function AddProductModal({ onClose, onSuccess }: {
 
     setExtractingUrl(true);
     try {
-      const response = await fetch('http://localhost:8000/api/monitor/extract-url-info', {
+      const response = await fetch('${API_BASE_URL}/api/monitor/extract-url-info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ product_url: formData.sourcing_url }),
@@ -1503,7 +1503,7 @@ function AddProductModal({ onClose, onSuccess }: {
       // 카테고리를 문자열로 조합
       const categoryString = `${category.level1} > ${category.level2} > ${category.level3} > ${category.level4}`;
 
-      const response = await fetch('http://localhost:8000/api/products/create', {
+      const response = await fetch('${API_BASE_URL}/api/products/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

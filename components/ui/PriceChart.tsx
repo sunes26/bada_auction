@@ -49,7 +49,7 @@ export default function PriceChart({ productId, productName }: PriceChartProps) 
   const loadPriceHistory = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:8000/api/monitor/product/${productId}/price-history?limit=30`);
+      const response = await fetch(`${API_BASE_URL}/api/monitor/product/${productId}/price-history?limit=30`);
 
       if (!response.ok) throw new Error('가격 이력 로드 실패');
 

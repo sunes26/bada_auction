@@ -67,8 +67,7 @@ export function useOrderMonitoring(
     try {
       setIsChecking(true);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ${API_BASE_URL};
-      const response = await fetch(`${apiUrl}/api/playauto/orders/recent?minutes=30`);
+      const response = await fetch(`${API_BASE_URL}/api/playauto/orders/recent?minutes=30`);
 
       if (!response.ok) {
         throw new Error('주문 조회 실패');

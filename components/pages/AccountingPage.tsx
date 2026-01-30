@@ -110,7 +110,7 @@ const AccountingPage = () => {
   const loadDashboardStats = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:8000/api/accounting/dashboard/stats?period=${period}`);
+      const res = await fetch(`${API_BASE_URL}/api/accounting/dashboard/stats?period=${period}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -128,7 +128,7 @@ const AccountingPage = () => {
     if (!plStartDate || !plEndDate) return;
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:8000/api/accounting/profit-loss?start_date=${plStartDate}&end_date=${plEndDate}`);
+      const res = await fetch(`${API_BASE_URL}/api/accounting/profit-loss?start_date=${plStartDate}&end_date=${plEndDate}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -145,7 +145,7 @@ const AccountingPage = () => {
   const loadExpenses = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:8000/api/accounting/expenses');
+      const res = await fetch('${API_BASE_URL}/api/accounting/expenses');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -162,7 +162,7 @@ const AccountingPage = () => {
   const loadSettlements = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:8000/api/accounting/settlements');
+      const res = await fetch('${API_BASE_URL}/api/accounting/settlements');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -179,7 +179,7 @@ const AccountingPage = () => {
   const loadVatData = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:8000/api/accounting/tax/vat?year=${taxYear}&quarter=${taxQuarter}`);
+      const res = await fetch(`${API_BASE_URL}/api/accounting/tax/vat?year=${taxYear}&quarter=${taxQuarter}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -196,7 +196,7 @@ const AccountingPage = () => {
   const loadIncomeTaxData = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:8000/api/accounting/tax/income?year=${taxYear}`);
+      const res = await fetch(`${API_BASE_URL}/api/accounting/tax/income?year=${taxYear}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -213,7 +213,7 @@ const AccountingPage = () => {
   const loadMonthlyReport = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:8000/api/accounting/report/monthly?year=${reportYear}&month=${reportMonth}`);
+      const res = await fetch(`${API_BASE_URL}/api/accounting/report/monthly?year=${reportYear}&month=${reportMonth}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -229,7 +229,7 @@ const AccountingPage = () => {
 
   const handleCreateExpense = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/accounting/expenses', {
+      const res = await fetch('${API_BASE_URL}/api/accounting/expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(expenseFormData)
@@ -250,7 +250,7 @@ const AccountingPage = () => {
   const handleDeleteExpense = async (id: number) => {
     if (!confirm('이 지출을 삭제하시겠습니까?')) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/accounting/expenses/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/accounting/expenses/${id}`, {
         method: 'DELETE'
       });
       const data = await res.json();
@@ -265,7 +265,7 @@ const AccountingPage = () => {
 
   const handleCreateSettlement = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/accounting/settlements', {
+      const res = await fetch('${API_BASE_URL}/api/accounting/settlements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settlementFormData)
