@@ -928,7 +928,7 @@ function ImagesTab() {
                 <button
                   onClick={() => {
                     setShowCreateFolder(false);
-                    setNewFolderNumber('');
+                    setNextFolderNumber(null);
                     setNewFolderName('');
                     setNewLevel1('');
                     setNewLevel2('');
