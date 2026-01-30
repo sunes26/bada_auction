@@ -21,12 +21,20 @@ AI 기술로 상품 썸네일과 상세페이지를 전문가 수준으로 제�
 # 백엔드 헬스 체크
 curl https://badaauction-production.up.railway.app/health
 
+# Admin API 상태 확인 (Railway 재배포 후 2-3분 소요)
+curl https://badaauction-production.up.railway.app/api/admin/system/status
+
+# 등록된 라우트 확인
+curl https://badaauction-production.up.railway.app/debug/routes | grep admin
+
 # API 문서 확인
 open https://badaauction-production.up.railway.app/docs
 
 # 프론트엔드 접속
 # Vercel 대시보드에서 본인의 배포 URL 확인
 ```
+
+**⚠️ 주의**: Railway에 코드를 push한 후 재배포가 완료되기까지 **2-3분** 소요됩니다.
 
 ---
 
@@ -422,24 +430,61 @@ fetch(`${API_BASE_URL}/api/orders`)  // 백틱 사용!
 
 ---
 
-#### ❌ Railway Admin API 404 에러
+#### ❌ Railway Admin API 404 에러 (최종 해결)
 
 **증상**:
 ```
 badaauction-production.up.railway.app/api/admin/system/status: 404
 badaauction-production.up.railway.app/api/admin/images/stats: 404
+badaauction-production.up.railway.app/api/admin/database/stats: 404
 ```
 
-**원인**: `psutil`, `Pillow` 패키지가 `requirements.txt`에 누락되어 admin router import 실패
+**원인 1**: `psutil`, `Pillow` 패키지가 `requirements.txt`에 누락되어 admin router import 실패
 
-**해결 방법**:
+**해결 1**:
 ```bash
 # backend/requirements.txt에 추가
 psutil>=5.9.0
 Pillow>=10.0.0
 ```
 
-**수정 완료**: Railway 재배포 후 정상 작동합니다.
+**원인 2**: admin.py가 프로덕션 환경(Railway)과 호환되지 않음
+- 모듈 로드 시점에 디렉토리 생성 시도 (권한 문제)
+- sqlite3를 직접 import하여 PostgreSQL 환경에서 문제
+- psutil/PIL 없을 때 에러 발생
+
+**해결 2 (최종)**:
+```python
+# Optional imports with fallbacks
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+
+# Safe directory creation
+try:
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    print(f"[WARN] Failed to create directories: {e}")
+
+# Use get_db() instead of sqlite3.connect()
+db = get_db()  # Works with both SQLite and PostgreSQL
+
+# Conditional feature usage
+if PSUTIL_AVAILABLE:
+    memory = psutil.virtual_memory()
+else:
+    memory = default_values  # Provide defaults
+```
+
+**수정 완료**: Railway 재배포 후 19개 admin 라우트가 정상 작동합니다.
+
+**검증 명령어**:
+```bash
+curl https://badaauction-production.up.railway.app/api/admin/system/status
+curl https://badaauction-production.up.railway.app/debug/routes | grep admin
+```
 
 ---
 
@@ -536,9 +581,14 @@ python main.py  # 자동으로 새 DB 생성
 - 🐛 **템플릿 리터럴 버그 수정**: 작은따옴표(`'`) → 백틱(`` ` ``) 변경 (11개 파일)
   - `${API_BASE_URL}`이 `%7BAPI_BASE_URL%7D`로 URL 인코딩되던 문제 해결
   - 모든 API 호출이 Railway 백엔드로 정상 연결
-- 🐛 **Railway Admin API 404 수정**: `psutil`, `Pillow` 패키지 추가
-  - admin router import 실패 문제 해결
-  - 시스템 모니터링 API 정상 작동
+- 🐛 **Railway Admin API 404 수정** (2단계):
+  - 1단계: `psutil`, `Pillow` 패키지 추가
+  - 2단계: admin.py 프로덕션 환경 호환성 개선
+    - Optional imports 추가 (psutil, Pillow, sqlite3)
+    - 안전한 디렉토리 생성 (Railway 권한 문제 해결)
+    - get_db() 사용 (PostgreSQL 호환)
+    - 조건부 기능 사용 (모듈 없을 때 기본값 제공)
+  - 19개 admin 라우트가 정상 작동
 - 🐛 **Localhost 하드코딩 제거**: 80개 이상의 하드코딩된 URL 수정 (16개 파일)
   - 모든 파일이 `API_BASE_URL` 중앙 집중식 관리
   - 환경별 자동 URL 선택 (로컬/프로덕션)
@@ -549,8 +599,10 @@ python main.py  # 자동으로 새 DB 생성
 - `790a55b`: localhost URL 일괄 수정
 - `25dcc81`: AccountingPage import 수정
 - `d57c6c4`: 템플릿 리터럴 따옴표 수정
-- `c57cfc0`: Railway 의존성 추가
+- `c57cfc0`: Railway 의존성 추가 (psutil, Pillow)
 - `ae213c2`: README 배포 문서화
+- `ba2e7e1`: README 트러블슈팅 추가
+- `dcd76fb`: admin.py 프로덕션 환경 수정
 
 ### 2026-01-29: 플레이오토 통합 완성
 - ✅ Phase 19: 상세페이지 생성기 Figma 스타일 UI
