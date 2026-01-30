@@ -538,7 +538,15 @@ function ImagesTab() {
   const [newLevel2, setNewLevel2] = useState('');
   const [newLevel3, setNewLevel3] = useState('');
   const [newLevel4, setNewLevel4] = useState('');
-  const [categoryOptions, setCategoryOptions] = useState<any>({ level1: [], level2: [], level3: [], level4: [] });
+
+  interface CategoryOptions {
+    level1: string[];
+    level2: string[];
+    level3: string[];
+    level4: string[];
+  }
+
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOptions>({ level1: [], level2: [], level3: [], level4: [] });
 
   useEffect(() => {
     loadImageStats();
