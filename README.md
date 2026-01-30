@@ -10,11 +10,23 @@ AI 기술로 상품 썸네일과 상세페이지를 전문가 수준으로 제�
 
 | 서비스 | URL | 비용 |
 |--------|-----|------|
-| 🎨 **프론트엔드** | `https://[your-app].vercel.app` | 무료 |
+| 🎨 **프론트엔드** | `https://[your-app].vercel.app` ([Vercel 대시보드](https://vercel.com/dashboard)에서 확인) | 무료 |
 | 🔧 **백엔드 API** | `https://badaauction-production.up.railway.app` | $5/월 |
 | 💾 **데이터베이스** | Supabase PostgreSQL | 무료 |
 
 **총 운영 비용**: **$5/월**
+
+### ✅ 배포 상태 확인
+```bash
+# 백엔드 헬스 체크
+curl https://badaauction-production.up.railway.app/health
+
+# API 문서 확인
+open https://badaauction-production.up.railway.app/docs
+
+# 프론트엔드 접속
+# Vercel 대시보드에서 본인의 배포 URL 확인
+```
 
 ---
 
@@ -281,12 +293,14 @@ python main.py
 
 ### 프론트엔드 (Vercel)
 
+**Vercel 대시보드 > Settings > Environment Variables**에서 설정:
+
 ```env
 # Supabase (선택사항)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-# API Base URL (필수)
+# API Base URL (필수) ⚠️ 중요!
 NEXT_PUBLIC_API_BASE_URL=https://badaauction-production.up.railway.app
 
 # Admin Password (필수)
@@ -295,6 +309,8 @@ NEXT_PUBLIC_ADMIN_PASSWORD=8888
 # OpenAI (선택사항)
 OPENAI_API_KEY=sk-proj-...
 ```
+
+**⚠️ 주의**: 로컬 개발 시 `.env.local`에는 `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`을 사용하세요. `lib/api.ts`가 환경에 따라 자동으로 올바른 URL을 선택합니다.
 
 ### 백엔드 (Railway)
 
@@ -383,18 +399,83 @@ GET /api/dashboard/stats  # 대시보드 통계
 
 ### 배포 관련 문제
 
-#### Vercel 빌드 실패
+#### ❌ API 404 에러 - URL이 `%7BAPI_BASE_URL%7D`로 인코딩됨
+
+**증상**:
+```
+Failed to load resource: the server responded with a status of 404
+URL: /$%7BAPI_BASE_URL%7D/api/orders/list
+```
+
+**원인**: 템플릿 리터럴에 작은따옴표(`'`)를 사용하여 `${API_BASE_URL}`이 변수로 인식되지 않음
+
+**해결 방법**:
+```typescript
+// ❌ 잘못된 코드
+fetch('${API_BASE_URL}/api/orders')
+
+// ✅ 올바른 코드
+fetch(`${API_BASE_URL}/api/orders`)  // 백틱 사용!
+```
+
+**수정 완료**: 모든 파일이 백틱(`` ` ``)으로 수정되었습니다.
+
+---
+
+#### ❌ Railway Admin API 404 에러
+
+**증상**:
+```
+badaauction-production.up.railway.app/api/admin/system/status: 404
+badaauction-production.up.railway.app/api/admin/images/stats: 404
+```
+
+**원인**: `psutil`, `Pillow` 패키지가 `requirements.txt`에 누락되어 admin router import 실패
+
+**해결 방법**:
+```bash
+# backend/requirements.txt에 추가
+psutil>=5.9.0
+Pillow>=10.0.0
+```
+
+**수정 완료**: Railway 재배포 후 정상 작동합니다.
+
+---
+
+#### ❌ Vercel 빌드 실패
 1. `lib/` 디렉토리가 누락되었는지 확인
 2. TypeScript 에러 확인 (`npm run build`)
 3. 환경 변수가 설정되었는지 확인
+4. `import type` 블록에 일반 import가 섞이지 않았는지 확인
+
+**일반적인 빌드 에러**:
+```typescript
+// ❌ 잘못된 import
+import type {
+import { API_BASE_URL } from '@/lib/api';  // type 블록 안에 일반 import
+  SomeType
+}
+
+// ✅ 올바른 import
+import { API_BASE_URL } from '@/lib/api';
+import type {
+  SomeType
+}
+```
+
+---
 
 #### Railway 연결 실패
 1. Health check 확인: `curl https://badaauction-production.up.railway.app/health`
 2. Railway 로그 확인
 3. 환경 변수 `USE_POSTGRESQL=true` 확인
+4. `requirements.txt`의 모든 패키지가 설치되었는지 확인
+
+---
 
 #### API 연결 실패 (localhost 에러)
-이미 수정 완료! 모든 파일이 `API_BASE_URL`을 사용합니다.
+✅ **수정 완료!** 모든 파일이 `API_BASE_URL`을 사용하며, 프로덕션에서는 Railway URL을 자동으로 사용합니다.
 
 ### 로컬 개발 문제
 
@@ -444,11 +525,32 @@ python main.py  # 자동으로 새 DB 생성
 
 ## 📈 업데이트 히스토리
 
-### 2026-01-30: 클라우드 배포 완료 🎉
+### 2026-01-30: 클라우드 배포 완료 + 트러블슈팅 🎉
+
+**배포 완료**:
 - ✅ Phase 1-4 배포 완료
 - ✅ Vercel + Railway + Supabase 인프라 구축
-- ✅ localhost 하드코딩 문제 수정 (16개 파일)
 - ✅ 총 비용: $5/월
+
+**배포 후 문제 해결**:
+- 🐛 **템플릿 리터럴 버그 수정**: 작은따옴표(`'`) → 백틱(`` ` ``) 변경 (11개 파일)
+  - `${API_BASE_URL}`이 `%7BAPI_BASE_URL%7D`로 URL 인코딩되던 문제 해결
+  - 모든 API 호출이 Railway 백엔드로 정상 연결
+- 🐛 **Railway Admin API 404 수정**: `psutil`, `Pillow` 패키지 추가
+  - admin router import 실패 문제 해결
+  - 시스템 모니터링 API 정상 작동
+- 🐛 **Localhost 하드코딩 제거**: 80개 이상의 하드코딩된 URL 수정 (16개 파일)
+  - 모든 파일이 `API_BASE_URL` 중앙 집중식 관리
+  - 환경별 자동 URL 선택 (로컬/프로덕션)
+- ✅ **빌드 테스트 통과**: TypeScript 컴파일, Next.js 빌드 성공
+- ✅ **README 업데이트**: 완전한 배포 가이드 및 트러블슈팅 문서화
+
+**커밋 해시**:
+- `790a55b`: localhost URL 일괄 수정
+- `25dcc81`: AccountingPage import 수정
+- `d57c6c4`: 템플릿 리터럴 따옴표 수정
+- `c57cfc0`: Railway 의존성 추가
+- `ae213c2`: README 배포 문서화
 
 ### 2026-01-29: 플레이오토 통합 완성
 - ✅ Phase 19: 상세페이지 생성기 Figma 스타일 UI
