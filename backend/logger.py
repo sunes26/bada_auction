@@ -1,0 +1,95 @@
+"""
+로깅 시스템 설정
+
+애플리케이션 전체에서 사용할 로거 설정
+"""
+
+import logging
+import os
+from datetime import datetime
+from logging.handlers import RotatingFileHandler
+
+# logs 디렉토리 생성
+LOGS_DIR = os.path.join(os.path.dirname(__file__), 'logs')
+os.makedirs(LOGS_DIR, exist_ok=True)
+
+# 로그 파일 경로
+LOG_FILE = os.path.join(LOGS_DIR, 'app.log')
+ERROR_LOG_FILE = os.path.join(LOGS_DIR, 'error.log')
+
+# 로그 포맷
+LOG_FORMAT = '[%(asctime)s] [%(levelname)s] [%(name)s:%(lineno)d] - %(message)s'
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+# 메인 로거 설정
+logger = logging.getLogger("onbaek-ai")
+logger.setLevel(logging.INFO)
+
+# 기존 핸들러 제거 (중복 방지)
+if logger.hasHandlers():
+    logger.handlers.clear()
+
+# 콘솔 핸들러 (INFO 이상)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
+console_handler.setFormatter(console_formatter)
+
+# 파일 핸들러 (INFO 이상, 최대 10MB, 5개 백업)
+file_handler = RotatingFileHandler(
+    LOG_FILE,
+    maxBytes=10 * 1024 * 1024,  # 10MB
+    backupCount=5,
+    encoding='utf-8'
+)
+file_handler.setLevel(logging.INFO)
+file_formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
+file_handler.setFormatter(file_formatter)
+
+# 에러 로그 파일 핸들러 (ERROR 이상만)
+error_handler = RotatingFileHandler(
+    ERROR_LOG_FILE,
+    maxBytes=10 * 1024 * 1024,  # 10MB
+    backupCount=5,
+    encoding='utf-8'
+)
+error_handler.setLevel(logging.ERROR)
+error_formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
+error_handler.setFormatter(error_formatter)
+
+# 핸들러 추가
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
+logger.addHandler(error_handler)
+
+
+def get_logger(name: str = None):
+    """
+    로거 인스턴스 반환
+
+    Args:
+        name: 로거 이름 (모듈명 등)
+
+    Returns:
+        logging.Logger: 로거 인스턴스
+    """
+    if name:
+        return logging.getLogger(f"onbaek-ai.{name}")
+    return logger
+
+
+# 사용 예시 함수
+def test_logging():
+    """로깅 테스트"""
+    logger.debug("디버그 메시지 (출력 안됨)")
+    logger.info("정보 메시지")
+    logger.warning("경고 메시지")
+    logger.error("에러 메시지")
+    logger.critical("치명적 오류 메시지")
+
+
+if __name__ == "__main__":
+    # 테스트 실행
+    print(f"로그 파일 경로: {LOG_FILE}")
+    print(f"에러 로그 파일 경로: {ERROR_LOG_FILE}")
+    test_logging()

@@ -1,0 +1,248 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# ====================================
+# Python
+# ====================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv
+
+# Python Distribution
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# ====================================
+# Database
+# ====================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Backup files
+backups/
+*.backup
+
+# ====================================
+# RPA & Automation
+# ====================================
+backend/screenshots/
+backend/cookies/
+backend/monitoring.db
+
+# ====================================
+# Logs
+# ====================================
+logs/
+*.log
+*_output.txt
+server_output.txt
+
+# ====================================
+# Images (Large files)
+# ====================================
+supabase-images/
+public/supabase-images/
+backend/static/thumbnails/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.webp
+# 필요한 이미지는 개별적으로 추가
+!public/favicon.ico
+!app/favicon.ico
+
+# ====================================
+# OS
+# ====================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ====================================
+# IDE
+# ====================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# ====================================
+# Temporary files
+# ====================================
+*.tmp
+*.temp
+*.bak
+*.old
+nul
+
+# ====================================
+# Project Specific
+# ====================================
+# Test files (선택적으로 커밋하려면 주석 해제)
+# backend/test_*.py
+# check-*.js
+
+# Result files
+result.png
+test_order.json
+
+# Debug files
+backend/smartstore_debug.html
+backend/smartstore_debug.png
+backend/test_output.txt
+
+# ====================================
+# Deployment & Cloud
+# ====================================
+# Railway
+railway.toml
+.railway/
+
+# Vercel
+.vercel/
+.vercel.json
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# ====================================
+# Backup Files
+# ====================================
+*.backup
+*.backup.*
+*.bak
+*.tar.gz
+*.zip
+*-backup-*
+supabase-images-backup-*
+
+# ====================================
+# Claude & AI
+# ====================================
+.claude/settings.local.json
+.claude/projects/
+.anthropic/
+
+# ====================================
+# Sensitive Documents (Large PDFs)
+# ====================================
+aa.pdf
+templete.pdf
+*.pdf.backup
+
+# Keep important documentation PDFs (uncomment to commit):
+# !playauto_api_upload_document.pdf
+# !Product Information Provision Notice.pdf
+# !플레이오토 API 상세 명세서 (교정본).pdf
+
+# ====================================
+# Migration & Scripts (Temporary)
+# ====================================
+migrate_*.py.tmp
+migration_backup/
+schema_backup/
+
+# ====================================
+# Local Development
+# ====================================
+.python-version
+.node-version
+.nvmrc
+
+# Local config overrides
+config.local.json
+settings.local.json

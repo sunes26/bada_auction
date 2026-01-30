@@ -1,0 +1,74 @@
+[
+  {
+    "level1": "간편식",
+    "info_code": "ProcessedFood2023",
+    "info_code_name": "가공식품",
+    "notes": "즉석밥, 죽, 국/탕/찌개 등"
+  },
+  {
+    "level1": "건강기능식품",
+    "info_code": "HealthFunctionalFood2023",
+    "info_code_name": "건강기능식품",
+    "notes": "영양제, 보충제 등"
+  },
+  {
+    "level1": "과일류",
+    "info_code": "ProcessedFood2023",
+    "info_code_name": "가공식품",
+    "notes": "과일 가공품"
+  },
+  {
+    "level1": "뷰티",
+    "info_code": "Cosmetic2023",
+    "info_code_name": "화장품",
+    "notes": "스킨케어, 메이크업 등"
+  },
+  {
+    "level1": "스낵류",
+    "info_code": "ProcessedFood2023",
+    "info_code_name": "가공식품",
+    "notes": "과자, 초콜릿, 사탕 등"
+  },
+  {
+    "level1": "신선/냉장품",
+    "info_code": "ProcessedFood2023",
+    "info_code_name": "가공식품",
+    "notes": "냉장/냉동 가공식품"
+  },
+  {
+    "level1": "우유/두유",
+    "info_code": "ProcessedFood2023",
+    "info_code_name": "가공식품",
+    "notes": "우유, 두유, 요구르트 등"
+  },
+  {
+    "level1": "음료",
+    "info_code": "ProcessedFood2023",
+    "info_code_name": "가공식품",
+    "notes": "주스, 탄산음료, 식혜 등"
+  },
+  {
+    "level1": "커피/차류",
+    "info_code": "ProcessedFood2023",
+    "info_code_name": "가공식품",
+    "notes": "커피, 차, 분말음료 등"
+  },
+  {
+    "level1": "쿠킹소스/장류",
+    "info_code": "ProcessedFood2023",
+    "info_code_name": "가공식품",
+    "notes": "소스, 장류, 양념 등"
+  },
+  {
+    "level1": "통조림/캔류",
+    "info_code": "ProcessedFood2023",
+    "info_code_name": "가공식품",
+    "notes": "통조림, 캔 식품"
+  },
+  {
+    "level1": "화장품,생활용품",
+    "info_code": "Cosmetic2023",
+    "info_code_name": "화장품",
+    "notes": "화장품 및 일부 생활용품"
+  }
+]
