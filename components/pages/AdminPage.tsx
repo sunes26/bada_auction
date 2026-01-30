@@ -363,23 +363,23 @@ function DashboardTab({ systemStatus, imageStats, databaseStats, onRefresh }: {
         <StatusCard
           title="API 서버"
           value={systemStatus?.server.status || '확인 중'}
-          subtitle={`${systemStatus?.server.response_time_ms.toFixed(2) || 0} ms`}
+          subtitle={`${systemStatus?.server.response_time_ms?.toFixed(2) ?? 0} ms`}
           icon={<Server className="w-6 h-6" />}
           color="green"
           status={systemStatus?.server.status === '정상' ? 'success' : 'error'}
         />
         <StatusCard
           title="메모리 사용량"
-          value={`${systemStatus?.system.memory_percent.toFixed(1) || 0}%`}
-          subtitle={`${(systemStatus?.system.memory_used_mb / 1024).toFixed(1) || 0} GB / ${(systemStatus?.system.memory_total_mb / 1024).toFixed(1) || 0} GB`}
+          value={`${systemStatus?.system.memory_percent?.toFixed(1) ?? 0}%`}
+          subtitle={`${((systemStatus?.system.memory_used_mb ?? 0) / 1024).toFixed(1)} GB / ${((systemStatus?.system.memory_total_mb ?? 0) / 1024).toFixed(1)} GB`}
           icon={<Cpu className="w-6 h-6" />}
           color="purple"
           status={systemStatus ? (systemStatus.system.memory_percent > 80 ? 'warning' : 'success') : 'info'}
         />
         <StatusCard
           title="디스크 사용량"
-          value={`${systemStatus?.system.disk_percent.toFixed(1) || 0}%`}
-          subtitle={`${systemStatus?.system.disk_used_gb.toFixed(1) || 0} GB / ${systemStatus?.system.disk_total_gb.toFixed(1) || 0} GB`}
+          value={`${systemStatus?.system.disk_percent?.toFixed(1) ?? 0}%`}
+          subtitle={`${systemStatus?.system.disk_used_gb?.toFixed(1) ?? 0} GB / ${systemStatus?.system.disk_total_gb?.toFixed(1) ?? 0} GB`}
           icon={<HardDrive className="w-6 h-6" />}
           color="orange"
           status={systemStatus ? (systemStatus.system.disk_percent > 80 ? 'warning' : 'success') : 'info'}
