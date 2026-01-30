@@ -158,9 +158,25 @@ app = FastAPI(
 )
 
 # CORS 설정 (Next.js 프론트엔드와 통신 허용)
+allowed_origins = [
+    "http://localhost:3000",  # Next.js 개발 서버
+    "http://localhost:3001",  # 대체 포트
+]
+
+# Production origins (Railway, Vercel)
+if os.getenv('ENVIRONMENT') == 'production':
+    allowed_origins.extend([
+        "https://*.vercel.app",  # Vercel 배포
+        "https://*.railway.app",  # Railway 배포
+    ])
+
+# Allow all origins in production (더 유연한 설정)
+if os.getenv('ENVIRONMENT') == 'production':
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Next.js 개발 서버
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # 필요한 메서드만 허용
     allow_headers=[
@@ -279,8 +295,31 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """헬스 체크 엔드포인트"""
-    return {"status": "healthy"}
+    """Health check endpoint for Railway deployment"""
+    from datetime import datetime
+    from fastapi.responses import JSONResponse
+
+    try:
+        # Test database connection
+        db = get_db()
+        db.get_dashboard_stats()  # Simple query to verify DB connection
+
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "environment": os.getenv("USE_POSTGRESQL", "false"),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "unhealthy",
+                "database": "disconnected",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+        )
 
 
 if __name__ == "__main__":

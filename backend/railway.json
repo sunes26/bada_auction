@@ -1,0 +1,44 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "pip install -r requirements.txt"
+  },
+  "deploy": {
+    "startCommand": "gunicorn main:app --config gunicorn_conf.py",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  },
+  "env": {
+    "USE_POSTGRESQL": {
+      "description": "Enable PostgreSQL (set to true)",
+      "default": "true"
+    },
+    "DATABASE_URL": {
+      "description": "PostgreSQL connection string from Supabase"
+    },
+    "PLAYAUTO_SOLUTION_KEY": {
+      "description": "Playauto solution key"
+    },
+    "PLAYAUTO_API_KEY": {
+      "description": "Playauto API key"
+    },
+    "PLAYAUTO_EMAIL": {
+      "description": "Playauto email"
+    },
+    "PLAYAUTO_PASSWORD": {
+      "description": "Playauto password"
+    },
+    "ENCRYPTION_KEY": {
+      "description": "Fernet encryption key"
+    },
+    "OPENAI_API_KEY": {
+      "description": "OpenAI API key"
+    },
+    "CAPTCHA_API_KEY": {
+      "description": "2Captcha API key"
+    }
+  }
+}

@@ -1,0 +1,80 @@
+# Railway ignore file
+# Files and directories to exclude from Railway deployment
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local database
+monitoring.db
+monitoring.db-journal
+*.db
+*.db-journal
+
+# Logs
+*.log
+logs/
+
+# Environment files (will be set in Railway dashboard)
+.env
+.env.local
+.env.*.local
+
+# Migration files
+csv_export/
+migration_backup/
+schema_backup/
+migrate_*.py.tmp
+
+# RPA-related (not needed on server)
+rpa/
+test_*.py
+*_debug.py
+*_manual.py
+
+# Documentation
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Screenshots and large images
+screenshots/
+result.png
+supabase-images/
+
+# PDFs
+*.pdf
+
+# Backup files
+*.bak
+*.backup
+backup/
