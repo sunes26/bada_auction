@@ -20,8 +20,8 @@ import {
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import EmptyState, { EmptyExpenses, EmptySettlements } from '@/components/ui/EmptyState';
-import type {
 import { API_BASE_URL } from '@/lib/api';
+import type {
   AccountingDashboardStats,
   ProfitLossStatement,
   Expense,
