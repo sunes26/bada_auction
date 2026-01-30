@@ -99,9 +99,9 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const [statusRes, imageRes, dbRes] = await Promise.all([
-        fetch('${API_BASE_URL}/api/admin/system/status'),
-        fetch('${API_BASE_URL}/api/admin/images/stats'),
-        fetch('${API_BASE_URL}/api/admin/database/stats')
+        fetch(`${API_BASE_URL}/api/admin/system/status`),
+        fetch(`${API_BASE_URL}/api/admin/images/stats`),
+        fetch(`${API_BASE_URL}/api/admin/database/stats`)
       ]);
 
       const [statusData, imageData, dbData] = await Promise.all([
@@ -318,7 +318,7 @@ function DashboardTab({ systemStatus, imageStats, databaseStats, onRefresh }: {
   // 빠른 액션 핸들러들
   const handleBackupDB = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/database/backup', { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/api/admin/database/backup`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert('✓ 데이터베이스 백업 완료!');
@@ -332,7 +332,7 @@ function DashboardTab({ systemStatus, imageStats, databaseStats, onRefresh }: {
   const handleOptimizeDB = async () => {
     if (!confirm('데이터베이스를 최적화하시겠습니까?')) return;
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/database/optimize', { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/api/admin/database/optimize`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert('✓ 데이터베이스 최적화 완료!');
@@ -637,7 +637,7 @@ function ImagesTab() {
 
   const loadNextFolderNumber = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/categories/next-number');
+      const res = await fetch(`${API_BASE_URL}/api/categories/next-number`);
       const data = await res.json();
       if (data.success) {
         setNextFolderNumber(data.next_number);
@@ -650,7 +650,7 @@ function ImagesTab() {
   const loadCategoryOptions = async () => {
     try {
       // 대분류만 로드 (level1)
-      const res = await fetch('${API_BASE_URL}/api/categories/levels');
+      const res = await fetch(`${API_BASE_URL}/api/categories/levels`);
       const data = await res.json();
       if (data.success) {
         setCategoryOptions({ level1: data.options, level2: [], level3: [], level4: [] });
@@ -662,7 +662,7 @@ function ImagesTab() {
 
   const loadImageStats = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/images/stats');
+      const res = await fetch(`${API_BASE_URL}/api/admin/images/stats`);
       const data = await res.json();
       if (data.success) {
         setImageStats(data);
@@ -1051,7 +1051,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
 
   const loadBackups = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/database/backups');
+      const res = await fetch(`${API_BASE_URL}/api/admin/database/backups`);
       const data = await res.json();
       if (data.success) {
         setBackups(data.backups);
@@ -1063,7 +1063,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
 
   const handleBackup = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/database/backup', { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/api/admin/database/backup`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert('✓ 백업 완료!');
@@ -1093,7 +1093,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
   const handleOptimize = async () => {
     if (!confirm('데이터베이스를 최적화하시겠습니까?')) return;
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/database/optimize', { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/api/admin/database/optimize`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert('✓ 최적화 완료!');
@@ -1198,7 +1198,7 @@ function LogsTab() {
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/logs/recent?limit=100');
+      const res = await fetch(`${API_BASE_URL}/api/admin/logs/recent?limit=100`);
       const data = await res.json();
       if (data.success) {
         setLogs(data.logs);
@@ -1270,7 +1270,7 @@ function SettingsTab() {
 
   const loadEnvVars = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/settings/env');
+      const res = await fetch(`${API_BASE_URL}/api/admin/settings/env`);
       const data = await res.json();
       if (data.success) {
         setEnvVars(data.environment_variables);
@@ -1283,7 +1283,7 @@ function SettingsTab() {
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const res = await fetch('${API_BASE_URL}/api/playauto/templates');
+      const res = await fetch(`${API_BASE_URL}/api/playauto/templates`);
       const data = await res.json();
       if (data.success) {
         setTemplates(data.data.template_info || []);
@@ -1297,7 +1297,7 @@ function SettingsTab() {
 
   const loadDefaultTemplates = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/playauto/templates/default');
+      const res = await fetch(`${API_BASE_URL}/api/playauto/templates/default`);
       const data = await res.json();
       if (data.success && data.templates) {
         setDefaultTemplates(data.templates);
@@ -1331,7 +1331,7 @@ function SettingsTab() {
 
     setSaving(true);
     try {
-      const res = await fetch('${API_BASE_URL}/api/playauto/settings', {
+      const res = await fetch(`${API_BASE_URL}/api/playauto/settings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1363,7 +1363,7 @@ function SettingsTab() {
     }
 
     try {
-      const res = await fetch('${API_BASE_URL}/api/playauto/templates/save-default', {
+      const res = await fetch(`${API_BASE_URL}/api/playauto/templates/save-default`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1606,7 +1606,7 @@ function CleanupTab() {
     if (!confirm('임시 파일을 정리하시겠습니까?')) return;
 
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/cleanup/temp-files', { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/api/admin/cleanup/temp-files`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         alert(`✓ ${data.deleted_files}개 파일 삭제 (${data.freed_mb} MB 확보)`);
@@ -1684,7 +1684,7 @@ function PerformanceTab() {
 
   const loadMetrics = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/performance/metrics');
+      const res = await fetch(`${API_BASE_URL}/api/admin/performance/metrics`);
       const data = await res.json();
       if (data.success) {
         setMetrics(data);
@@ -1763,7 +1763,7 @@ function DevToolsTab() {
 
   const handleTestAPI = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/admin/api/test');
+      const res = await fetch(`${API_BASE_URL}/api/admin/api/test`);
       const data = await res.json();
       if (data.success) {
         setTestResults(data.tests);
@@ -1840,7 +1840,7 @@ function CategoryMappingTab() {
   const loadMappings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('${API_BASE_URL}/api/category-infocode-mappings');
+      const response = await fetch(`${API_BASE_URL}/api/category-infocode-mappings`);
       if (!response.ok) throw new Error('매핑 조회 실패');
       const data = await response.json();
       setMappings(data);
@@ -1853,7 +1853,7 @@ function CategoryMappingTab() {
 
   const loadAvailableInfoCodes = async () => {
     try {
-      const response = await fetch('${API_BASE_URL}/api/available-infocodes');
+      const response = await fetch(`${API_BASE_URL}/api/available-infocodes`);
       if (!response.ok) throw new Error('infoCode 목록 조회 실패');
       const data = await response.json();
       setAvailableInfoCodes(data);
@@ -1889,7 +1889,7 @@ function CategoryMappingTab() {
       setLoading(true);
 
       if (editMode === 'add') {
-        const response = await fetch('${API_BASE_URL}/api/category-infocode-mappings', {
+        const response = await fetch(`${API_BASE_URL}/api/category-infocode-mappings`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)

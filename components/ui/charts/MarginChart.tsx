@@ -36,7 +36,7 @@ export default function MarginChart() {
       setIsLoading(true);
 
       // 모든 주문 가져오기
-      const ordersRes = await fetch('${API_BASE_URL}/api/orders/list?limit=100');
+      const ordersRes = await fetch(`${API_BASE_URL}/api/orders/list?limit=100`);
       const ordersData = await ordersRes.json();
 
       // 마진율 구간별 집계

@@ -42,8 +42,8 @@ export default function RevenueChart() {
 
       // RPA 일별 통계 + 주문 목록 가져오기
       const [dailyStatsRes, ordersRes] = await Promise.all([
-        fetch('${API_BASE_URL}/api/orders/rpa/daily-stats?days=30'),
-        fetch('${API_BASE_URL}/api/orders/list?limit=100'),
+        fetch(`${API_BASE_URL}/api/orders/rpa/daily-stats?days=30`),
+        fetch(`${API_BASE_URL}/api/orders/list?limit=100`),
       ]);
 
       const dailyStats = await dailyStatsRes.json();

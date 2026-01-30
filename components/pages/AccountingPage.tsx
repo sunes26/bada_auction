@@ -145,7 +145,7 @@ const AccountingPage = () => {
   const loadExpenses = async () => {
     try {
       setLoading(true);
-      const res = await fetch('${API_BASE_URL}/api/accounting/expenses');
+      const res = await fetch(`${API_BASE_URL}/api/accounting/expenses`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -162,7 +162,7 @@ const AccountingPage = () => {
   const loadSettlements = async () => {
     try {
       setLoading(true);
-      const res = await fetch('${API_BASE_URL}/api/accounting/settlements');
+      const res = await fetch(`${API_BASE_URL}/api/accounting/settlements`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -229,7 +229,7 @@ const AccountingPage = () => {
 
   const handleCreateExpense = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/accounting/expenses', {
+      const res = await fetch(`${API_BASE_URL}/api/accounting/expenses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(expenseFormData)
@@ -265,7 +265,7 @@ const AccountingPage = () => {
 
   const handleCreateSettlement = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/accounting/settlements', {
+      const res = await fetch(`${API_BASE_URL}/api/accounting/settlements`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settlementFormData)

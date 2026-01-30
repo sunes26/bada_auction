@@ -461,7 +461,7 @@ export default function UnifiedOrderManagementPage() {
   // 플레이오토 설정 관련
   const loadSettings = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/api/playauto/settings');
+      const res = await fetch(`${API_BASE_URL}/api/playauto/settings`);
       if (!res.ok) throw new Error('설정 조회 실패');
       const data = await res.json();
       setSettingsInfo(data);
@@ -474,7 +474,7 @@ export default function UnifiedOrderManagementPage() {
     e.preventDefault();
     try {
       setActionLoading({ ...actionLoading, 'save-settings': true });
-      const res = await fetch('${API_BASE_URL}/api/playauto/settings', {
+      const res = await fetch(`${API_BASE_URL}/api/playauto/settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
@@ -504,7 +504,7 @@ export default function UnifiedOrderManagementPage() {
   const testConnection = async () => {
     try {
       setActionLoading({ ...actionLoading, 'test-connection': true });
-      const res = await fetch('${API_BASE_URL}/api/playauto/test-connection', {
+      const res = await fetch(`${API_BASE_URL}/api/playauto/test-connection`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -560,7 +560,7 @@ export default function UnifiedOrderManagementPage() {
   const loadTrackingHistory = async () => {
     try {
       setLoading(true);
-      const res = await fetch('${API_BASE_URL}/api/playauto/tracking-upload-history?limit=20');
+      const res = await fetch(`${API_BASE_URL}/api/playauto/tracking-upload-history?limit=20`);
       if (!res.ok) throw new Error('이력 조회 실패');
       const data = await res.json();
 
@@ -590,7 +590,7 @@ export default function UnifiedOrderManagementPage() {
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      const res = await fetch('${API_BASE_URL}/api/orders/sourcing-accounts');
+      const res = await fetch(`${API_BASE_URL}/api/orders/sourcing-accounts`);
       const data = await res.json();
       if (data.success) {
         setAccounts(data.accounts);
@@ -605,7 +605,7 @@ export default function UnifiedOrderManagementPage() {
   const addAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('${API_BASE_URL}/api/orders/sourcing-account', {
+      const res = await fetch(`${API_BASE_URL}/api/orders/sourcing-account`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(accountForm)
