@@ -107,9 +107,10 @@ class DatabaseManager:
     def test_connection(self) -> bool:
         """Test database connection"""
         try:
+            from sqlalchemy import text
             with self.get_session() as session:
-                # Test query
-                session.execute("SELECT 1")
+                # Test query (SQLAlchemy 2.0 syntax)
+                session.execute(text("SELECT 1"))
             print(f"[OK] Database connection successful: {self.database_url}")
             return True
         except Exception as e:
