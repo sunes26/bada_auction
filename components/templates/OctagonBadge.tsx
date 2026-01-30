@@ -12,7 +12,7 @@ interface OctagonBadgeProps {
   onCancel: () => void;
   onValueChange: (value: string) => void;
   onStyleClick?: (field: string) => void;
-  textStyles?: Record<string, { fontSize?: string; color?: string; fontWeight?: string }>;
+  textStyles?: Record<string, { fontSize?: string; color?: string; fontWeight?: string; textAlign?: string }>;
   className?: string;
 }
 
@@ -55,7 +55,7 @@ export default function OctagonBadge({
               onCancel={onCancel}
               onValueChange={onValueChange}
               onStyleClick={onStyleClick}
-              textStyles={textStyles[topField]}
+              textStyles={textStyles}
               style={{ fontSize: '36px', fontWeight: 'bold', color: '#000' }}
             />
           </div>
@@ -70,7 +70,7 @@ export default function OctagonBadge({
               onCancel={onCancel}
               onValueChange={onValueChange}
               onStyleClick={onStyleClick}
-              textStyles={textStyles[bottomField]}
+              textStyles={textStyles}
               style={{ fontSize: '18px', fontWeight: '500', color: '#000' }}
             />
           </div>
