@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 export interface StatusCount {
   status: string;
@@ -28,7 +29,7 @@ export function useOrderStatusStats(): OrderStatusStatsResult {
       setIsLoading(true);
       setError(null);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ${API_BASE_URL};
       const response = await fetch(`${apiUrl}/api/playauto/stats/by-status`);
 
       if (!response.ok) {

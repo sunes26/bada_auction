@@ -9,6 +9,7 @@ import {
 } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import { PieChart } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 

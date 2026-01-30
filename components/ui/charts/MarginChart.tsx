@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { BarChart3 } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 ChartJS.register(
   CategoryScale,

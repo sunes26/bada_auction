@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { API_BASE_URL } from '@/lib/api';
 
 interface SchedulerConfig {
   enabled: boolean

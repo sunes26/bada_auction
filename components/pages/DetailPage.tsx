@@ -15,6 +15,7 @@ import AdditionalTemplate from '@/components/templates/AdditionalTemplate';
 import Additional2Template from '@/components/templates/Additional2Template';
 import TextStyleEditor from '@/components/templates/TextStyleEditor';
 import PropertiesPanel from '@/components/ui/PropertiesPanel';
+import { API_BASE_URL } from '@/lib/api';
 
 type Screen = 'category-selection' | 'product-input' | 'generating' | 'result';
 

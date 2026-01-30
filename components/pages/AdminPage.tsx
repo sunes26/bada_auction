@@ -29,6 +29,7 @@ import {
   Plus
 } from 'lucide-react';
 
+import { API_BASE_URL } from '@/lib/api';
 type TabType = 'dashboard' | 'images' | 'database' | 'logs' | 'settings' | 'cleanup' | 'performance' | 'devtools' | 'activity' | 'mappings';
 
 interface SystemStatus {

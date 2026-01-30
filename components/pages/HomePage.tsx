@@ -12,6 +12,7 @@ import SourcePieChart from '@/components/ui/charts/SourcePieChart';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { ordersApi, playautoApi, monitorApi } from '@/lib/api';
 import type { Order } from '@/lib/types';
+import { API_BASE_URL } from '@/lib/api';
 
 interface DashboardStats {
   totalOrders: number;
@@ -53,7 +54,7 @@ export default function HomePage() {
       setLoading(true);
 
       // 병렬로 여러 API 호출 (공통 API 클라이언트 사용, 캐싱 적용)
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ${API_BASE_URL};
       const [rpaStats, playautoStats, monitorStats, ordersData, allOrdersData] = await Promise.all([
         fetch(`${apiBaseUrl}/api/orders/rpa/stats`).then(r => r.json()),
         playautoApi.stats(true),

@@ -44,6 +44,7 @@ import OrderMonitorWidget from '@/components/ui/OrderMonitorWidget';
 import MarketStatsGrid from '@/components/ui/MarketStatsGrid';
 import OrderStatusBadges from '@/components/ui/OrderStatusBadges';
 import TrackingSchedulerPage from '@/components/pages/TrackingSchedulerPage';
+import { API_BASE_URL } from '@/lib/api';
 
 // ============= TypeScript 인터페이스 정의 =============
 
@@ -224,7 +225,7 @@ export default function UnifiedOrderManagementPage() {
   // 대시보드 관련
   const loadStats = useCallback(async () => {
     try {
-      const data = await fetch((process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000') + '/api/playauto/stats').then(r => r.json());
+      const data = await fetch((process.env.NEXT_PUBLIC_API_BASE_URL || ${API_BASE_URL}) + '/api/playauto/stats').then(r => r.json());
       setStats(data);
     } catch (error) {
       console.error('통계 로드 실패:', error);
@@ -233,7 +234,7 @@ export default function UnifiedOrderManagementPage() {
 
   const loadRecentLogs = useCallback(async () => {
     try {
-      const data = await fetch((process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000') + '/api/playauto/sync-logs?limit=10').then(r => r.json());
+      const data = await fetch((process.env.NEXT_PUBLIC_API_BASE_URL || ${API_BASE_URL}) + '/api/playauto/sync-logs?limit=10').then(r => r.json());
       if (data.success) {
         setRecentLogs(data.logs);
       }
@@ -379,7 +380,7 @@ export default function UnifiedOrderManagementPage() {
     e.preventDefault();
     try {
       // 공통 API 클라이언트 사용
-      const data = await fetch((process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000') + '/api/orders/create', {
+      const data = await fetch((process.env.NEXT_PUBLIC_API_BASE_URL || ${API_BASE_URL}) + '/api/orders/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderForm)

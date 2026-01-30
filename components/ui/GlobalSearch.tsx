@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Search, X, Package, ShoppingCart } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 interface SearchResult {
   id: string;

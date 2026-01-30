@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '@/lib/api';
 
 interface Order {
   unliq: string;
@@ -66,7 +67,7 @@ export function useOrderMonitoring(
     try {
       setIsChecking(true);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || ${API_BASE_URL};
       const response = await fetch(`${apiUrl}/api/playauto/orders/recent?minutes=30`);
 
       if (!response.ok) {
