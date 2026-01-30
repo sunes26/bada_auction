@@ -10,7 +10,8 @@ bind = f"0.0.0.0:{os.getenv('PORT', '8000')}"
 backlog = 2048
 
 # Worker processes
-workers = int(os.getenv('WEB_CONCURRENCY', multiprocessing.cpu_count() * 2 + 1))
+# Railway Hobby Plan: Use 2-4 workers to avoid memory/CPU limits
+workers = int(os.getenv('WEB_CONCURRENCY', 2))
 worker_class = 'uvicorn.workers.UvicornWorker'
 worker_connections = 1000
 max_requests = 1000
