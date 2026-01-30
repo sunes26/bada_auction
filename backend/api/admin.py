@@ -4,14 +4,34 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from typing import Optional, Dict, Any, List
 import os
-import psutil
 import time
 import json
 import shutil
 from pathlib import Path
 from datetime import datetime, timedelta
-from PIL import Image
-import sqlite3
+
+# Optional imports with error handling
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    print("[WARN] psutil not available - system monitoring disabled")
+
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("[WARN] PIL not available - image processing disabled")
+
+try:
+    import sqlite3
+    SQLITE_AVAILABLE = True
+except ImportError:
+    SQLITE_AVAILABLE = False
+    print("[WARN] sqlite3 not available - using DatabaseWrapper instead")
+
 from database.db import get_db
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -23,9 +43,12 @@ DB_PATH = PROJECT_ROOT / "backend" / "monitoring.db"
 BACKUP_DIR = PROJECT_ROOT / "backend" / "backup"
 LOG_DIR = PROJECT_ROOT / "backend" / "logs"
 
-# 백업 디렉토리 생성
-BACKUP_DIR.mkdir(exist_ok=True)
-LOG_DIR.mkdir(exist_ok=True)
+# 백업 디렉토리 생성 (Railway 환경에서는 실패할 수 있음)
+try:
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    print(f"[WARN] Failed to create directories: {e}")
 
 @router.get("/system/status")
 async def get_system_status():
@@ -35,20 +58,35 @@ async def get_system_status():
         db_size = 0
         db_status = "연결됨"
         try:
+            # Use get_db() instead of direct sqlite3 connection
+            db = get_db()
+            # Test connection
+            if hasattr(db, 'execute'):
+                db.execute("SELECT 1")
+                db_status = "연결됨"
+
+            # Get DB size if SQLite file exists
             if DB_PATH.exists():
                 db_size = DB_PATH.stat().st_size / (1024 * 1024)  # MB
-            conn = sqlite3.connect(str(DB_PATH))
-            conn.execute("SELECT 1")
-            conn.close()
         except Exception as e:
             db_status = f"오류: {str(e)}"
 
         # 시스템 리소스
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage(str(PROJECT_ROOT))
-
-        # CPU 사용률 (1초 간격)
-        cpu_percent = psutil.cpu_percent(interval=0.1)
+        if PSUTIL_AVAILABLE:
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage(str(PROJECT_ROOT))
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            uptime_seconds = time.time() - psutil.boot_time()
+        else:
+            # Default values when psutil not available
+            memory = type('obj', (object,), {
+                'used': 0, 'total': 0, 'percent': 0
+            })()
+            disk = type('obj', (object,), {
+                'used': 0, 'total': 0, 'percent': 0
+            })()
+            cpu_percent = 0
+            uptime_seconds = 0
 
         # API 응답 시간 (자기 자신 테스트)
         start = time.time()
@@ -69,16 +107,16 @@ async def get_system_status():
             "server": {
                 "status": "정상",
                 "response_time_ms": round(api_response_time, 2),
-                "uptime_seconds": time.time() - psutil.boot_time()
+                "uptime_seconds": uptime_seconds
             },
             "system": {
                 "cpu_percent": cpu_percent,
-                "memory_used_mb": memory.used / (1024 * 1024),
-                "memory_total_mb": memory.total / (1024 * 1024),
-                "memory_percent": memory.percent,
-                "disk_used_gb": disk.used / (1024 * 1024 * 1024),
-                "disk_total_gb": disk.total / (1024 * 1024 * 1024),
-                "disk_percent": disk.percent
+                "memory_used_mb": memory.used / (1024 * 1024) if PSUTIL_AVAILABLE else 0,
+                "memory_total_mb": memory.total / (1024 * 1024) if PSUTIL_AVAILABLE else 0,
+                "memory_percent": memory.percent if PSUTIL_AVAILABLE else 0,
+                "disk_used_gb": disk.used / (1024 * 1024 * 1024) if PSUTIL_AVAILABLE else 0,
+                "disk_total_gb": disk.total / (1024 * 1024 * 1024) if PSUTIL_AVAILABLE else 0,
+                "disk_percent": disk.percent if PSUTIL_AVAILABLE else 0
             },
             "timestamp": datetime.now().isoformat()
         }
@@ -149,9 +187,12 @@ async def get_image_gallery(folder_name: str):
         image_list = []
         for img_path in images:
             try:
-                with Image.open(img_path) as img:
-                    width, height = img.size
-                    format_name = img.format
+                if PIL_AVAILABLE:
+                    with Image.open(img_path) as img:
+                        width, height = img.size
+                        format_name = img.format
+                else:
+                    width, height, format_name = 0, 0, "Unknown"
             except:
                 width, height, format_name = 0, 0, "Unknown"
 
