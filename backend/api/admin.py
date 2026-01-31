@@ -187,44 +187,84 @@ async def get_image_stats():
 
 @router.get("/images/gallery/{folder_name}")
 async def get_image_gallery(folder_name: str):
-    """특정 폴더의 이미지 목록 조회"""
+    """특정 폴더의 이미지 목록 조회 - Supabase Storage 사용"""
     try:
-        folder_path = IMAGES_DIR / folder_name
-        if not folder_path.exists():
-            return {"success": False, "detail": "폴더를 찾을 수 없습니다"}
+        from utils.supabase_storage import list_images, get_public_url, supabase
 
-        images = []
-        for ext in ["jpg", "jpeg", "png", "webp", "gif"]:
-            images.extend(folder_path.glob(f"*.[{ext[0].upper()}{ext[0].lower()}]*"))
+        # Supabase 클라이언트 확인
+        if not supabase:
+            # Fallback: 로컬 파일시스템 사용
+            folder_path = IMAGES_DIR / folder_name
+            if not folder_path.exists():
+                return {"success": False, "detail": "폴더를 찾을 수 없습니다"}
 
-        image_list = []
-        for img_path in images:
-            try:
-                if PIL_AVAILABLE:
-                    with Image.open(img_path) as img:
-                        width, height = img.size
-                        format_name = img.format
-                else:
+            images = []
+            for ext in ["jpg", "jpeg", "png", "webp", "gif"]:
+                images.extend(folder_path.glob(f"*.[{ext[0].upper()}{ext[0].lower()}]*"))
+
+            image_list = []
+            for img_path in images:
+                try:
+                    if PIL_AVAILABLE:
+                        with Image.open(img_path) as img:
+                            width, height = img.size
+                            format_name = img.format
+                    else:
+                        width, height, format_name = 0, 0, "Unknown"
+                except:
                     width, height, format_name = 0, 0, "Unknown"
-            except:
-                width, height, format_name = 0, 0, "Unknown"
 
-            image_list.append({
-                "filename": img_path.name,
-                "path": f"/supabase-images/{folder_name}/{img_path.name}",
-                "size_kb": round(img_path.stat().st_size / 1024, 2),
-                "width": width,
-                "height": height,
-                "format": format_name,
-                "modified": datetime.fromtimestamp(img_path.stat().st_mtime).isoformat()
-            })
+                image_list.append({
+                    "filename": img_path.name,
+                    "path": f"/supabase-images/{folder_name}/{img_path.name}",
+                    "size_kb": round(img_path.stat().st_size / 1024, 2),
+                    "width": width,
+                    "height": height,
+                    "format": format_name,
+                    "modified": datetime.fromtimestamp(img_path.stat().st_mtime).isoformat()
+                })
 
-        return {
-            "success": True,
-            "folder": folder_name,
-            "images": image_list,
-            "count": len(image_list)
-        }
+            return {
+                "success": True,
+                "folder": folder_name,
+                "images": image_list,
+                "count": len(image_list)
+            }
+
+        # Supabase Storage에서 이미지 목록 조회
+        # 폴더명에서 카테고리 ID 추출 (예: "100_식혜" → "100")
+        category_id = folder_name.split('_')[0]
+        storage_folder = f"cat-{category_id}"
+
+        # 이미지 목록 조회
+        try:
+            files = supabase.storage.from_("product-images").list(storage_folder)
+
+            image_list = []
+            for file in files:
+                # 공개 URL 생성
+                storage_path = f"{storage_folder}/{file['name']}"
+                public_url = get_public_url(storage_path)
+
+                image_list.append({
+                    "filename": file['name'],
+                    "path": public_url,  # Supabase Storage 공개 URL
+                    "size_kb": round(file.get('metadata', {}).get('size', 0) / 1024, 2) if file.get('metadata') else 0,
+                    "width": 0,  # Supabase Storage는 이미지 메타데이터 제공하지 않음
+                    "height": 0,
+                    "format": file['name'].split('.')[-1].upper() if '.' in file['name'] else "Unknown",
+                    "modified": file.get('updated_at', file.get('created_at', ''))
+                })
+
+            return {
+                "success": True,
+                "folder": folder_name,
+                "images": image_list,
+                "count": len(image_list)
+            }
+        except Exception as e:
+            print(f"[ERROR] Failed to list images from Supabase Storage: {e}")
+            return {"success": False, "detail": f"Supabase Storage 조회 실패: {str(e)}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -307,25 +347,62 @@ async def create_folder(
 
 @router.post("/images/upload")
 async def upload_images(folder_name: str, files: List[UploadFile] = File(...)):
-    """이미지 업로드"""
+    """이미지 업로드 - Supabase Storage 사용"""
     try:
-        folder_path = IMAGES_DIR / folder_name
-        if not folder_path.exists():
-            return {"success": False, "detail": "폴더를 찾을 수 없습니다"}
+        from utils.supabase_storage import upload_image_from_bytes, supabase
+
+        # Supabase 클라이언트 확인
+        if not supabase:
+            # Fallback: 로컬 파일시스템 사용
+            folder_path = IMAGES_DIR / folder_name
+            if not folder_path.exists():
+                return {"success": False, "detail": "폴더를 찾을 수 없습니다"}
+
+            uploaded_files = []
+            for file in files:
+                file_path = folder_path / file.filename
+                with open(file_path, "wb") as f:
+                    content = await file.read()
+                    f.write(content)
+                uploaded_files.append(file.filename)
+
+            return {
+                "success": True,
+                "message": f"{len(uploaded_files)}개 파일이 로컬에 업로드되었습니다",
+                "files": uploaded_files
+            }
+
+        # Supabase Storage에 업로드
+        # 폴더명에서 카테고리 ID 추출 (예: "100_식혜" → "100")
+        category_id = folder_name.split('_')[0]
+        storage_folder = f"cat-{category_id}"
 
         uploaded_files = []
+        uploaded_urls = []
+
         for file in files:
-            # 파일 저장
-            file_path = folder_path / file.filename
-            with open(file_path, "wb") as f:
-                content = await file.read()
-                f.write(content)
-            uploaded_files.append(file.filename)
+            # 파일 읽기
+            content = await file.read()
+
+            # Storage 경로
+            storage_path = f"{storage_folder}/{file.filename}"
+
+            # 업로드
+            public_url = upload_image_from_bytes(
+                content,
+                storage_path,
+                content_type=file.content_type or "image/jpeg"
+            )
+
+            if public_url:
+                uploaded_files.append(file.filename)
+                uploaded_urls.append(public_url)
 
         return {
             "success": True,
-            "message": f"{len(uploaded_files)}개 파일이 업로드되었습니다",
-            "files": uploaded_files
+            "message": f"{len(uploaded_files)}개 파일이 Supabase Storage에 업로드되었습니다",
+            "files": uploaded_files,
+            "urls": uploaded_urls
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

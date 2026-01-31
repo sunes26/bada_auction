@@ -615,18 +615,13 @@ class SaveThumbnailRequest(BaseModel):
 @router.post("/save-thumbnail")
 async def save_thumbnail(request: SaveThumbnailRequest):
     """
-    외부 URL의 썸네일 이미지를 다운로드하여 서버에 저장
+    외부 URL의 썸네일 이미지를 다운로드하여 Supabase Storage에 저장
     """
     try:
         import requests
-        import os
-        from pathlib import Path
         import hashlib
         from datetime import datetime
-
-        # static/thumbnails 디렉토리 생성
-        static_dir = Path(__file__).parent.parent / "static" / "thumbnails"
-        static_dir.mkdir(parents=True, exist_ok=True)
+        from utils.supabase_storage import upload_image_from_bytes, supabase
 
         # 이미지 다운로드
         response = requests.get(request.image_url, timeout=10)
@@ -646,19 +641,41 @@ async def save_thumbnail(request: SaveThumbnailRequest):
             extension = '.jpg'
 
         filename = f"{name_hash}_{timestamp}{extension}"
-        file_path = static_dir / filename
 
-        # 파일 저장
-        with open(file_path, 'wb') as f:
-            f.write(response.content)
+        # Supabase 클라이언트 확인
+        if not supabase:
+            # Fallback: 로컬 파일시스템 사용
+            from pathlib import Path
+            static_dir = Path(__file__).parent.parent / "static" / "thumbnails"
+            static_dir.mkdir(parents=True, exist_ok=True)
 
-        # 상대 경로 반환
-        thumbnail_path = f"/static/thumbnails/{filename}"
+            file_path = static_dir / filename
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
+
+            thumbnail_path = f"/static/thumbnails/{filename}"
+
+            return {
+                "success": True,
+                "thumbnail_path": thumbnail_path,
+                "message": "썸네일이 로컬에 저장되었습니다."
+            }
+
+        # Supabase Storage에 업로드
+        storage_path = f"thumbnails/{filename}"
+        public_url = upload_image_from_bytes(
+            response.content,
+            storage_path,
+            content_type=content_type or "image/jpeg"
+        )
+
+        if not public_url:
+            raise HTTPException(status_code=500, detail="Supabase Storage 업로드 실패")
 
         return {
             "success": True,
-            "thumbnail_path": thumbnail_path,
-            "message": "썸네일이 저장되었습니다."
+            "thumbnail_path": public_url,
+            "message": "썸네일이 Supabase Storage에 저장되었습니다."
         }
 
     except Exception as e:

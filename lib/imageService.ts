@@ -13,23 +13,25 @@ class ImageService {
 
   async getImagesFromFolder(folderId: string): Promise<string[]> {
     try {
-      // 로컬 supabase-images/[숫자]_[이름] 폴더에서 이미지 목록 가져오기
-      const response = await fetch(`/api/images/${folderId}`);
+      // Admin API의 gallery 엔드포인트 사용
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/api/admin/images/gallery/${folderId}`);
 
       if (!response.ok) {
         console.warn(`No images found in folder ${folderId}`);
         return [];
       }
 
-      const imageFiles: string[] = await response.json();
+      const data = await response.json();
 
-      // public/supabase-images/[폴더명]/[filename] 경로로 URL 생성
-      // URL 인코딩 처리 (파일명의 공백 등을 처리)
-      const imageUrls = imageFiles.map(file => {
-        const parts = file.split('/');
-        const encodedFile = parts.map(part => encodeURIComponent(part)).join('/');
-        return `/supabase-images/${encodedFile}`;
-      });
+      if (!data.success || !data.images) {
+        console.warn(`Invalid response for folder ${folderId}`);
+        return [];
+      }
+
+      // 백엔드 API가 이미 공개 URL을 반환하므로 그대로 사용
+      // Supabase Storage URL: https://{project}.supabase.co/storage/v1/object/public/product-images/cat-{id}/{filename}
+      const imageUrls = data.images.map((img: any) => img.path);
 
       console.log(`[ImageService] Loaded ${imageUrls.length} images from folder ${folderId}`);
 
