@@ -13,6 +13,7 @@ AI 기술로 상품 썸네일과 상세페이지를 전문가 수준으로 제�
 | 🎨 **프론트엔드** | `https://[your-app].vercel.app` ([Vercel 대시보드](https://vercel.com/dashboard)에서 확인) | 무료 |
 | 🔧 **백엔드 API** | `https://badaauction-production.up.railway.app` | $5/월 |
 | 💾 **데이터베이스** | Supabase PostgreSQL | 무료 |
+| 📦 **이미지 스토리지** | Supabase Storage (6248개, 8.7GB) | 무료 |
 
 **총 운영 비용**: **$5/월**
 
@@ -103,9 +104,11 @@ open https://badaauction-production.up.railway.app/docs
 - **Authentication**: JWT
 - **Deployment**: Railway (Docker)
 
-### Database
-- **Production**: PostgreSQL 15 (Supabase)
-- **Development**: SQLite
+### Database & Storage
+- **Production DB**: PostgreSQL 15 (Supabase)
+- **Development DB**: SQLite
+- **Image Storage**: Supabase Storage (6248 images, 8.7GB)
+- **CDN**: Cloudflare (Supabase 통합)
 - **ORM**: SQLAlchemy with hybrid selection
 - **Migration**: Alembic-style schema management
 
@@ -147,15 +150,17 @@ open https://badaauction-production.up.railway.app/docs
 │    ✅ 2 Uvicorn workers                  │
 │    ✅ Docker container                   │
 │    ✅ $5/월                              │
-└────────────┬─────────────────────────────┘
-             │ PostgreSQL
-             │ DATABASE_URL
-             ▼
+└──────┬────────────────┬──────────────────┘
+       │ PostgreSQL     │ Storage API
+       │ DATABASE_URL   │
+       ▼                ▼
 ┌──────────────────────────────────────────┐
-│    Supabase (데이터베이스)                │
+│    Supabase (데이터 + 스토리지)           │
 │    ✅ PostgreSQL 15                      │
 │    ✅ 24 tables, 170 rows                │
 │    ✅ Connection pooling (port 6543)     │
+│    ✅ Storage (6248개 이미지, 8.7GB)     │
+│    ✅ Cloudflare CDN                     │
 │    ✅ $0/월                              │
 └──────────────────────────────────────────┘
 ```
@@ -327,6 +332,10 @@ OPENAI_API_KEY=sk-proj-...
 USE_POSTGRESQL=true
 DATABASE_URL=postgresql://postgres:***@db.spkeunlwkrqkdwunkufy.supabase.co:6543/postgres?sslmode=require
 
+# Supabase Storage (필수 - 이미지 스토리지)
+SUPABASE_URL=https://spkeunlwkrqkdwunkufy.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=***
+
 # Playauto API (필수)
 PLAYAUTO_SOLUTION_KEY=***
 PLAYAUTO_API_KEY=***
@@ -343,6 +352,7 @@ CAPTCHA_API_KEY=***
 
 # Environment (필수)
 ENVIRONMENT=production
+FRONTEND_URL=https://[your-app].vercel.app
 ```
 
 ---
@@ -488,6 +498,79 @@ curl https://badaauction-production.up.railway.app/debug/routes | grep admin
 
 ---
 
+#### ❌ Admin Database Stats 500 에러 (해결 완료)
+
+**증상**:
+```
+{"detail": "'Database' object has no attribute 'execute'"}
+{"detail": "no such table: information_schema.tables"}
+```
+
+**원인**:
+1. `Database` 클래스는 `.execute()` 메서드가 없음 - `.get_connection()`을 먼저 호출해야 함
+2. Railway 환경 변수 `USE_POSTGRESQL=true`이지만 실제 DB는 SQLite (monitoring.db)
+3. PostgreSQL 쿼리(`information_schema.tables`)를 SQLite DB에 실행
+
+**해결 방법**:
+```python
+# ❌ 잘못된 코드
+db = get_db()
+cursor = db.execute("SELECT ...")  # Database 객체에 execute() 없음
+
+# ✅ 올바른 코드
+db = get_db()
+conn = db.get_connection()  # sqlite3.Connection 객체 반환
+cursor = conn.execute("SELECT ...")
+conn.close()
+
+# ✅ SQLite 전용 쿼리 사용
+cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+```
+
+**수정 완료**:
+- `backend/api/admin.py:464` get_database_stats() 수정
+- PostgreSQL 감지 로직 제거, SQLite 전용으로 단순화
+- 커밋: `544f37b`
+
+**검증**:
+```bash
+curl https://badaauction-production.up.railway.app/api/admin/database/stats
+# {"success":true,"database_type":"SQLite","database_size_mb":0,"tables":[...]}
+```
+
+---
+
+#### ⚠️ 브라우저 Admin API 500 에러 (조사 중)
+
+**증상**:
+```
+Failed to load resource: the server responded with a status of 500
+badaauction-production.up.railway.app/api/admin/database/stats
+```
+
+**현재 상태**:
+- ✅ curl 테스트: 정상 (HTTP 200)
+- ✅ 모든 admin API 엔드포인트 정상 작동:
+  - `/api/admin/system/status` ✅
+  - `/api/admin/images/stats` ✅
+  - `/api/admin/database/stats` ✅
+  - `/api/admin/database/backups` ✅
+  - `/api/admin/logs/recent` ✅
+  - `/api/admin/settings/env` ✅
+  - `/api/admin/performance/metrics` ✅
+
+**의심 원인**:
+1. 브라우저 캐시 문제
+2. CORS 관련 preflight 요청 실패
+3. 특정 브라우저 환경에서만 발생하는 이슈
+
+**해결 시도**:
+1. 브라우저 캐시 지우기: `Ctrl+Shift+R` (하드 리프레시)
+2. 개발자 도구(F12) → Network 탭에서 실제 에러 확인
+3. Response 탭에서 정확한 에러 메시지 확인
+
+---
+
 #### ❌ Vercel 빌드 실패
 1. `lib/` 디렉토리가 누락되었는지 확인
 2. TypeScript 에러 확인 (`npm run build`)
@@ -570,6 +653,66 @@ python main.py  # 자동으로 새 DB 생성
 
 ## 📈 업데이트 히스토리
 
+### 2026-02-01: Supabase Storage 마이그레이션 완료 📦
+
+**이미지 스토리지 클라우드 마이그레이션**:
+- ✅ 로컬 파일시스템 → Supabase Storage 전환
+- ✅ 6248개 이미지 업로드 성공 (100% 완료)
+- ✅ 100개 카테고리 폴더 (`cat-1` ~ `cat-138` 형식)
+- ✅ 총 용량: 8.7GB
+- ✅ Cloudflare CDN 가속 적용
+
+**백엔드 API 업데이트**:
+- 🔧 `backend/utils/supabase_storage.py` 신규 생성
+  - `upload_image()`, `upload_image_from_bytes()` 함수
+  - `get_public_url()` - Supabase Storage 공개 URL 생성
+  - `list_images()` - 폴더별 이미지 목록 조회
+- 🔧 `backend/api/admin.py` 수정
+  - 이미지 업로드: Supabase Storage 연동
+  - 갤러리 API: Supabase CDN URL 반환
+  - 이미지 통계: Supabase Storage 메타데이터 조회
+- 🔧 `backend/api/monitoring.py` 수정
+  - 썸네일 저장: Supabase Storage 사용
+- 🔧 `lib/imageService.ts` 수정
+  - Admin API에서 Supabase URL 가져오기
+
+**마이그레이션 스크립트**:
+- 📄 `backend/migrate_images_to_supabase.py` 생성
+- 한글 폴더명 → `cat-{id}` 형식 변환 (Supabase 호환)
+- 진행률 표시 (0.0% ~ 100.0%)
+- 에러 핸들링 및 재시도 로직
+
+**이미지 URL 변경**:
+```
+# Before (로컬)
+/supabase-images/100_식혜/image.jpg
+
+# After (Supabase CDN)
+https://spkeunlwkrqkdwunkufy.supabase.co/storage/v1/object/public/product-images/cat-100/image.jpg
+```
+
+**Railway 환경 변수 추가**:
+```env
+SUPABASE_URL=https://spkeunlwkrqkdwunkufy.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=***
+```
+
+**트러블슈팅**:
+- 🐛 **Database Stats 500 에러 수정** (2단계):
+  - 1단계: `db.execute()` → `db.get_connection()` 사용
+  - 2단계: PostgreSQL 쿼리 제거, SQLite 전용으로 단순화
+  - 커밋: `0215b22`, `544f37b`
+- ⚠️ **브라우저 Admin API 500 에러** (조사 중)
+  - curl 테스트는 정상 (HTTP 200)
+  - 브라우저 캐시 또는 CORS 관련 의심
+
+**커밋 해시**:
+- `468ad43`: Supabase Storage 백엔드 API 통합
+- `0215b22`: Database stats get_connection() 수정
+- `544f37b`: Database stats SQLite 전용 단순화
+
+---
+
 ### 2026-01-30: 클라우드 배포 완료 + 트러블슈팅 🎉
 
 **배포 완료**:
@@ -645,12 +788,14 @@ python main.py  # 자동으로 새 DB 생성
 
 ## 🎯 다음 단계
 
-### 선택사항
+### 완료된 작업 ✅
 
-1. **이미지 마이그레이션** (Phase 5)
-   - 로컬 이미지 → Supabase Storage
-   - CDN 가속 활용
-   - Railway 디스크 절약
+1. **이미지 마이그레이션** (Phase 5) ✅
+   - ✅ 로컬 이미지 → Supabase Storage (6248개)
+   - ✅ Cloudflare CDN 가속 활용
+   - ✅ Railway 디스크 절약 (8.7GB)
+
+### 선택사항
 
 2. **Custom Domain 설정**
    - Vercel에서 본인 도메인 연결
