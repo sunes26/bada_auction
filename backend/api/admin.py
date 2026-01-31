@@ -40,15 +40,28 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 IMAGES_DIR = PROJECT_ROOT / "supabase-images"
 DB_PATH = PROJECT_ROOT / "backend" / "monitoring.db"
-BACKUP_DIR = PROJECT_ROOT / "backend" / "backup"
-LOG_DIR = PROJECT_ROOT / "backend" / "logs"
 
-# 백업 디렉토리 생성 (Railway 환경에서는 실패할 수 있음)
+# 환경에 따라 다른 디렉토리 사용
+if os.getenv('ENVIRONMENT') == 'production':
+    # 프로덕션(Railway): 임시 디렉토리 사용 (읽기 전용 파일시스템 대응)
+    import tempfile
+    TEMP_DIR = Path(tempfile.gettempdir()) / "badaauction"
+    BACKUP_DIR = TEMP_DIR / "backups"
+    LOG_DIR = TEMP_DIR / "logs"
+    print(f"[INFO] Production mode - using temp directory: {TEMP_DIR}")
+else:
+    # 로컬 개발: 프로젝트 디렉토리 사용
+    BACKUP_DIR = PROJECT_ROOT / "backend" / "backups"
+    LOG_DIR = PROJECT_ROOT / "backend" / "logs"
+
+# 디렉토리 생성 시도
 try:
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"[OK] Directories created - Backup: {BACKUP_DIR}, Log: {LOG_DIR}")
 except Exception as e:
     print(f"[WARN] Failed to create directories: {e}")
+    print(f"[INFO] Backup and logging features may be limited")
 
 @router.get("/system/status")
 async def get_system_status():

@@ -158,27 +158,33 @@ app = FastAPI(
 )
 
 # CORS 설정 (Next.js 프론트엔드와 통신 허용)
-allowed_origins = [
-    "http://localhost:3000",  # Next.js 개발 서버
-    "http://localhost:3001",  # 대체 포트
-]
+allowed_origins = []
 
-# Production origins (Railway, Vercel)
-if os.getenv('ENVIRONMENT') == 'production':
+# 개발 환경
+if os.getenv('ENVIRONMENT') != 'production':
     allowed_origins.extend([
-        "https://*.vercel.app",  # Vercel 배포
-        "https://*.railway.app",  # Railway 배포
+        "http://localhost:3000",  # Next.js 개발 서버
+        "http://localhost:3001",  # 대체 포트
     ])
 
-# Allow all origins in production (더 유연한 설정)
+# 프로덕션 환경 - 환경 변수로 정확한 URL 지정
 if os.getenv('ENVIRONMENT') == 'production':
-    allowed_origins = ["*"]
+    frontend_url = os.getenv('FRONTEND_URL')
+    if frontend_url:
+        # 명시적으로 지정된 프론트엔드 URL만 허용
+        allowed_origins.append(frontend_url)
+        print(f"[OK] CORS allowed origin: {frontend_url}")
+    else:
+        # FRONTEND_URL이 설정되지 않은 경우 경고
+        print("[WARN] FRONTEND_URL not set in production - CORS may fail")
+        # 임시로 모든 origin 허용 (보안 위험 - FRONTEND_URL 설정 권장)
+        allowed_origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # 필요한 메서드만 허용
+    allow_credentials=True if allowed_origins != ["*"] else False,  # 와일드카드 사용 시 credentials 비활성화
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=[
         "Content-Type",
         "Authorization",
@@ -188,7 +194,7 @@ app.add_middleware(
         "DNT",
         "Cache-Control",
         "X-Requested-With",
-    ],  # 필요한 헤더만 허용
+    ],
 )
 
 # Static 파일 서빙 설정
