@@ -139,11 +139,61 @@ async def get_system_status():
 
 @router.get("/images/stats")
 async def get_image_stats():
-    """이미지 통계 조회"""
+    """이미지 통계 조회 - Supabase Storage 우선"""
     try:
+        from utils.supabase_storage import supabase
+
+        # Supabase Storage 사용
+        if supabase:
+            try:
+                # 모든 폴더(카테고리) 목록 조회
+                all_files = supabase.storage.from_("product-images").list()
+
+                folders = []
+                total_images = 0
+                total_size = 0
+
+                for folder_obj in all_files:
+                    folder_name = folder_obj['name']
+
+                    # 폴더 내 이미지 목록 조회
+                    try:
+                        images = supabase.storage.from_("product-images").list(folder_name)
+
+                        folder_size = sum(
+                            img.get('metadata', {}).get('size', 0)
+                            for img in images
+                        )
+
+                        folders.append({
+                            "name": folder_name,
+                            "path": f"product-images/{folder_name}",
+                            "image_count": len(images),
+                            "size_mb": round(folder_size / (1024 * 1024), 2)
+                        })
+
+                        total_images += len(images)
+                        total_size += folder_size
+                    except:
+                        continue
+
+                return {
+                    "success": True,
+                    "storage_type": "Supabase Storage",
+                    "total_folders": len(folders),
+                    "total_images": total_images,
+                    "total_size_mb": round(total_size / (1024 * 1024), 2),
+                    "folders": folders[:20]  # 처음 20개만 반환
+                }
+            except Exception as e:
+                print(f"[ERROR] Supabase Storage stats failed: {e}")
+                # Fallback to local
+
+        # Fallback: 로컬 파일시스템
         if not IMAGES_DIR.exists():
             return {
                 "success": True,
+                "storage_type": "Local (empty)",
                 "total_folders": 0,
                 "total_images": 0,
                 "total_size_mb": 0,
@@ -176,12 +226,14 @@ async def get_image_stats():
 
         return {
             "success": True,
+            "storage_type": "Local Filesystem",
             "total_folders": len(folders),
             "total_images": total_images,
             "total_size_mb": round(total_size / (1024 * 1024), 2),
             "folders": folders
         }
     except Exception as e:
+        print(f"[ERROR] Image stats failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -412,36 +464,58 @@ async def upload_images(folder_name: str, files: List[UploadFile] = File(...)):
 async def get_database_stats():
     """데이터베이스 통계"""
     try:
-        # SQLite3로 직접 연결하여 모든 테이블 조회
-        conn = sqlite3.connect(str(DB_PATH))
-        cursor = conn.cursor()
+        import os
+        from database.db import get_db
 
-        # 모든 테이블 이름 가져오기
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-        all_tables = [row[0] for row in cursor.fetchall()]
+        db = get_db()
+        use_postgresql = os.getenv('USE_POSTGRESQL', 'false').lower() == 'true'
+
+        if use_postgresql:
+            # PostgreSQL: information_schema 사용
+            cursor = db.execute("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_type = 'BASE TABLE'
+            """)
+            all_tables = [row[0] for row in cursor.fetchall()]
+        else:
+            # SQLite: sqlite_master 사용
+            cursor = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+            all_tables = [row[0] for row in cursor.fetchall()]
 
         # 테이블별 레코드 수
         table_stats = []
         for table in all_tables:
             try:
-                cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                cursor = db.execute(f"SELECT COUNT(*) FROM {table}")
                 count = cursor.fetchone()[0]
                 table_stats.append({"table": table, "count": count})
             except Exception as e:
-                table_stats.append({"table": table, "count": 0})
-
-        conn.close()
+                table_stats.append({"table": table, "count": 0, "error": str(e)})
 
         # DB 크기
-        db_size = DB_PATH.stat().st_size / (1024 * 1024) if DB_PATH.exists() else 0
+        if use_postgresql:
+            # PostgreSQL: pg_database_size
+            try:
+                cursor = db.execute("SELECT pg_database_size(current_database())")
+                db_size_bytes = cursor.fetchone()[0]
+                db_size = db_size_bytes / (1024 * 1024)
+            except:
+                db_size = 0
+        else:
+            # SQLite: 파일 크기
+            db_size = DB_PATH.stat().st_size / (1024 * 1024) if DB_PATH.exists() else 0
 
         return {
             "success": True,
+            "database_type": "PostgreSQL" if use_postgresql else "SQLite",
             "database_size_mb": round(db_size, 2),
             "tables": table_stats,
             "total_records": sum(t["count"] for t in table_stats)
         }
     except Exception as e:
+        print(f"[ERROR] Database stats failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
