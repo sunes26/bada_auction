@@ -468,24 +468,13 @@ async def get_database_stats():
         from database.db import get_db
 
         db = get_db()
-        use_postgresql = os.getenv('USE_POSTGRESQL', 'false').lower() == 'true'
 
         # Get database connection
         conn = db.get_connection()
 
-        if use_postgresql:
-            # PostgreSQL: information_schema 사용
-            cursor = conn.execute("""
-                SELECT table_name
-                FROM information_schema.tables
-                WHERE table_schema = 'public'
-                AND table_type = 'BASE TABLE'
-            """)
-            all_tables = [row[0] for row in cursor.fetchall()]
-        else:
-            # SQLite: sqlite_master 사용
-            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-            all_tables = [row[0] for row in cursor.fetchall()]
+        # Always use SQLite queries since Database class uses SQLite
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+        all_tables = [row[0] for row in cursor.fetchall()]
 
         # 테이블별 레코드 수
         table_stats = []
@@ -497,24 +486,14 @@ async def get_database_stats():
             except Exception as e:
                 table_stats.append({"table": table, "count": 0, "error": str(e)})
 
-        # DB 크기
-        if use_postgresql:
-            # PostgreSQL: pg_database_size
-            try:
-                cursor = conn.execute("SELECT pg_database_size(current_database())")
-                db_size_bytes = cursor.fetchone()[0]
-                db_size = db_size_bytes / (1024 * 1024)
-            except:
-                db_size = 0
-        else:
-            # SQLite: 파일 크기
-            db_size = DB_PATH.stat().st_size / (1024 * 1024) if DB_PATH.exists() else 0
+        # SQLite: 파일 크기
+        db_size = DB_PATH.stat().st_size / (1024 * 1024) if DB_PATH.exists() else 0
 
         conn.close()
 
         return {
             "success": True,
-            "database_type": "PostgreSQL" if use_postgresql else "SQLite",
+            "database_type": "SQLite",
             "database_size_mb": round(db_size, 2),
             "tables": table_stats,
             "total_records": sum(t["count"] for t in table_stats)
