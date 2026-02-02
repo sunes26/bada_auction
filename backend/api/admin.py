@@ -119,17 +119,34 @@ async def get_system_status():
         # 데이터베이스 상태
         db_size = 0
         db_status = "연결됨"
+        db_type = "SQLite"
         try:
             # Use get_db() instead of direct sqlite3 connection
             db = get_db()
-            # Test connection
-            if hasattr(db, 'execute'):
-                db.execute("SELECT 1")
-                db_status = "연결됨"
 
-            # Get DB size if SQLite file exists
-            if DB_PATH.exists():
-                db_size = DB_PATH.stat().st_size / (1024 * 1024)  # MB
+            # Detect database type
+            if hasattr(db, 'is_postgresql') and db.is_postgresql:
+                db_type = "PostgreSQL"
+                # PostgreSQL: 데이터베이스 크기 조회
+                try:
+                    from database.database_manager import get_database_manager
+                    db_manager = get_database_manager()
+                    conn = db_manager.engine.raw_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT pg_database_size(current_database())")
+                    db_size_bytes = cursor.fetchone()[0]
+                    db_size = db_size_bytes / (1024 * 1024)  # MB
+                    cursor.close()
+                    conn.close()
+                    db_status = "연결됨 (PostgreSQL)"
+                except Exception as e:
+                    db_status = f"PostgreSQL 연결됨 (크기 조회 실패: {str(e)})"
+            else:
+                # SQLite: 파일 크기 조회
+                db_type = "SQLite"
+                if DB_PATH.exists():
+                    db_size = DB_PATH.stat().st_size / (1024 * 1024)  # MB
+                db_status = "연결됨 (SQLite)"
         except Exception as e:
             db_status = f"오류: {str(e)}"
 
@@ -1155,32 +1172,65 @@ async def get_database_stats():
         from database.db_wrapper import get_db
 
         db = get_db()
-
-        # Get database connection
-        conn = db.get_connection()
-
-        # Always use SQLite queries since Database class uses SQLite
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-        all_tables = [row[0] for row in cursor.fetchall()]
-
-        # 테이블별 레코드 수
+        db_type = "SQLite"
+        db_size = 0
         table_stats = []
-        for table in all_tables:
-            try:
-                cursor = conn.execute(f"SELECT COUNT(*) FROM {table}")
-                count = cursor.fetchone()[0]
-                table_stats.append({"table": table, "count": count})
-            except Exception as e:
-                table_stats.append({"table": table, "count": 0, "error": str(e)})
 
-        # SQLite: 파일 크기
-        db_size = DB_PATH.stat().st_size / (1024 * 1024) if DB_PATH.exists() else 0
+        # Detect database type
+        if hasattr(db, 'is_postgresql') and db.is_postgresql:
+            db_type = "PostgreSQL"
+            # PostgreSQL 통계
+            from database.database_manager import get_database_manager
+            db_manager = get_database_manager()
+            conn = db_manager.engine.raw_connection()
+            cursor = conn.cursor()
 
-        conn.close()
+            # 데이터베이스 크기
+            cursor.execute("SELECT pg_database_size(current_database())")
+            db_size = cursor.fetchone()[0] / (1024 * 1024)  # MB
+
+            # 테이블 목록 및 레코드 수
+            cursor.execute("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_type = 'BASE TABLE'
+            """)
+            all_tables = [row[0] for row in cursor.fetchall()]
+
+            for table in all_tables:
+                try:
+                    cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                    count = cursor.fetchone()[0]
+                    table_stats.append({"table": table, "count": count})
+                except Exception as e:
+                    table_stats.append({"table": table, "count": 0, "error": str(e)})
+
+            cursor.close()
+            conn.close()
+        else:
+            # SQLite 통계
+            conn = db.get_connection()
+
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+            all_tables = [row[0] for row in cursor.fetchall()]
+
+            for table in all_tables:
+                try:
+                    cursor = conn.execute(f"SELECT COUNT(*) FROM {table}")
+                    count = cursor.fetchone()[0]
+                    table_stats.append({"table": table, "count": count})
+                except Exception as e:
+                    table_stats.append({"table": table, "count": 0, "error": str(e)})
+
+            # SQLite 파일 크기
+            db_size = DB_PATH.stat().st_size / (1024 * 1024) if DB_PATH.exists() else 0
+
+            conn.close()
 
         return {
             "success": True,
-            "database_type": "SQLite",
+            "database_type": db_type,
             "database_size_mb": round(db_size, 2),
             "tables": table_stats,
             "total_records": sum(t["count"] for t in table_stats)
@@ -1192,8 +1242,19 @@ async def get_database_stats():
 
 @router.post("/database/backup")
 async def backup_database():
-    """데이터베이스 백업"""
+    """데이터베이스 백업 (SQLite만 지원)"""
     try:
+        # PostgreSQL 체크
+        db = get_db()
+        if hasattr(db, 'is_postgresql') and db.is_postgresql:
+            return {
+                "success": False,
+                "message": "PostgreSQL은 수동 백업을 지원하지 않습니다",
+                "detail": "Supabase 대시보드에서 자동 백업이 이루어집니다",
+                "link": "https://supabase.com/dashboard/project/_/settings/addons"
+            }
+
+        # SQLite 백업
         if not DB_PATH.exists():
             return {"success": False, "detail": "데이터베이스를 찾을 수 없습니다"}
 
@@ -1239,8 +1300,19 @@ async def list_backups():
 
 @router.post("/database/restore")
 async def restore_database(backup_filename: str):
-    """데이터베이스 복원"""
+    """데이터베이스 복원 (SQLite만 지원)"""
     try:
+        # PostgreSQL 체크
+        db = get_db()
+        if hasattr(db, 'is_postgresql') and db.is_postgresql:
+            return {
+                "success": False,
+                "message": "PostgreSQL은 수동 복원을 지원하지 않습니다",
+                "detail": "Supabase 대시보드에서 백업을 복원하세요",
+                "link": "https://supabase.com/dashboard/project/_/settings/addons"
+            }
+
+        # SQLite 복원
         backup_file = BACKUP_DIR / backup_filename
         if not backup_file.exists():
             return {"success": False, "detail": "백업 파일을 찾을 수 없습니다"}
