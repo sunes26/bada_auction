@@ -189,17 +189,37 @@ async def get_system_status():
 def get_category_name_map():
     """카테고리 ID -> 이름 매핑 딕셔너리 생성"""
     try:
-        # Database 클래스를 통해 연결 (PostgreSQL/SQLite 자동 선택)
-        print(f"[DEBUG] Loading categories via get_db()")
-        db = get_db()
-        conn = db.get_connection()
-        cursor = conn.execute("""
-            SELECT folder_number, folder_name
-            FROM categories
-        """)
-        rows = cursor.fetchall()
-        category_map = {str(row['folder_number']): row['folder_name'] for row in rows}
-        conn.close()
+        database_url = os.getenv('DATABASE_URL')
+
+        # 프로덕션: PostgreSQL 직접 연결 (Database 클래스는 SQLite만 지원)
+        if database_url and os.getenv('ENVIRONMENT') == 'production':
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+
+            print(f"[DEBUG] Connecting to PostgreSQL (Connection Pooling)")
+            # Connection Pooling URL 사용 (IPv4, Railway 호환)
+            conn = psycopg2.connect(database_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("""
+                SELECT folder_number, folder_name
+                FROM categories
+            """)
+            rows = cursor.fetchall()
+            category_map = {str(row['folder_number']): row['folder_name'] for row in rows}
+            cursor.close()
+            conn.close()
+        else:
+            # 로컬 개발: SQLite
+            print(f"[DEBUG] Loading categories via SQLite")
+            db = get_db()
+            conn = db.get_connection()
+            cursor = conn.execute("""
+                SELECT folder_number, folder_name
+                FROM categories
+            """)
+            rows = cursor.fetchall()
+            category_map = {str(row['folder_number']): row['folder_name'] for row in rows}
+            conn.close()
 
         print(f"[DEBUG] Loaded {len(category_map)} categories from database")
         if len(category_map) > 0:
@@ -530,24 +550,52 @@ async def debug_environment():
 async def debug_categories():
     """카테고리 데이터 디버그"""
     try:
-        # Database 클래스를 통해 연결 (PostgreSQL/SQLite 자동 선택)
-        db = get_db()
-        conn = db.get_connection()
+        database_url = os.getenv('DATABASE_URL')
 
-        # 전체 카테고리 개수 확인
-        cursor = conn.execute("SELECT COUNT(*) as count FROM categories")
-        total_count = cursor.fetchone()['count']
+        # 프로덕션: PostgreSQL 직접 연결
+        if database_url and os.getenv('ENVIRONMENT') == 'production':
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
 
-        # 샘플 카테고리 조회
-        cursor = conn.execute("""
-            SELECT folder_number, folder_name, level1, level2, level3, level4
-            FROM categories
-            ORDER BY folder_number
-            LIMIT 10
-        """)
-        sample_categories = [dict(row) for row in cursor.fetchall()]
+            conn = psycopg2.connect(database_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        conn.close()
+            # 전체 카테고리 개수 확인
+            cursor.execute("SELECT COUNT(*) as count FROM categories")
+            total_count = cursor.fetchone()['count']
+
+            # 샘플 카테고리 조회
+            cursor.execute("""
+                SELECT folder_number, folder_name, level1, level2, level3, level4
+                FROM categories
+                ORDER BY folder_number
+                LIMIT 10
+            """)
+            sample_categories = [dict(row) for row in cursor.fetchall()]
+
+            cursor.close()
+            conn.close()
+            database_type = "PostgreSQL"
+        else:
+            # 로컬 개발: SQLite
+            db = get_db()
+            conn = db.get_connection()
+
+            # 전체 카테고리 개수 확인
+            cursor = conn.execute("SELECT COUNT(*) as count FROM categories")
+            total_count = cursor.fetchone()['count']
+
+            # 샘플 카테고리 조회
+            cursor = conn.execute("""
+                SELECT folder_number, folder_name, level1, level2, level3, level4
+                FROM categories
+                ORDER BY folder_number
+                LIMIT 10
+            """)
+            sample_categories = [dict(row) for row in cursor.fetchall()]
+
+            conn.close()
+            database_type = "SQLite"
 
         # 카테고리 맵 생성
         category_map = get_category_name_map()
@@ -558,7 +606,7 @@ async def debug_categories():
             "category_map_size": len(category_map),
             "sample_categories": sample_categories,
             "sample_map_entries": dict(list(category_map.items())[:10]) if category_map else {},
-            "database_type": "SQLite" if db.db_path else "Unknown"
+            "database_type": database_type
         }
     except Exception as e:
         import traceback
