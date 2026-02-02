@@ -32,6 +32,7 @@ import {
 
 import { API_BASE_URL } from '@/lib/api';
 import { adminGet, adminPost, adminDelete, adminFetch, adminUpload } from '@/lib/adminApi';
+import { categoryStructure } from '@/lib/categories';
 type TabType = 'dashboard' | 'images' | 'database' | 'logs' | 'settings' | 'cleanup' | 'performance' | 'devtools' | 'activity' | 'mappings' | 'playauto-mappings';
 
 interface SystemStatus {
@@ -542,6 +543,8 @@ function ImagesTab() {
   const [newLevel2, setNewLevel2] = useState('');
   const [newLevel3, setNewLevel3] = useState('');
   const [newLevel4, setNewLevel4] = useState('');
+  const [newSolCateNo, setNewSolCateNo] = useState('');
+  const [playautoMappings, setPlayautoMappings] = useState<any[]>([]);
 
   interface CategoryOptions {
     level1: string[];
@@ -561,11 +564,13 @@ function ImagesTab() {
     if (showCreateFolder) {
       loadNextFolderNumber();
       loadCategoryOptions();
+      loadPlayautoMappings();
       // 카테고리 초기화
       setNewLevel1('');
       setNewLevel2('');
       setNewLevel3('');
       setNewLevel4('');
+      setNewSolCateNo('');
     }
   }, [showCreateFolder]);
 
@@ -638,6 +643,19 @@ function ImagesTab() {
     setNewLevel4('');
   }, [newLevel1, newLevel2, newLevel3]);
 
+  // 카테고리 선택 완료 시 자동으로 sol_cate_no 찾기
+  useEffect(() => {
+    if (newLevel1 && newLevel2 && newLevel3 && newLevel4) {
+      const categoryString = `${newLevel1} > ${newLevel2} > ${newLevel3} > ${newLevel4}`;
+      const mapping = playautoMappings.find(m => m.our_category === categoryString);
+      if (mapping) {
+        setNewSolCateNo(mapping.sol_cate_no?.toString() || '');
+      } else {
+        setNewSolCateNo('');
+      }
+    }
+  }, [newLevel1, newLevel2, newLevel3, newLevel4, playautoMappings]);
+
   const loadNextFolderNumber = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/categories/next-number`);
@@ -660,6 +678,16 @@ function ImagesTab() {
       }
     } catch (error) {
       console.error('카테고리 옵션 로드 실패:', error);
+    }
+  };
+
+  const loadPlayautoMappings = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/category-playauto-mappings`);
+      const data = await res.json();
+      setPlayautoMappings(data);
+    } catch (error) {
+      console.error('PlayAuto 매핑 로드 실패:', error);
     }
   };
 
@@ -725,6 +753,11 @@ function ImagesTab() {
         folder_number: nextFolderNumber?.toString() || ''
       });
 
+      // sol_cate_no가 있으면 추가
+      if (newSolCateNo) {
+        params.append('sol_cate_no', newSolCateNo);
+      }
+
       const data = await adminPost(`/api/admin/images/create-folder?${params}`);
       if (data.success) {
         alert(data.message);
@@ -734,6 +767,7 @@ function ImagesTab() {
         setNewLevel2('');
         setNewLevel3('');
         setNewLevel4('');
+        setNewSolCateNo('');
         setNextFolderNumber(null);
         setShowCreateFolder(false);
         loadImageStats();
@@ -883,6 +917,25 @@ function ImagesTab() {
                       <option key={option} value={option} />
                     ))}
                   </datalist>
+                </div>
+
+                {/* PlayAuto 카테고리 번호 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    PlayAuto 카테고리 번호 (sol_cate_no)
+                  </label>
+                  <input
+                    type="number"
+                    value={newSolCateNo}
+                    onChange={(e) => setNewSolCateNo(e.target.value)}
+                    placeholder="예: 36060400 (카테고리 선택 시 자동 입력)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  />
+                  {newSolCateNo && (
+                    <p className="text-xs text-green-600 mt-1">
+                      ✓ 매핑된 카테고리 번호
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -2107,12 +2160,24 @@ function PlayautoCategoryMappingTab() {
   const [editMode, setEditMode] = useState<'none' | 'add' | 'edit'>('none');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // 카테고리 4단계 선택
+  const [level1, setLevel1] = useState('');
+  const [level2, setLevel2] = useState('');
+  const [level3, setLevel3] = useState('');
+  const [level4, setLevel4] = useState('');
+
   const [formData, setFormData] = useState({
-    our_category: '',
     sol_cate_no: '',
     playauto_category: '',
     similarity: ''
   });
+
+  // 카테고리 옵션
+  const level1Options = Object.keys(categoryStructure);
+  const level2Options = level1 ? Object.keys((categoryStructure as any)[level1] || {}) : [];
+  const level3Options = level1 && level2 ? Object.keys((categoryStructure as any)[level1]?.[level2] || {}) : [];
+  const level4Options = level1 && level2 && level3 ? (categoryStructure as any)[level1]?.[level2]?.[level3] || [] : [];
 
   useEffect(() => {
     loadMappings();
@@ -2150,14 +2215,25 @@ function PlayautoCategoryMappingTab() {
 
   const handleAdd = () => {
     setEditMode('add');
-    setFormData({ our_category: '', sol_cate_no: '', playauto_category: '', similarity: '' });
+    setLevel1('');
+    setLevel2('');
+    setLevel3('');
+    setLevel4('');
+    setFormData({ sol_cate_no: '', playauto_category: '', similarity: '' });
   };
 
   const handleEdit = (mapping: any) => {
     setEditMode('edit');
     setEditingId(mapping.id);
+
+    // our_category를 파싱해서 level1~4로 분리
+    const parts = mapping.our_category.split(' > ');
+    setLevel1(parts[0] || '');
+    setLevel2(parts[1] || '');
+    setLevel3(parts[2] || '');
+    setLevel4(parts[3] || '');
+
     setFormData({
-      our_category: mapping.our_category,
       sol_cate_no: mapping.sol_cate_no?.toString() || '',
       playauto_category: mapping.playauto_category || '',
       similarity: mapping.similarity || ''
@@ -2167,15 +2243,22 @@ function PlayautoCategoryMappingTab() {
   const handleCancel = () => {
     setEditMode('none');
     setEditingId(null);
-    setFormData({ our_category: '', sol_cate_no: '', playauto_category: '', similarity: '' });
+    setLevel1('');
+    setLevel2('');
+    setLevel3('');
+    setLevel4('');
+    setFormData({ sol_cate_no: '', playauto_category: '', similarity: '' });
   };
 
   const handleSave = async () => {
     try {
       setLoading(true);
 
+      // 카테고리 조합
+      const our_category = `${level1} > ${level2} > ${level3} > ${level4}`;
+
       const payload = {
-        our_category: formData.our_category,
+        our_category: our_category,
         sol_cate_no: parseInt(formData.sol_cate_no),
         playauto_category: formData.playauto_category || null,
         similarity: formData.similarity || null
@@ -2291,18 +2374,74 @@ function PlayautoCategoryMappingTab() {
               {editMode === 'add' ? '새 매핑 추가' : '매핑 수정'}
             </h4>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* 카테고리 4단계 선택 */}
+            <div className="grid grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">우리 카테고리 *</label>
-                <input
-                  type="text"
-                  value={formData.our_category}
-                  onChange={(e) => setFormData({ ...formData, our_category: e.target.value })}
+                <label className="block text-sm font-medium mb-1">대대분류 *</label>
+                <select
+                  value={level1}
+                  onChange={(e) => {
+                    setLevel1(e.target.value);
+                    setLevel2('');
+                    setLevel3('');
+                    setLevel4('');
+                  }}
                   disabled={editMode === 'edit'}
-                  placeholder="예: 간편식 > 면 > 라면 > 라면"
                   className="w-full border rounded px-3 py-2"
-                />
+                >
+                  <option value="">선택</option>
+                  {level1Options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">대분류 *</label>
+                <select
+                  value={level2}
+                  onChange={(e) => {
+                    setLevel2(e.target.value);
+                    setLevel3('');
+                    setLevel4('');
+                  }}
+                  disabled={editMode === 'edit' || !level1}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="">선택</option>
+                  {level2Options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">중분류 *</label>
+                <select
+                  value={level3}
+                  onChange={(e) => {
+                    setLevel3(e.target.value);
+                    setLevel4('');
+                  }}
+                  disabled={editMode === 'edit' || !level2}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="">선택</option>
+                  {level3Options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">소분류 *</label>
+                <select
+                  value={level4}
+                  onChange={(e) => setLevel4(e.target.value)}
+                  disabled={editMode === 'edit' || !level3}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="">선택</option>
+                  {level4Options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
 
               <div>
                 <label className="block text-sm font-medium mb-1">PlayAuto sol_cate_no *</label>
@@ -2341,7 +2480,7 @@ function PlayautoCategoryMappingTab() {
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
-                disabled={loading || !formData.our_category || !formData.sol_cate_no}
+                disabled={loading || !level1 || !level2 || !level3 || !level4 || !formData.sol_cate_no}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
               >
                 {loading ? '저장 중...' : '저장'}
