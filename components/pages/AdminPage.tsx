@@ -732,6 +732,19 @@ function ImagesTab() {
     }
   };
 
+  const handleDeleteFolder = async (folderNumber: number, folderName: string) => {
+    if (!confirm(`"${folderName}" 폴더를 삭제하시겠습니까?\n\n폴더 내 모든 이미지와 카테고리 정보가 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.`)) return;
+    try {
+      const data = await adminDelete(`/api/admin/images/delete-folder?folder_number=${folderNumber}`);
+      if (data.success) {
+        alert('폴더가 삭제되었습니다.');
+        loadImageStats();
+      }
+    } catch (error) {
+      alert('삭제 실패: ' + error);
+    }
+  };
+
   const handleCreateFolder = async () => {
     // 입력값 검증
     if (!newFolderName.trim()) {
@@ -981,19 +994,39 @@ function ImagesTab() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto">
             {imageStats?.folders.map((folder) => (
-              <button
+              <div
                 key={folder.name}
-                onClick={() => loadFolderImages(folder.display_name || folder.name)}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors border border-gray-200 hover:border-blue-300 text-left"
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
               >
-                <div className="flex items-center gap-3">
+                <button
+                  onClick={() => loadFolderImages(folder.display_name || folder.name)}
+                  className="flex items-center gap-3 flex-1 text-left hover:opacity-80 transition-opacity"
+                >
                   <FolderOpen className="w-8 h-8 text-blue-600" />
                   <div>
                     <div className="font-semibold text-gray-800">{folder.display_name || folder.name}</div>
                   </div>
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => loadFolderImages(folder.display_name || folder.name)}
+                    className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                    title="폴더 보기"
+                  >
+                    <Eye className="w-5 h-5 text-gray-600" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteFolder(folder.category_id, folder.display_name || folder.name);
+                    }}
+                    className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                    title="폴더 삭제"
+                  >
+                    <Trash2 className="w-5 h-5 text-red-600" />
+                  </button>
                 </div>
-                <Eye className="w-5 h-5 text-gray-400" />
-              </button>
+              </div>
             ))}
           </div>
         </div>

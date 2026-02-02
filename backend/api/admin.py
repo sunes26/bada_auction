@@ -960,6 +960,126 @@ async def create_folder(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.delete("/images/delete-folder")
+async def delete_folder(folder_number: int):
+    """폴더 삭제 - Supabase Storage 및 DB에서 삭제"""
+    try:
+        from utils.supabase_storage import supabase
+
+        # 데이터베이스 연결
+        database_url = os.getenv('DATABASE_URL')
+
+        if database_url and os.getenv('ENVIRONMENT') == 'production':
+            # 프로덕션: PostgreSQL
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+
+            conn = psycopg2.connect(database_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # 폴더 정보 조회
+            cursor.execute("SELECT folder_name, level1, level2, level3, level4 FROM categories WHERE folder_number = %s", (folder_number,))
+            result = cursor.fetchone()
+
+            if not result:
+                cursor.close()
+                conn.close()
+                return {"success": False, "detail": f"폴더 번호 {folder_number}를 찾을 수 없습니다"}
+
+            folder_name = result['folder_name']
+            our_category = f"{result['level1']} > {result['level2']} > {result['level3']} > {result['level4']}"
+
+            # Supabase Storage에서 폴더 삭제
+            if supabase:
+                storage_folder = f"cat-{folder_number}"
+                try:
+                    # 폴더 내 모든 파일 조회
+                    files = supabase.storage.from_("product-images").list(storage_folder)
+
+                    # 각 파일 삭제
+                    for file in files:
+                        if file.get('id'):  # 파일인 경우만
+                            file_path = f"{storage_folder}/{file['name']}"
+                            supabase.storage.from_("product-images").remove([file_path])
+
+                    # thumbs 폴더도 삭제
+                    try:
+                        thumb_files = supabase.storage.from_("product-images").list(f"{storage_folder}/thumbs")
+                        for file in thumb_files:
+                            if file.get('id'):
+                                file_path = f"{storage_folder}/thumbs/{file['name']}"
+                                supabase.storage.from_("product-images").remove([file_path])
+                    except:
+                        pass
+
+                    print(f"[INFO] Supabase Storage 폴더 삭제: {storage_folder}")
+                except Exception as e:
+                    print(f"[WARN] Supabase Storage 폴더 삭제 실패: {e}")
+
+            # DB에서 카테고리 삭제
+            cursor.execute("DELETE FROM categories WHERE folder_number = %s", (folder_number,))
+
+            # PlayAuto 매핑도 삭제 (옵션)
+            try:
+                cursor.execute("DELETE FROM category_playauto_mapping WHERE our_category = %s", (our_category,))
+            except:
+                pass
+
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            return {
+                "success": True,
+                "message": f"폴더 '{folder_name}'이(가) 삭제되었습니다",
+                "folder_number": folder_number
+            }
+
+        else:
+            # 로컬 개발: SQLite
+            db = get_db()
+            conn = db.get_connection()
+
+            # 폴더 정보 조회
+            cursor = conn.execute("SELECT folder_name, level1, level2, level3, level4 FROM categories WHERE folder_number = ?", (folder_number,))
+            result = cursor.fetchone()
+
+            if not result:
+                conn.close()
+                return {"success": False, "detail": f"폴더 번호 {folder_number}를 찾을 수 없습니다"}
+
+            folder_name = result['folder_name']
+            our_category = f"{result['level1']} > {result['level2']} > {result['level3']} > {result['level4']}"
+
+            # 로컬 폴더 삭제
+            folder_path = IMAGES_DIR / folder_name
+            if folder_path.exists():
+                shutil.rmtree(folder_path)
+
+            # DB에서 카테고리 삭제
+            conn.execute("DELETE FROM categories WHERE folder_number = ?", (folder_number,))
+
+            # PlayAuto 매핑도 삭제
+            try:
+                conn.execute("DELETE FROM category_playauto_mapping WHERE our_category = ?", (our_category,))
+            except:
+                pass
+
+            conn.commit()
+            conn.close()
+
+            return {
+                "success": True,
+                "message": f"폴더 '{folder_name}'이(가) 삭제되었습니다",
+                "folder_number": folder_number
+            }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/images/upload")
 async def upload_images(folder_name: str, files: List[UploadFile] = File(...)):
     """이미지 업로드 - Supabase Storage 사용 (썸네일 자동 생성)"""
