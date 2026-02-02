@@ -866,6 +866,28 @@ async def create_folder(
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (folder_number, full_folder_name, level1, level2, level3, level4, sol_cate_no))
             conn.commit()
+
+            # PlayAuto 카테고리 매핑 자동 추가
+            if sol_cate_no:
+                our_category = f"{level1} > {level2} > {level3} > {level4}"
+                try:
+                    # 중복 체크
+                    cursor.execute(
+                        "SELECT id FROM category_playauto_mapping WHERE our_category = %s",
+                        (our_category,)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO category_playauto_mapping
+                            (our_category, sol_cate_no, playauto_category, similarity)
+                            VALUES (%s, %s, %s, %s)
+                        """, (our_category, sol_cate_no, None, None))
+                        conn.commit()
+                        print(f"[INFO] PlayAuto 매핑 추가: {our_category} -> {sol_cate_no}")
+                except Exception as e:
+                    print(f"[WARN] PlayAuto 매핑 추가 실패: {e}")
+                    # 매핑 추가 실패해도 폴더 생성은 성공으로 처리
+
             cursor.close()
             conn.close()
         else:
@@ -902,6 +924,28 @@ async def create_folder(
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (folder_number, full_folder_name, level1, level2, level3, level4, sol_cate_no))
             conn.commit()
+
+            # PlayAuto 카테고리 매핑 자동 추가
+            if sol_cate_no:
+                our_category = f"{level1} > {level2} > {level3} > {level4}"
+                try:
+                    # 중복 체크
+                    cursor = conn.execute(
+                        "SELECT id FROM category_playauto_mapping WHERE our_category = ?",
+                        (our_category,)
+                    )
+                    if not cursor.fetchone():
+                        conn.execute("""
+                            INSERT INTO category_playauto_mapping
+                            (our_category, sol_cate_no, playauto_category, similarity)
+                            VALUES (?, ?, ?, ?)
+                        """, (our_category, sol_cate_no, None, None))
+                        conn.commit()
+                        print(f"[INFO] PlayAuto 매핑 추가: {our_category} -> {sol_cate_no}")
+                except Exception as e:
+                    print(f"[WARN] PlayAuto 매핑 추가 실패: {e}")
+                    # 매핑 추가 실패해도 폴더 생성은 성공으로 처리
+
             conn.close()
 
         return {
