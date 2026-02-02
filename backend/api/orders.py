@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
-from database.db import get_db
+from database.db_wrapper import get_db
 from utils.cache import async_cached
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])

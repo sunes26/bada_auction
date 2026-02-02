@@ -32,7 +32,7 @@ except ImportError:
     SQLITE_AVAILABLE = False
     print("[WARN] sqlite3 not available - using DatabaseWrapper instead")
 
-from database.db import get_db
+from database.db_wrapper import get_db
 
 # Admin API 인증 (프로덕션 환경에서만)
 def verify_admin_access(
@@ -1152,7 +1152,7 @@ async def get_database_stats():
     """데이터베이스 통계"""
     try:
         import os
-        from database.db import get_db
+        from database.db_wrapper import get_db
 
         db = get_db()
 

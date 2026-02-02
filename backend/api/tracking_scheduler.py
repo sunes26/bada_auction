@@ -5,7 +5,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from database.db import get_db
+from database.db_wrapper import get_db
 from services.tracking_upload_service import TrackingUploadService
 from services.tracking_scheduler import get_tracking_scheduler
 

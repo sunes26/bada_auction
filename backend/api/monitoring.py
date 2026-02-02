@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 
-from database.db import get_db
+from database.db_wrapper import get_db
 from monitor.product_monitor import ProductMonitor
 from utils.cache import async_cached
 from logger import get_logger

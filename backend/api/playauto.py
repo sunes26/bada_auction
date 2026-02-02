@@ -33,7 +33,7 @@ from playauto.orders import PlayautoOrdersAPI, fetch_and_sync_orders
 from playauto.tracking import PlayautoTrackingAPI, auto_upload_tracking_from_local
 from playauto.carriers import PlayautoCarriersAPI, get_cached_carriers
 from playauto.exceptions import PlayautoAPIError
-from database.db import get_db
+from database.db_wrapper import get_db
 
 router = APIRouter(prefix="/api/playauto", tags=["Playauto"])
 

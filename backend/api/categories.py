@@ -3,7 +3,7 @@
 """
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any, Optional
-from database.db import get_db
+from database.db_wrapper import get_db
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])

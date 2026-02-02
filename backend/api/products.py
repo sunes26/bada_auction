@@ -4,7 +4,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
-from database.db import get_db
+from database.db_wrapper import get_db
 from utils.cache import async_cached, clear_all_cache
 from utils.category_mapper import get_playauto_category_code
 from logger import get_logger

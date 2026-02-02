@@ -5,7 +5,7 @@ Webhook 알림 설정 API 엔드포인트
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional
-from database.db import get_db
+from database.db_wrapper import get_db
 from notifications.notifier import send_notification
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
