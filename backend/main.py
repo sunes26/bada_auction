@@ -182,6 +182,60 @@ async def lifespan(app: FastAPI):
                 print(f"[WARN] sol_cate_no 컬럼 추가 중 오류: {e}")
                 conn.rollback()
 
+            # 4. category_infocode_mapping 테이블 생성
+            try:
+                cursor.execute("""
+                    SELECT to_regclass('public.category_infocode_mapping')
+                """)
+                table_exists = cursor.fetchone()[0] is not None
+
+                if not table_exists:
+                    print("[MIGRATION] category_infocode_mapping 테이블 생성 중...")
+                    cursor.execute("""
+                        CREATE TABLE category_infocode_mapping (
+                            id SERIAL PRIMARY KEY,
+                            level1 TEXT NOT NULL UNIQUE,
+                            info_code TEXT NOT NULL,
+                            info_code_name TEXT,
+                            notes TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
+                    cursor.execute("""
+                        CREATE INDEX idx_category_infocode_level1
+                        ON category_infocode_mapping(level1)
+                    """)
+                    cursor.execute("""
+                        CREATE INDEX idx_category_infocode_info_code
+                        ON category_infocode_mapping(info_code)
+                    """)
+
+                    # 기본 데이터 삽입
+                    cursor.execute("""
+                        INSERT INTO category_infocode_mapping (level1, info_code, info_code_name, notes)
+                        VALUES
+                            ('간편식', 'ProcessedFood2023', '가공식품', '즉석밥, 죽, 국/탕/찌개 등'),
+                            ('음료', 'ProcessedFood2023', '가공식품', '주스, 탄산음료, 식혜 등'),
+                            ('우유/두유', 'ProcessedFood2023', '가공식품', '우유, 두유, 요구르트 등'),
+                            ('스낵류', 'ProcessedFood2023', '가공식품', '과자, 초콜릿, 사탕 등'),
+                            ('신선/냉장품', 'ProcessedFood2023', '가공식품', '냉장/냉동 가공식품'),
+                            ('쿠킹소스/장류', 'ProcessedFood2023', '가공식품', '소스, 장류, 양념 등'),
+                            ('커피/차류', 'ProcessedFood2023', '가공식품', '커피, 차, 분말음료 등'),
+                            ('과일류', 'ProcessedFood2023', '가공식품', '과일 가공품'),
+                            ('통조림/캔류', 'ProcessedFood2023', '가공식품', '통조림, 캔 식품'),
+                            ('건강기능식품', 'HealthFunctionalFood2023', '건강기능식품', '영양제, 보충제 등'),
+                            ('뷰티', 'Cosmetic2023', '화장품', '스킨케어, 메이크업 등'),
+                            ('화장품,생활용품', 'Cosmetic2023', '화장품', '화장품 및 일부 생활용품'),
+                            ('생활용품', 'HouseHoldChemical2023', '생활화학제품', '세제, 방향제 등')
+                    """)
+
+                    conn.commit()
+                    print("[OK] category_infocode_mapping 테이블 생성 및 데이터 삽입 완료")
+            except Exception as e:
+                print(f"[WARN] category_infocode_mapping 테이블 생성 중 오류: {e}")
+                conn.rollback()
+
             cursor.close()
             conn.close()
     except Exception as e:
