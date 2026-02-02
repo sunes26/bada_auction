@@ -399,11 +399,11 @@ function DashboardTab({ systemStatus, imageStats, databaseStats, onRefresh }: {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">총 이미지</span>
-              <span className="text-2xl font-bold text-purple-600">{imageStats?.total_images.toLocaleString() || 0}개</span>
+              <span className="text-2xl font-bold text-purple-600">{imageStats?.total_images?.toLocaleString() || 0}개</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">총 용량</span>
-              <span className="text-2xl font-bold text-pink-600">{imageStats?.total_size_mb.toFixed(2) || 0} MB</span>
+              <span className="text-2xl font-bold text-pink-600">{imageStats?.total_size_mb?.toFixed(2) || 0} MB</span>
             </div>
           </div>
         </div>
@@ -427,7 +427,7 @@ function DashboardTab({ systemStatus, imageStats, databaseStats, onRefresh }: {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">총 레코드</span>
-              <span className="text-2xl font-bold text-teal-600">{databaseStats?.total_records.toLocaleString() || 0}개</span>
+              <span className="text-2xl font-bold text-teal-600">{databaseStats?.total_records?.toLocaleString() || 0}개</span>
             </div>
           </div>
         </div>
@@ -762,24 +762,6 @@ function ImagesTab() {
   return (
     <div className="space-y-6">
       {/* 전체 통계 */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">전체 이미지 통계</h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">{imageStats?.total_folders || 0}</div>
-            <div className="text-sm text-gray-600">폴더</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">{imageStats?.total_images.toLocaleString() || 0}</div>
-            <div className="text-sm text-gray-600">이미지</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-pink-600">{imageStats?.total_size_mb.toFixed(2) || 0} MB</div>
-            <div className="text-sm text-gray-600">용량</div>
-          </div>
-        </div>
-      </div>
-
       {/* 폴더 목록 */}
       {!selectedFolder ? (
         <div className="bg-white rounded-xl p-6 border border-gray-200">
@@ -1101,7 +1083,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
             <div className="text-sm text-gray-600">테이블 수</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-teal-600">{stats?.total_records.toLocaleString() || 0}</div>
+            <div className="text-3xl font-bold text-teal-600">{stats?.total_records?.toLocaleString() || 0}</div>
             <div className="text-sm text-gray-600">총 레코드</div>
           </div>
         </div>
@@ -1110,10 +1092,10 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
         <div className="bg-white rounded-lg p-4">
           <h4 className="font-semibold text-gray-700 mb-3">테이블별 레코드 수</h4>
           <div className="space-y-2">
-            {stats?.tables.map((table) => (
+            {stats?.tables?.map((table) => (
               <div key={table.table} className="flex justify-between items-center text-sm">
                 <span className="text-gray-600">{table.table}</span>
-                <span className="font-bold text-gray-800">{table.count.toLocaleString()}개</span>
+                <span className="font-bold text-gray-800">{table.count?.toLocaleString() || 0}개</span>
               </div>
             ))}
           </div>
@@ -1150,7 +1132,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
                 <div>
                   <div className="font-semibold text-gray-800">{backup.filename}</div>
                   <div className="text-xs text-gray-500">
-                    {backup.size_mb.toFixed(2)} MB · {new Date(backup.created).toLocaleString()}
+                    {backup.size_mb?.toFixed(2) || 0} MB · {new Date(backup.created).toLocaleString()}
                   </div>
                 </div>
                 <button
