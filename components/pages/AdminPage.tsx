@@ -1018,7 +1018,11 @@ function ImagesTab() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteFolder(folder.category_id, folder.display_name || folder.name);
+                      if (folder.category_id !== undefined) {
+                        handleDeleteFolder(folder.category_id, folder.display_name || folder.name);
+                      } else {
+                        alert('폴더 번호를 찾을 수 없습니다.');
+                      }
                     }}
                     className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                     title="폴더 삭제"
