@@ -996,10 +996,19 @@ function ImagesTab() {
               {folderImages.map((img, index) => (
                 <div key={`${selectedFolder}-${img.filename}-${index}`} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                   <img
-                    src={img.path}
+                    src={img.thumbnail_path || img.path}
                     alt={img.filename}
                     loading="lazy"
-                    className="w-full h-40 object-cover rounded-lg mb-2"
+                    className="w-full h-40 object-cover rounded-lg mb-2 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => window.open(img.path, '_blank')}
+                    onError={(e) => {
+                      // 썸네일 로드 실패 시 원본으로 대체
+                      const target = e.target as HTMLImageElement;
+                      if (target.src !== img.path) {
+                        target.src = img.path;
+                      }
+                    }}
+                    title="클릭하여 원본 보기"
                   />
                   <div className="text-xs text-gray-600 mb-2 truncate" title={img.filename}>
                     {img.filename}

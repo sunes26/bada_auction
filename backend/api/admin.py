@@ -512,24 +512,37 @@ async def get_image_gallery(folder_name: str):
             for file in all_files:
                 # 파일인지 폴더인지 확인 (폴더는 제외)
                 if file.get('id') is None:
-                    print(f"[DEBUG] Skipping folder: {file.get('name')}")
+                    # thumbs 폴더 등 제외
+                    if file.get('name') != 'thumbs':
+                        print(f"[DEBUG] Skipping folder: {file.get('name')}")
                     continue
 
-                # 공개 URL 생성
-                storage_path = f"{storage_folder}/{file['name']}"
+                filename = file['name']
+
+                # thumbs 폴더 내부 파일은 제외
+                if filename.startswith('thumbs/') or '/thumbs/' in filename:
+                    continue
+
+                # 원본 이미지 URL 생성
+                storage_path = f"{storage_folder}/{filename}"
                 public_url = get_public_url(storage_path)
 
+                # 썸네일 URL 생성 (존재 여부는 프론트에서 확인)
+                thumb_path = f"{storage_folder}/thumbs/{filename}"
+                thumbnail_url = get_public_url(thumb_path)
+
                 image_list.append({
-                    "filename": file['name'],
-                    "path": public_url,  # Supabase Storage 공개 URL
+                    "filename": filename,
+                    "path": public_url,  # 원본 URL
+                    "thumbnail_path": thumbnail_url,  # 썸네일 URL
                     "size_kb": round(file.get('metadata', {}).get('size', 0) / 1024, 2) if file.get('metadata') else 0,
                     "width": 0,  # Supabase Storage는 이미지 메타데이터 제공하지 않음
                     "height": 0,
-                    "format": file['name'].split('.')[-1].upper() if '.' in file['name'] else "Unknown",
+                    "format": filename.split('.')[-1].upper() if '.' in filename else "Unknown",
                     "modified": file.get('updated_at', file.get('created_at', ''))
                 })
 
-            print(f"[DEBUG] Returning {len(image_list)} images")
+            print(f"[DEBUG] Returning {len(image_list)} images with thumbnails")
 
             return {
                 "success": True,
@@ -812,9 +825,9 @@ async def create_folder(
 
 @router.post("/images/upload")
 async def upload_images(folder_name: str, files: List[UploadFile] = File(...)):
-    """이미지 업로드 - Supabase Storage 사용"""
+    """이미지 업로드 - Supabase Storage 사용 (썸네일 자동 생성)"""
     try:
-        from utils.supabase_storage import upload_image_from_bytes, supabase
+        from utils.supabase_storage import upload_image_with_thumbnail, supabase
 
         # Supabase 클라이언트 확인
         if not supabase:
@@ -837,13 +850,14 @@ async def upload_images(folder_name: str, files: List[UploadFile] = File(...)):
                 "files": uploaded_files
             }
 
-        # Supabase Storage에 업로드
+        # Supabase Storage에 업로드 (썸네일 자동 생성)
         # 폴더명에서 카테고리 ID 추출 (예: "100_식혜" → "100")
         category_id = folder_name.split('_')[0]
         storage_folder = f"cat-{category_id}"
 
         uploaded_files = []
         uploaded_urls = []
+        thumbnail_urls = []
 
         for file in files:
             # 파일 읽기
@@ -852,22 +866,25 @@ async def upload_images(folder_name: str, files: List[UploadFile] = File(...)):
             # Storage 경로
             storage_path = f"{storage_folder}/{file.filename}"
 
-            # 업로드
-            public_url = upload_image_from_bytes(
+            # 업로드 (썸네일 자동 생성)
+            original_url, thumb_url = upload_image_with_thumbnail(
                 content,
                 storage_path,
-                content_type=file.content_type or "image/jpeg"
+                content_type=file.content_type or "image/jpeg",
+                create_thumb=True
             )
 
-            if public_url:
+            if original_url:
                 uploaded_files.append(file.filename)
-                uploaded_urls.append(public_url)
+                uploaded_urls.append(original_url)
+                thumbnail_urls.append(thumb_url or original_url)  # 썸네일 실패 시 원본 URL
 
         return {
             "success": True,
-            "message": f"{len(uploaded_files)}개 파일이 Supabase Storage에 업로드되었습니다",
+            "message": f"{len(uploaded_files)}개 파일이 업로드되었습니다 (썸네일 포함)",
             "files": uploaded_files,
-            "urls": uploaded_urls
+            "urls": uploaded_urls,
+            "thumbnail_urls": thumbnail_urls
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -3,10 +3,19 @@ Supabase Storage 유틸리티
 이미지 업로드 및 URL 생성을 위한 헬퍼 함수
 """
 import os
+import io
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from supabase import create_client, Client
 from dotenv import load_dotenv
+
+# PIL import (썸네일 생성용)
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("[WARN] PIL not available - thumbnail generation disabled")
 
 # 환경 변수 로드
 load_dotenv()
@@ -190,6 +199,95 @@ def delete_image(storage_path: str) -> bool:
     except Exception as e:
         print(f"[ERROR] Failed to delete {storage_path}: {e}")
         return False
+
+
+def create_thumbnail(image_data: bytes, max_size: Tuple[int, int] = (200, 200), quality: int = 85) -> Optional[bytes]:
+    """
+    이미지 썸네일 생성
+
+    Args:
+        image_data: 원본 이미지 바이트 데이터
+        max_size: 최대 크기 (width, height)
+        quality: JPEG 품질 (1-100)
+
+    Returns:
+        썸네일 바이트 데이터 또는 None
+    """
+    if not PIL_AVAILABLE:
+        print("[ERROR] PIL not available - cannot create thumbnail")
+        return None
+
+    try:
+        # 이미지 열기
+        img = Image.open(io.BytesIO(image_data))
+
+        # RGBA를 RGB로 변환 (PNG 등)
+        if img.mode in ('RGBA', 'LA', 'P'):
+            background = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode == 'P':
+                img = img.convert('RGBA')
+            background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+            img = background
+
+        # 썸네일 생성 (비율 유지)
+        img.thumbnail(max_size, Image.Resampling.LANCZOS)
+
+        # 바이트로 변환
+        thumb_bytes = io.BytesIO()
+        img.save(thumb_bytes, format='JPEG', quality=quality, optimize=True)
+        thumb_bytes.seek(0)
+
+        return thumb_bytes.getvalue()
+    except Exception as e:
+        print(f"[ERROR] Failed to create thumbnail: {e}")
+        return None
+
+
+def upload_image_with_thumbnail(
+    file_data: bytes,
+    storage_path: str,
+    content_type: str = "image/jpeg",
+    create_thumb: bool = True
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    이미지와 썸네일을 함께 업로드
+
+    Args:
+        file_data: 이미지 바이트 데이터
+        storage_path: Storage 내 저장 경로 (예: "cat-1/image.jpg")
+        content_type: MIME 타입
+        create_thumb: 썸네일 생성 여부
+
+    Returns:
+        (원본 URL, 썸네일 URL) 튜플. 실패 시 None
+    """
+    if not supabase:
+        print("[ERROR] Supabase client not initialized")
+        return None, None
+
+    # 원본 이미지 업로드
+    original_url = upload_image_from_bytes(file_data, storage_path, content_type)
+    if not original_url:
+        return None, None
+
+    # 썸네일 생성 및 업로드
+    thumbnail_url = None
+    if create_thumb:
+        thumb_data = create_thumbnail(file_data)
+        if thumb_data:
+            # 썸네일 경로 생성 (cat-1/image.jpg -> cat-1/thumbs/image.jpg)
+            path_parts = storage_path.rsplit('/', 1)
+            if len(path_parts) == 2:
+                folder, filename = path_parts
+                thumb_path = f"{folder}/thumbs/{filename}"
+            else:
+                thumb_path = f"thumbs/{storage_path}"
+
+            thumbnail_url = upload_image_from_bytes(thumb_data, thumb_path, "image/jpeg")
+            if thumbnail_url:
+                print(f"[OK] Thumbnail created: {thumb_path}")
+
+    return original_url, thumbnail_url
 
 
 # 버킷 자동 생성
