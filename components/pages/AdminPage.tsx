@@ -2390,7 +2390,7 @@ function PlayautoCategoryMappingTab() {
                   className="w-full border rounded px-3 py-2"
                 >
                   <option value="">선택</option>
-                  {level1Options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  {level1Options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
 
@@ -2407,7 +2407,7 @@ function PlayautoCategoryMappingTab() {
                   className="w-full border rounded px-3 py-2"
                 >
                   <option value="">선택</option>
-                  {level2Options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  {level2Options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
 
@@ -2423,7 +2423,7 @@ function PlayautoCategoryMappingTab() {
                   className="w-full border rounded px-3 py-2"
                 >
                   <option value="">선택</option>
-                  {level3Options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  {level3Options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
 
@@ -2436,7 +2436,7 @@ function PlayautoCategoryMappingTab() {
                   className="w-full border rounded px-3 py-2"
                 >
                   <option value="">선택</option>
-                  {level4Options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  {level4Options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
             </div>
