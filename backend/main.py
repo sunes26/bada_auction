@@ -164,6 +164,24 @@ async def lifespan(app: FastAPI):
             else:
                 print("[OK] 데이터베이스가 최신 상태입니다")
 
+            # 3. categories 테이블에 sol_cate_no 컬럼 추가
+            try:
+                cursor.execute("""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'categories' AND column_name = 'sol_cate_no'
+                """)
+                column_exists = cursor.fetchone() is not None
+
+                if not column_exists:
+                    print("[MIGRATION] categories 테이블에 sol_cate_no 컬럼 추가 중...")
+                    cursor.execute("ALTER TABLE categories ADD COLUMN sol_cate_no INTEGER")
+                    conn.commit()
+                    print("[OK] sol_cate_no 컬럼 추가 완료")
+            except Exception as e:
+                print(f"[WARN] sol_cate_no 컬럼 추가 중 오류: {e}")
+                conn.rollback()
+
             cursor.close()
             conn.close()
     except Exception as e:

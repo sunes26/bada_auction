@@ -319,6 +319,7 @@ CREATE TABLE IF NOT EXISTS categories (
     level2 TEXT NOT NULL,  -- 중분류 (예: 밥류, 전통음료, 우유)
     level3 TEXT NOT NULL,  -- 소분류 (예: 즉석밥, 식혜, 딸기)
     level4 TEXT NOT NULL,  -- 제품종류 (예: 흰밥, 식혜, 딸기) - 실제 표시명
+    sol_cate_no INTEGER,  -- PlayAuto 카테고리 코드 (자동 매핑)
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

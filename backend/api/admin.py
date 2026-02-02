@@ -805,7 +805,8 @@ async def create_folder(
     level2: str,
     level3: str,
     level4: str,
-    folder_number: Optional[int] = None
+    folder_number: Optional[int] = None,
+    sol_cate_no: Optional[int] = None
 ):
     """새 폴더 생성 + 카테고리 DB 등록"""
     try:
@@ -861,9 +862,9 @@ async def create_folder(
 
             # DB에 카테고리 등록
             cursor.execute("""
-                INSERT INTO categories (folder_number, folder_name, level1, level2, level3, level4)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (folder_number, full_folder_name, level1, level2, level3, level4))
+                INSERT INTO categories (folder_number, folder_name, level1, level2, level3, level4, sol_cate_no)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (folder_number, full_folder_name, level1, level2, level3, level4, sol_cate_no))
             conn.commit()
             cursor.close()
             conn.close()
@@ -897,9 +898,9 @@ async def create_folder(
 
             # DB에 카테고리 등록
             conn.execute("""
-                INSERT INTO categories (folder_number, folder_name, level1, level2, level3, level4)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (folder_number, full_folder_name, level1, level2, level3, level4))
+                INSERT INTO categories (folder_number, folder_name, level1, level2, level3, level4, sol_cate_no)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (folder_number, full_folder_name, level1, level2, level3, level4, sol_cate_no))
             conn.commit()
             conn.close()
 

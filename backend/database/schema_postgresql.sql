@@ -305,6 +305,7 @@ CREATE TABLE IF NOT EXISTS categories (
     level2 TEXT NOT NULL,
     level3 TEXT NOT NULL,
     level4 TEXT NOT NULL,
+    sol_cate_no INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
