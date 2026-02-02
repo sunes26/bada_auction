@@ -332,28 +332,19 @@ async def get_image_gallery(folder_name: str):
         category_id = folder_name.split('_')[0] if '_' in folder_name else folder_name
         storage_folder = f"cat-{category_id}"
 
-        print(f"[DEBUG] Gallery request - folder_name: {folder_name}, category_id: {category_id}, storage_folder: {storage_folder}")
-
         # 이미지 목록 조회
         try:
             files = supabase.storage.from_("product-images").list(storage_folder)
-            print(f"[DEBUG] Supabase Storage returned {len(files) if files else 0} files from {storage_folder}")
-
-            if files:
-                print(f"[DEBUG] First 3 files: {[f.get('name', 'no-name') for f in files[:3]]}")
 
             image_list = []
             for file in files:
                 # 파일인지 폴더인지 확인 (폴더는 제외)
                 if file.get('id') is None:
-                    print(f"[DEBUG] Skipping folder: {file.get('name')}")
                     continue
 
                 # 공개 URL 생성
                 storage_path = f"{storage_folder}/{file['name']}"
                 public_url = get_public_url(storage_path)
-
-                print(f"[DEBUG] File: {file['name']} -> {public_url}")
 
                 image_list.append({
                     "filename": file['name'],
@@ -364,8 +355,6 @@ async def get_image_gallery(folder_name: str):
                     "format": file['name'].split('.')[-1].upper() if '.' in file['name'] else "Unknown",
                     "modified": file.get('updated_at', file.get('created_at', ''))
                 })
-
-            print(f"[DEBUG] Returning {len(image_list)} images")
 
             return {
                 "success": True,

@@ -667,7 +667,7 @@ function ImagesTab() {
   const loadFolderImages = async (folderName: string) => {
     setLoading(true);
     try {
-      const data = await adminGet('/api/admin/images/gallery/${folderName}');
+      const data = await adminGet(`/api/admin/images/gallery/${folderName}`);
       if (data.success) {
         setFolderImages(data.images);
         setSelectedFolder(folderName);
@@ -682,7 +682,7 @@ function ImagesTab() {
   const handleDeleteImage = async (folderName: string, filename: string) => {
     if (!confirm(`"${filename}"을(를) 삭제하시겠습니까?`)) return;
     try {
-      const data = await adminDelete('/api/admin/images/delete?folder_name=${folderName}&filename=${filename}');
+      const data = await adminDelete(`/api/admin/images/delete?folder_name=${folderName}&filename=${filename}`);
       if (data.success) {
         alert('이미지가 삭제되었습니다.');
         loadFolderImages(folderName);
@@ -989,14 +989,12 @@ function ImagesTab() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[600px] overflow-y-auto">
-              {folderImages.map((img, index) => {
-                // URL 인코딩된 이미지 경로 생성
-                const encodedPath = `/supabase-images/${encodeURIComponent(selectedFolder!)}/${encodeURIComponent(img.filename)}`;
-                return (
+              {folderImages.map((img, index) => (
                 <div key={`${selectedFolder}-${img.filename}-${index}`} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                   <img
-                    src={`${API_BASE_URL}${encodedPath}`}
+                    src={img.path}
                     alt={img.filename}
+                    loading="lazy"
                     className="w-full h-40 object-cover rounded-lg mb-2"
                   />
                   <div className="text-xs text-gray-600 mb-2 truncate" title={img.filename}>
@@ -1006,14 +1004,13 @@ function ImagesTab() {
                     {img.width} × {img.height} · {img.size_kb} KB
                   </div>
                   <button
-                    onClick={() => handleDeleteImage(selectedFolder, img.filename)}
+                    onClick={() => handleDeleteImage(selectedFolder!, img.filename)}
                     className="w-full px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
                   >
                     삭제
                   </button>
                 </div>
-                );
-              })}
+              ))}
             </div>
           )}
         </div>
