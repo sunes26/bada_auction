@@ -31,7 +31,7 @@ import {
 
 import { API_BASE_URL } from '@/lib/api';
 import { adminGet, adminPost, adminDelete, adminFetch, adminUpload } from '@/lib/adminApi';
-type TabType = 'dashboard' | 'images' | 'database' | 'logs' | 'settings' | 'cleanup' | 'performance' | 'devtools' | 'activity' | 'mappings';
+type TabType = 'dashboard' | 'images' | 'database' | 'logs' | 'settings' | 'cleanup' | 'performance' | 'devtools' | 'activity' | 'mappings' | 'playauto-mappings';
 
 interface SystemStatus {
   database: {
@@ -258,6 +258,12 @@ export default function AdminPage() {
           icon={<FolderOpen className="w-4 h-4" />}
           label="카테고리 매핑"
         />
+        <TabButton
+          active={activeTab === 'playauto-mappings'}
+          onClick={() => setActiveTab('playauto-mappings')}
+          icon={<Tag className="w-4 h-4" />}
+          label="PlayAuto 카테고리"
+        />
       </div>
 
       {/* Tab Content */}
@@ -279,6 +285,7 @@ export default function AdminPage() {
         {activeTab === 'devtools' && <DevToolsTab />}
         {activeTab === 'activity' && <ActivityTab />}
         {activeTab === 'mappings' && <CategoryMappingTab />}
+        {activeTab === 'playauto-mappings' && <PlayautoCategoryMappingTab />}
       </div>
     </div>
   );
@@ -2084,6 +2091,347 @@ function CategoryMappingTab() {
               <div className="text-xs text-gray-600 mt-1">{ic.description}</div>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// PlayAuto 카테고리 매핑 탭
+function PlayautoCategoryMappingTab() {
+  const [mappings, setMappings] = useState<any[]>([]);
+  const [filteredMappings, setFilteredMappings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState<'none' | 'add' | 'edit'>('none');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [formData, setFormData] = useState({
+    our_category: '',
+    sol_cate_no: '',
+    playauto_category: '',
+    similarity: ''
+  });
+
+  useEffect(() => {
+    loadMappings();
+  }, []);
+
+  useEffect(() => {
+    // 검색 필터 적용
+    if (searchTerm.trim() === '') {
+      setFilteredMappings(mappings);
+    } else {
+      const term = searchTerm.toLowerCase();
+      const filtered = mappings.filter((m: any) =>
+        m.our_category?.toLowerCase().includes(term) ||
+        m.playauto_category?.toLowerCase().includes(term) ||
+        m.sol_cate_no?.toString().includes(term)
+      );
+      setFilteredMappings(filtered);
+    }
+  }, [searchTerm, mappings]);
+
+  const loadMappings = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/category-playauto-mappings`);
+      if (!response.ok) throw new Error('매핑 조회 실패');
+      const data = await response.json();
+      setMappings(data);
+      setFilteredMappings(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdd = () => {
+    setEditMode('add');
+    setFormData({ our_category: '', sol_cate_no: '', playauto_category: '', similarity: '' });
+  };
+
+  const handleEdit = (mapping: any) => {
+    setEditMode('edit');
+    setEditingId(mapping.id);
+    setFormData({
+      our_category: mapping.our_category,
+      sol_cate_no: mapping.sol_cate_no?.toString() || '',
+      playauto_category: mapping.playauto_category || '',
+      similarity: mapping.similarity || ''
+    });
+  };
+
+  const handleCancel = () => {
+    setEditMode('none');
+    setEditingId(null);
+    setFormData({ our_category: '', sol_cate_no: '', playauto_category: '', similarity: '' });
+  };
+
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+
+      const payload = {
+        our_category: formData.our_category,
+        sol_cate_no: parseInt(formData.sol_cate_no),
+        playauto_category: formData.playauto_category || null,
+        similarity: formData.similarity || null
+      };
+
+      if (editMode === 'add') {
+        const response = await fetch(`${API_BASE_URL}/api/category-playauto-mappings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || '추가 실패');
+        }
+      } else if (editMode === 'edit' && editingId) {
+        const response = await fetch(`${API_BASE_URL}/api/category-playauto-mappings/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sol_cate_no: parseInt(formData.sol_cate_no),
+            playauto_category: formData.playauto_category || null,
+            similarity: formData.similarity || null
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || '수정 실패');
+        }
+      }
+
+      await loadMappings();
+      handleCancel();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number, ourCategory: string) => {
+    if (!confirm(`'${ourCategory}' 매핑을 삭제하시겠습니까?`)) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/category-playauto-mappings/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || '삭제 실패');
+      }
+
+      await loadMappings();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSimilarityColor = (similarity: string | null): string => {
+    if (!similarity) return 'text-gray-500';
+    const percent = parseFloat(similarity.replace('%', ''));
+    if (percent >= 80) return 'text-green-600 font-semibold';
+    if (percent >= 50) return 'text-yellow-600 font-semibold';
+    return 'text-red-600 font-semibold';
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h3 className="text-xl font-bold text-gray-800">PlayAuto 카테고리 매핑 관리</h3>
+            <p className="text-sm text-gray-600 mt-1">우리 시스템 카테고리를 PlayAuto sol_cate_no로 매핑합니다</p>
+          </div>
+          {editMode === 'none' && (
+            <button
+              onClick={handleAdd}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              새 매핑 추가
+            </button>
+          )}
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        {editMode === 'none' && (
+          <div className="mb-4">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="카테고리 또는 sol_cate_no로 검색..."
+              className="w-full border rounded-lg px-4 py-2"
+            />
+          </div>
+        )}
+
+        {editMode !== 'none' && (
+          <div className="bg-gray-50 p-4 rounded-lg mb-6 space-y-4">
+            <h4 className="text-lg font-semibold">
+              {editMode === 'add' ? '새 매핑 추가' : '매핑 수정'}
+            </h4>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">우리 카테고리 *</label>
+                <input
+                  type="text"
+                  value={formData.our_category}
+                  onChange={(e) => setFormData({ ...formData, our_category: e.target.value })}
+                  disabled={editMode === 'edit'}
+                  placeholder="예: 간편식 > 면 > 라면 > 라면"
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">PlayAuto sol_cate_no *</label>
+                <input
+                  type="number"
+                  value={formData.sol_cate_no}
+                  onChange={(e) => setFormData({ ...formData, sol_cate_no: e.target.value })}
+                  placeholder="예: 36060400"
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">PlayAuto 카테고리명</label>
+                <input
+                  type="text"
+                  value={formData.playauto_category}
+                  onChange={(e) => setFormData({ ...formData, playauto_category: e.target.value })}
+                  placeholder="예: 식품>가공식품>면류>라면"
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">유사도</label>
+                <input
+                  type="text"
+                  value={formData.similarity}
+                  onChange={(e) => setFormData({ ...formData, similarity: e.target.value })}
+                  placeholder="예: 85.2%"
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleSave}
+                disabled={loading || !formData.our_category || !formData.sol_cate_no}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              >
+                {loading ? '저장 중...' : '저장'}
+              </button>
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-4 py-2 text-left">우리 카테고리</th>
+                <th className="border px-4 py-2 text-left">sol_cate_no</th>
+                <th className="border px-4 py-2 text-left">PlayAuto 카테고리</th>
+                <th className="border px-4 py-2 text-center">유사도</th>
+                <th className="border px-4 py-2 text-center">작업</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && filteredMappings.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="border px-4 py-8 text-center text-gray-500">
+                    로딩 중...
+                  </td>
+                </tr>
+              ) : filteredMappings.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="border px-4 py-8 text-center text-gray-500">
+                    {searchTerm ? '검색 결과가 없습니다' : '등록된 매핑이 없습니다'}
+                  </td>
+                </tr>
+              ) : (
+                filteredMappings.map((mapping: any) => (
+                  <tr key={mapping.id} className="hover:bg-gray-50">
+                    <td className="border px-4 py-2 font-medium">{mapping.our_category}</td>
+                    <td className="border px-4 py-2 text-sm font-mono text-blue-600">{mapping.sol_cate_no}</td>
+                    <td className="border px-4 py-2 text-sm">{mapping.playauto_category || '-'}</td>
+                    <td className={`border px-4 py-2 text-center ${getSimilarityColor(mapping.similarity)}`}>
+                      {mapping.similarity || '-'}
+                    </td>
+                    <td className="border px-4 py-2 text-center">
+                      <div className="flex gap-2 justify-center">
+                        <button
+                          onClick={() => handleEdit(mapping)}
+                          disabled={editMode !== 'none'}
+                          className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
+                        >
+                          수정
+                        </button>
+                        <button
+                          onClick={() => handleDelete(mapping.id, mapping.our_category)}
+                          disabled={editMode !== 'none'}
+                          className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
+          <div>
+            총 {mappings.length}개 매핑
+            {searchTerm && ` (${filteredMappings.length}개 검색 결과)`}
+          </div>
+          <div className="flex gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-green-600 rounded"></span>
+              <span>80% 이상</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-yellow-600 rounded"></span>
+              <span>50-80%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-red-600 rounded"></span>
+              <span>50% 미만</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

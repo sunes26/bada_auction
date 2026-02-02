@@ -300,6 +300,9 @@ class DatabaseWrapper:
         category: Optional[str] = None,
         thumbnail_url: Optional[str] = None,
         original_thumbnail_url: Optional[str] = None,
+        sol_cate_no: Optional[int] = None,
+        playauto_product_no: Optional[str] = None,
+        ol_shop_no: Optional[str] = None,
         notes: Optional[str] = None
     ) -> int:
         """판매 상품 추가"""
@@ -315,6 +318,10 @@ class DatabaseWrapper:
                 detail_page_data=detail_page_data,
                 category=category,
                 thumbnail_url=thumbnail_url,
+                original_thumbnail_url=original_thumbnail_url,
+                sol_cate_no=sol_cate_no,
+                playauto_product_no=playauto_product_no,
+                ol_shop_no=ol_shop_no,
                 notes=notes
             )
             session.add(product)
@@ -417,6 +424,9 @@ class DatabaseWrapper:
         detail_page_data: Optional[str] = None,
         category: Optional[str] = None,
         thumbnail_url: Optional[str] = None,
+        sol_cate_no: Optional[int] = None,
+        playauto_product_no: Optional[str] = None,
+        ol_shop_no: Optional[str] = None,
         is_active: Optional[bool] = None,
         notes: Optional[str] = None
     ):
@@ -446,6 +456,12 @@ class DatabaseWrapper:
                 product.category = category
             if thumbnail_url is not None:
                 product.thumbnail_url = thumbnail_url
+            if sol_cate_no is not None:
+                product.sol_cate_no = sol_cate_no
+            if playauto_product_no is not None:
+                product.playauto_product_no = playauto_product_no
+            if ol_shop_no is not None:
+                product.ol_shop_no = ol_shop_no
             if is_active is not None:
                 product.is_active = is_active
             if notes is not None:

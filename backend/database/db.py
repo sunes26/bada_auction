@@ -1086,6 +1086,9 @@ class Database:
         category: Optional[str] = None,
         thumbnail_url: Optional[str] = None,
         original_thumbnail_url: Optional[str] = None,
+        sol_cate_no: Optional[int] = None,
+        playauto_product_no: Optional[str] = None,
+        ol_shop_no: Optional[str] = None,
         notes: Optional[str] = None
     ) -> int:
         """판매 상품 추가"""
@@ -1093,10 +1096,12 @@ class Database:
             cursor = conn.execute("""
                 INSERT INTO my_selling_products
                 (product_name, selling_price, monitored_product_id, sourcing_url, sourcing_product_name,
-                 sourcing_price, sourcing_source, detail_page_data, category, thumbnail_url, original_thumbnail_url, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 sourcing_price, sourcing_source, detail_page_data, category, thumbnail_url, original_thumbnail_url,
+                 sol_cate_no, playauto_product_no, ol_shop_no, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (product_name, selling_price, monitored_product_id, sourcing_url, sourcing_product_name,
-                  sourcing_price, sourcing_source, detail_page_data, category, thumbnail_url, original_thumbnail_url, notes))
+                  sourcing_price, sourcing_source, detail_page_data, category, thumbnail_url, original_thumbnail_url,
+                  sol_cate_no, playauto_product_no, ol_shop_no, notes))
             conn.commit()
             return cursor.lastrowid
 
@@ -1186,6 +1191,9 @@ class Database:
         detail_page_data: Optional[str] = None,
         category: Optional[str] = None,
         thumbnail_url: Optional[str] = None,
+        sol_cate_no: Optional[int] = None,
+        playauto_product_no: Optional[str] = None,
+        ol_shop_no: Optional[str] = None,
         is_active: Optional[bool] = None,
         notes: Optional[str] = None
     ):
@@ -1229,6 +1237,15 @@ class Database:
             if thumbnail_url is not None:
                 updates.append("thumbnail_url = ?")
                 params.append(thumbnail_url)
+            if sol_cate_no is not None:
+                updates.append("sol_cate_no = ?")
+                params.append(sol_cate_no)
+            if playauto_product_no is not None:
+                updates.append("playauto_product_no = ?")
+                params.append(playauto_product_no)
+            if ol_shop_no is not None:
+                updates.append("ol_shop_no = ?")
+                params.append(ol_shop_no)
             if is_active is not None:
                 updates.append("is_active = ?")
                 params.append(is_active)

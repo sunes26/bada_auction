@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from database.db import get_db
 from utils.cache import async_cached, clear_all_cache
+from utils.category_mapper import get_playauto_category_code
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -54,6 +55,17 @@ async def create_product(request: CreateProductRequest):
     try:
         db = get_db()
 
+        # 카테고리 자동 매핑
+        sol_cate_no = None
+        category_warning = None
+        if request.category:
+            sol_cate_no = get_playauto_category_code(request.category)
+            if sol_cate_no:
+                logger.info(f"[상품생성] 카테고리 자동 매핑: {request.category} -> {sol_cate_no}")
+            else:
+                category_warning = "PlayAuto 카테고리 매핑이 없습니다. 관리자 페이지에서 매핑을 추가해주세요."
+                logger.warning(f"[상품생성] 카테고리 매핑 없음: {request.category}")
+
         product_id = db.add_selling_product(
             product_name=request.product_name,
             selling_price=request.selling_price,
@@ -66,17 +78,24 @@ async def create_product(request: CreateProductRequest):
             category=request.category,
             thumbnail_url=request.thumbnail_url,
             original_thumbnail_url=request.original_thumbnail_url,
+            sol_cate_no=sol_cate_no,
             notes=request.notes
         )
 
         # 캐시 무효화
         clear_all_cache()
 
-        return {
+        response = {
             "success": True,
             "product_id": product_id,
-            "message": "판매 상품이 추가되었습니다."
+            "message": "판매 상품이 추가되었습니다.",
+            "sol_cate_no": sol_cate_no
         }
+
+        if category_warning:
+            response["warning"] = category_warning
+
+        return response
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"상품 생성 실패: {str(e)}")
@@ -656,17 +675,28 @@ async def register_products_to_playauto(request: dict):
                 result = await registration_api.register_product(product_data)
 
                 if result.get("success"):
-                    # 등록 성공 시 is_active = True로 변경
-                    db.update_selling_product(
-                        product_id=product_id,
-                        is_active=True
-                    )
-
-                    # 플레이오토 상품 번호 저장 (있으면)
+                    # 플레이오토 상품 번호 및 쇼핑몰 번호 저장
                     c_sale_cd = result.get("c_sale_cd")
+                    site_list_result = result.get("site_list", [])
+
+                    # ol_shop_no는 첫 번째 등록 성공한 쇼핑몰 번호를 저장
+                    ol_shop_no = None
+                    if site_list_result:
+                        for site in site_list_result:
+                            if site.get("result") == "성공" and site.get("ol_shop_no"):
+                                ol_shop_no = site.get("ol_shop_no")
+                                break
+
+                    # 등록 성공 시 is_active = True로 변경하고 PlayAuto ID 저장
+                    update_params = {"product_id": product_id, "is_active": True}
                     if c_sale_cd:
-                        # TODO: playauto_product_no 필드에 저장
-                        pass
+                        update_params["playauto_product_no"] = c_sale_cd
+                        logger.info(f"[상품등록] PlayAuto 상품번호 저장: {c_sale_cd}")
+                    if ol_shop_no:
+                        update_params["ol_shop_no"] = ol_shop_no
+                        logger.info(f"[상품등록] 온라인 쇼핑몰 번호 저장: {ol_shop_no}")
+
+                    db.update_selling_product(**update_params)
 
                     success_count += 1
                     logger.info(f"[상품등록] 성공: {product.get('product_name')}")

@@ -251,6 +251,10 @@ CREATE TABLE IF NOT EXISTS my_selling_products (
     detail_page_data TEXT,  -- 상세페이지 JSON 데이터
     category TEXT,
     thumbnail_url TEXT,
+    original_thumbnail_url TEXT,  -- 원본 썸네일 URL (리사이즈 전)
+    sol_cate_no INTEGER,  -- PlayAuto 카테고리 코드
+    playauto_product_no TEXT,  -- PlayAuto 상품 등록 번호 (c_sale_cd)
+    ol_shop_no TEXT,  -- 온라인 쇼핑몰 번호 (PlayAuto 등록 시)
     is_active BOOLEAN DEFAULT TRUE,  -- 판매 중 여부
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
