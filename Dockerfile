@@ -42,13 +42,33 @@ RUN wget -q -O /tmp/google-chrome-key.pub https://dl-ssl.google.com/linux/linux_
     && rm -rf /var/lib/apt/lists/* /tmp/google-chrome-key.pub
 
 # Install ChromeDriver matching Chrome version
-RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1) && \
-    CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}") && \
-    wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" && \
-    unzip chromedriver_linux64.zip && \
-    mv chromedriver /usr/local/bin/chromedriver && \
+# Chrome 115+ uses Chrome for Testing repository
+RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}') && \
+    echo "Chrome version: $CHROME_VERSION" && \
+    CHROME_MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d'.' -f1) && \
+    echo "Chrome major version: $CHROME_MAJOR_VERSION" && \
+    if [ "$CHROME_MAJOR_VERSION" -ge 115 ]; then \
+        # Chrome 115+: Use Chrome for Testing
+        CHROMEDRIVER_URL="https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${CHROME_MAJOR_VERSION}"; \
+        CHROMEDRIVER_VERSION=$(curl -s "$CHROMEDRIVER_URL" || echo "$CHROME_VERSION"); \
+        echo "ChromeDriver version: $CHROMEDRIVER_VERSION"; \
+        wget -q "https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip" -O chromedriver.zip || \
+        wget -q "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip" -O chromedriver.zip; \
+    else \
+        # Chrome < 115: Use old ChromeDriver repository
+        CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION}"); \
+        echo "ChromeDriver version: $CHROMEDRIVER_VERSION"; \
+        wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" -O chromedriver.zip; \
+    fi && \
+    unzip chromedriver.zip && \
+    if [ -f "chromedriver-linux64/chromedriver" ]; then \
+        mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver; \
+    else \
+        mv chromedriver /usr/local/bin/chromedriver; \
+    fi && \
     chmod +x /usr/local/bin/chromedriver && \
-    rm chromedriver_linux64.zip
+    rm -rf chromedriver.zip chromedriver-linux64 && \
+    echo "ChromeDriver installed: $(chromedriver --version)"
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
