@@ -526,7 +526,7 @@ async def get_image_gallery(folder_name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/categories/debug")
+@router.get("/categories/debug", dependencies=[])
 async def debug_categories():
     """카테고리 데이터 디버그"""
     try:
