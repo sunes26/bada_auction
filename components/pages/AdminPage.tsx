@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 
 import { API_BASE_URL } from '@/lib/api';
+import { adminGet, adminPost, adminDelete, adminFetch, adminUpload } from '@/lib/adminApi';
 type TabType = 'dashboard' | 'images' | 'database' | 'logs' | 'settings' | 'cleanup' | 'performance' | 'devtools' | 'activity' | 'mappings';
 
 interface SystemStatus {
@@ -98,16 +99,10 @@ export default function AdminPage() {
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const [statusRes, imageRes, dbRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/admin/system/status`),
-        fetch(`${API_BASE_URL}/api/admin/images/stats`),
-        fetch(`${API_BASE_URL}/api/admin/database/stats`)
-      ]);
-
       const [statusData, imageData, dbData] = await Promise.all([
-        statusRes.json(),
-        imageRes.json(),
-        dbRes.json()
+        adminGet('/api/admin/system/status'),
+        adminGet('/api/admin/images/stats'),
+        adminGet('/api/admin/database/stats')
       ]);
 
       if (statusData.success) setSystemStatus(statusData);
@@ -318,8 +313,7 @@ function DashboardTab({ systemStatus, imageStats, databaseStats, onRefresh }: {
   // 빠른 액션 핸들러들
   const handleBackupDB = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/database/backup`, { method: 'POST' });
-      const data = await res.json();
+      const data = await adminPost('/api/admin/database/backup');
       if (data.success) {
         alert('✓ 데이터베이스 백업 완료!');
         onRefresh();
@@ -332,8 +326,7 @@ function DashboardTab({ systemStatus, imageStats, databaseStats, onRefresh }: {
   const handleOptimizeDB = async () => {
     if (!confirm('데이터베이스를 최적화하시겠습니까?')) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/database/optimize`, { method: 'POST' });
-      const data = await res.json();
+      const data = await adminPost('/api/admin/database/optimize');
       if (data.success) {
         alert('✓ 데이터베이스 최적화 완료!');
         onRefresh();
@@ -662,8 +655,7 @@ function ImagesTab() {
 
   const loadImageStats = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/images/stats`);
-      const data = await res.json();
+      const data = await adminGet('/api/admin/images/stats');
       if (data.success) {
         setImageStats(data);
       }
@@ -675,8 +667,7 @@ function ImagesTab() {
   const loadFolderImages = async (folderName: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/images/gallery/${folderName}`);
-      const data = await res.json();
+      const data = await adminGet('/api/admin/images/gallery/${folderName}');
       if (data.success) {
         setFolderImages(data.images);
         setSelectedFolder(folderName);
@@ -691,10 +682,7 @@ function ImagesTab() {
   const handleDeleteImage = async (folderName: string, filename: string) => {
     if (!confirm(`"${filename}"을(를) 삭제하시겠습니까?`)) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/images/delete?folder_name=${folderName}&filename=${filename}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
+      const data = await adminDelete('/api/admin/images/delete?folder_name=${folderName}&filename=${filename}');
       if (data.success) {
         alert('이미지가 삭제되었습니다.');
         loadFolderImages(folderName);
@@ -725,10 +713,7 @@ function ImagesTab() {
         level4: newLevel4.trim()
       });
 
-      const res = await fetch(`${API_BASE_URL}/api/admin/images/create-folder?${params}`, {
-        method: 'POST'
-      });
-      const data = await res.json();
+      const data = await adminPost('/api/admin/images/create-folder?${params}');
       if (data.success) {
         alert(data.message);
         // 입력 필드 초기화
@@ -756,11 +741,7 @@ function ImagesTab() {
     });
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/images/upload?folder_name=${encodeURIComponent(folderName)}`, {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
+      const data = await adminUpload(`/api/admin/images/upload?folder_name=${encodeURIComponent(folderName)}`, formData);
       if (data.success) {
         alert(data.message);
         loadFolderImages(folderName);
@@ -1051,8 +1032,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
 
   const loadBackups = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/database/backups`);
-      const data = await res.json();
+      const data = await adminGet('/api/admin/database/backups');
       if (data.success) {
         setBackups(data.backups);
       }
@@ -1063,8 +1043,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
 
   const handleBackup = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/database/backup`, { method: 'POST' });
-      const data = await res.json();
+      const data = await adminPost('/api/admin/database/backup');
       if (data.success) {
         alert('✓ 백업 완료!');
         loadBackups();
@@ -1077,10 +1056,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
   const handleRestore = async (filename: string) => {
     if (!confirm(`"${filename}"으로 복원하시겠습니까?\n\n⚠️ 현재 데이터는 백업 후 덮어쓰기됩니다.`)) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/database/restore?backup_filename=${filename}`, {
-        method: 'POST'
-      });
-      const data = await res.json();
+      const data = await adminPost('/api/admin/database/restore?backup_filename=${filename}');
       if (data.success) {
         alert('✓ 복원 완료!');
         loadBackups();
@@ -1093,8 +1069,7 @@ function DatabaseTab({ stats }: { stats: DatabaseStats | null }) {
   const handleOptimize = async () => {
     if (!confirm('데이터베이스를 최적화하시겠습니까?')) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/database/optimize`, { method: 'POST' });
-      const data = await res.json();
+      const data = await adminPost('/api/admin/database/optimize');
       if (data.success) {
         alert('✓ 최적화 완료!');
       }
@@ -1198,8 +1173,7 @@ function LogsTab() {
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/logs/recent?limit=100`);
-      const data = await res.json();
+      const data = await adminGet('/api/admin/logs/recent?limit=100');
       if (data.success) {
         setLogs(data.logs);
       }
@@ -1270,8 +1244,7 @@ function SettingsTab() {
 
   const loadEnvVars = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/settings/env`);
-      const data = await res.json();
+      const data = await adminGet('/api/admin/settings/env');
       if (data.success) {
         setEnvVars(data.environment_variables);
       }
@@ -1592,8 +1565,7 @@ function CleanupTab() {
     if (!confirm(`${days}일 이전의 주문을 삭제하시겠습니까?`)) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/cleanup/old-orders?days=${days}`, { method: 'POST' });
-      const data = await res.json();
+      const data = await adminPost('/api/admin/cleanup/old-orders?days=${days}');
       if (data.success) {
         alert(`✓ ${data.deleted_count}개의 주문이 삭제되었습니다.`);
       }
@@ -1606,8 +1578,7 @@ function CleanupTab() {
     if (!confirm('임시 파일을 정리하시겠습니까?')) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/cleanup/temp-files`, { method: 'POST' });
-      const data = await res.json();
+      const data = await adminPost('/api/admin/cleanup/temp-files');
       if (data.success) {
         alert(`✓ ${data.deleted_files}개 파일 삭제 (${data.freed_mb} MB 확보)`);
       }
@@ -1684,8 +1655,7 @@ function PerformanceTab() {
 
   const loadMetrics = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/performance/metrics`);
-      const data = await res.json();
+      const data = await adminGet('/api/admin/performance/metrics');
       if (data.success) {
         setMetrics(data);
       }
@@ -1763,8 +1733,7 @@ function DevToolsTab() {
 
   const handleTestAPI = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/api/test`);
-      const data = await res.json();
+      const data = await adminGet('/api/admin/api/test');
       if (data.success) {
         setTestResults(data.tests);
       }
