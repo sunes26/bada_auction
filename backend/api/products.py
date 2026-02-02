@@ -385,6 +385,15 @@ async def update_product(product_id: int, request: UpdateProductRequest):
         price_changed = new_selling_price is not None and old_selling_price != new_selling_price
         playauto_product_no = product.get('playauto_product_no')
 
+        # 카테고리 변경 시 자동 매핑
+        sol_cate_no = None
+        if request.category:
+            sol_cate_no = get_playauto_category_code(request.category)
+            if sol_cate_no:
+                logger.info(f"[상품수정] 카테고리 자동 매핑: {request.category} -> {sol_cate_no}")
+            else:
+                logger.warning(f"[상품수정] 카테고리 매핑 없음: {request.category}")
+
         # 로컬 DB 수정
         db.update_selling_product(
             product_id=product_id,
@@ -399,6 +408,7 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             category=request.category,
             thumbnail_url=request.thumbnail_url,
             is_active=request.is_active,
+            sol_cate_no=sol_cate_no,
             notes=request.notes
         )
 

@@ -31,16 +31,16 @@ def get_infocode_for_category(category: str) -> str:
     level1 = category.split(">")[0].strip() if ">" in category else category.strip()
 
     try:
-        # DB에서 infoCode 조회 (절대 경로 사용)
-        import os
-        from pathlib import Path
+        # DB에서 infoCode 조회 (PostgreSQL/SQLite 자동 선택)
+        from database.database_manager import get_database_manager
 
-        db_path = Path(__file__).parent.parent / 'monitoring.db'
-        conn = sqlite3.connect(str(db_path.absolute()))
+        db_manager = get_database_manager()
+        conn = db_manager.engine.raw_connection()
         cursor = conn.cursor()
 
+        placeholder = "?" if db_manager.is_sqlite else "%s"
         cursor.execute(
-            "SELECT info_code FROM category_infocode_mapping WHERE level1 = ?",
+            f"SELECT info_code FROM category_infocode_mapping WHERE level1 = {placeholder}",
             (level1,)
         )
         result = cursor.fetchone()
