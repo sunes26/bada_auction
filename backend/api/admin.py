@@ -45,9 +45,14 @@ def verify_admin_access(
     개발 환경에서는 인증 생략
 
     CORS preflight (OPTIONS) 요청은 인증 생략
+    디버그 엔드포인트는 인증 생략
     """
     # CORS preflight 요청은 인증 생략
     if request.method == "OPTIONS":
+        return True
+
+    # 디버그 엔드포인트는 인증 생략
+    if "/debug" in request.url.path:
         return True
 
     # 개발 환경에서는 인증 생략
