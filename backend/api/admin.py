@@ -190,33 +190,75 @@ async def get_image_stats():
         # Supabase Storage 사용
         if supabase:
             try:
-                # 모든 폴더(카테고리) 목록 조회
-                all_files = supabase.storage.from_("product-images").list()
+                # 모든 폴더(카테고리) 목록 조회 (페이지네이션)
+                all_folders = []
+                offset = 0
+                limit = 1000
+
+                while True:
+                    folder_batch = supabase.storage.from_("product-images").list(
+                        "",
+                        {
+                            "limit": limit,
+                            "offset": offset
+                        }
+                    )
+
+                    if not folder_batch:
+                        break
+
+                    all_folders.extend(folder_batch)
+
+                    if len(folder_batch) < limit:
+                        break
+
+                    offset += limit
 
                 folders = []
                 total_images = 0
                 total_size = 0
 
-                for folder_obj in all_files:
+                for folder_obj in all_folders:
                     folder_name = folder_obj['name']
 
-                    # 폴더 내 이미지 목록 조회
+                    # 폴더 내 이미지 목록 조회 (페이지네이션)
                     try:
-                        images = supabase.storage.from_("product-images").list(folder_name)
+                        all_images = []
+                        img_offset = 0
+                        img_limit = 1000
+
+                        while True:
+                            image_batch = supabase.storage.from_("product-images").list(
+                                folder_name,
+                                {
+                                    "limit": img_limit,
+                                    "offset": img_offset
+                                }
+                            )
+
+                            if not image_batch:
+                                break
+
+                            all_images.extend(image_batch)
+
+                            if len(image_batch) < img_limit:
+                                break
+
+                            img_offset += img_limit
 
                         folder_size = sum(
                             img.get('metadata', {}).get('size', 0)
-                            for img in images
+                            for img in all_images
                         )
 
                         folders.append({
                             "name": folder_name,
                             "path": f"product-images/{folder_name}",
-                            "image_count": len(images),
+                            "image_count": len(all_images),
                             "size_mb": round(folder_size / (1024 * 1024), 2)
                         })
 
-                        total_images += len(images)
+                        total_images += len(all_images)
                         total_size += folder_size
                     except:
                         continue
@@ -227,7 +269,7 @@ async def get_image_stats():
                     "total_folders": len(folders),
                     "total_images": total_images,
                     "total_size_mb": round(total_size / (1024 * 1024), 2),
-                    "folders": folders[:20]  # 처음 20개만 반환
+                    "folders": folders  # 모든 폴더 반환
                 }
             except Exception as e:
                 print(f"[ERROR] Supabase Storage stats failed: {e}")
@@ -332,12 +374,41 @@ async def get_image_gallery(folder_name: str):
         category_id = folder_name.split('_')[0] if '_' in folder_name else folder_name
         storage_folder = f"cat-{category_id}"
 
-        # 이미지 목록 조회
+        # 이미지 목록 조회 (모든 파일 가져오기)
         try:
-            files = supabase.storage.from_("product-images").list(storage_folder)
+            # Supabase Storage list API options
+            # limit: 한 번에 가져올 최대 파일 수 (기본값 100)
+            # offset: 시작 위치
+            # sortBy: 정렬 기준
+
+            # 모든 파일 가져오기 (페이지네이션)
+            all_files = []
+            offset = 0
+            limit = 1000  # 한 번에 1000개씩 가져오기
+
+            while True:
+                files = supabase.storage.from_("product-images").list(
+                    storage_folder,
+                    {
+                        "limit": limit,
+                        "offset": offset,
+                        "sortBy": {"column": "name", "order": "asc"}
+                    }
+                )
+
+                if not files:
+                    break
+
+                all_files.extend(files)
+
+                # 더 이상 파일이 없으면 종료
+                if len(files) < limit:
+                    break
+
+                offset += limit
 
             image_list = []
-            for file in files:
+            for file in all_files:
                 # 파일인지 폴더인지 확인 (폴더는 제외)
                 if file.get('id') is None:
                     continue
