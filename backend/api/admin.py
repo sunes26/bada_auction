@@ -181,11 +181,31 @@ async def get_system_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def get_category_name_map():
+    """카테고리 ID -> 이름 매핑 딕셔너리 생성"""
+    try:
+        db = get_db()
+        conn = db.get_connection()
+        cursor = conn.execute("""
+            SELECT folder_number, folder_name
+            FROM categories
+        """)
+        category_map = {str(row['folder_number']): row['folder_name'] for row in cursor.fetchall()}
+        conn.close()
+        return category_map
+    except Exception as e:
+        print(f"[ERROR] Failed to load category map: {e}")
+        return {}
+
+
 @router.get("/images/stats")
 async def get_image_stats():
     """이미지 통계 조회 - Supabase Storage 우선"""
     try:
         from utils.supabase_storage import supabase
+
+        # 카테고리 이름 매핑 로드
+        category_map = get_category_name_map()
 
         # Supabase Storage 사용
         if supabase:
@@ -221,6 +241,17 @@ async def get_image_stats():
                 for folder_obj in all_folders:
                     folder_name = folder_obj['name']
 
+                    # 폴더명에서 카테고리 ID 추출 (cat-1 -> 1)
+                    category_id = None
+                    display_name = folder_name
+                    if folder_name.startswith('cat-'):
+                        category_id = folder_name.replace('cat-', '')
+                        # 카테고리 이름 조회
+                        if category_id in category_map:
+                            display_name = f"{category_id}_{category_map[category_id]}"
+                        else:
+                            display_name = folder_name
+
                     # 폴더 내 이미지 목록 조회 (페이지네이션)
                     try:
                         all_images = []
@@ -252,7 +283,8 @@ async def get_image_stats():
                         )
 
                         folders.append({
-                            "name": folder_name,
+                            "name": folder_name,  # 실제 스토리지 폴더명 (cat-1)
+                            "display_name": display_name,  # UI 표시용 이름 (1_흰밥)
                             "path": f"product-images/{folder_name}",
                             "image_count": len(all_images),
                             "size_mb": round(folder_size / (1024 * 1024), 2)
@@ -370,9 +402,24 @@ async def get_image_gallery(folder_name: str):
             }
 
         # Supabase Storage에서 이미지 목록 조회
-        # 폴더명에서 카테고리 ID 추출 (예: "100_식혜" → "100" 또는 "1" → "1")
-        category_id = folder_name.split('_')[0] if '_' in folder_name else folder_name
-        storage_folder = f"cat-{category_id}"
+        # 폴더명에서 카테고리 ID 추출 (예: "100_식혜" → "100" 또는 "1" → "1" 또는 "cat-1" → "1")
+        if folder_name.startswith('cat-'):
+            # 이미 cat- 형식인 경우
+            category_id = folder_name.replace('cat-', '')
+            storage_folder = folder_name
+        elif '_' in folder_name:
+            # 1_흰밥 형식
+            category_id = folder_name.split('_')[0]
+            storage_folder = f"cat-{category_id}"
+        else:
+            # 숫자만 있는 경우
+            category_id = folder_name
+            storage_folder = f"cat-{category_id}"
+
+        print(f"[DEBUG] Gallery request:")
+        print(f"  - folder_name: {folder_name}")
+        print(f"  - category_id: {category_id}")
+        print(f"  - storage_folder: {storage_folder}")
 
         # 이미지 목록 조회 (모든 파일 가져오기)
         try:
@@ -397,8 +444,10 @@ async def get_image_gallery(folder_name: str):
                 )
 
                 if not files:
+                    print(f"[DEBUG] No files returned at offset {offset}")
                     break
 
+                print(f"[DEBUG] Batch {offset//limit + 1}: {len(files)} files")
                 all_files.extend(files)
 
                 # 더 이상 파일이 없으면 종료
@@ -407,10 +456,13 @@ async def get_image_gallery(folder_name: str):
 
                 offset += limit
 
+            print(f"[DEBUG] Total files retrieved: {len(all_files)}")
+
             image_list = []
             for file in all_files:
                 # 파일인지 폴더인지 확인 (폴더는 제외)
                 if file.get('id') is None:
+                    print(f"[DEBUG] Skipping folder: {file.get('name')}")
                     continue
 
                 # 공개 URL 생성
@@ -426,6 +478,8 @@ async def get_image_gallery(folder_name: str):
                     "format": file['name'].split('.')[-1].upper() if '.' in file['name'] else "Unknown",
                     "modified": file.get('updated_at', file.get('created_at', ''))
                 })
+
+            print(f"[DEBUG] Returning {len(image_list)} images")
 
             return {
                 "success": True,

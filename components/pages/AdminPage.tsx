@@ -935,13 +935,13 @@ function ImagesTab() {
             {imageStats?.folders.map((folder) => (
               <button
                 key={folder.name}
-                onClick={() => loadFolderImages(folder.name)}
+                onClick={() => loadFolderImages(folder.display_name || folder.name)}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors border border-gray-200 hover:border-blue-300 text-left"
               >
                 <div className="flex items-center gap-3">
                   <FolderOpen className="w-8 h-8 text-blue-600" />
                   <div>
-                    <div className="font-semibold text-gray-800">{folder.name}</div>
+                    <div className="font-semibold text-gray-800">{folder.display_name || folder.name}</div>
                     <div className="text-xs text-gray-500">
                       {folder.image_count}개 · {folder.size_mb.toFixed(2)} MB
                     </div>
