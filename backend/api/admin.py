@@ -513,6 +513,19 @@ async def get_image_gallery(folder_name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/env/debug", dependencies=[])
+async def debug_environment():
+    """환경 변수 디버그"""
+    return {
+        "DATABASE_URL_exists": bool(os.getenv('DATABASE_URL')),
+        "DATABASE_URL_prefix": os.getenv('DATABASE_URL', '')[:30] if os.getenv('DATABASE_URL') else None,
+        "ENVIRONMENT": os.getenv('ENVIRONMENT'),
+        "SUPABASE_URL": os.getenv('SUPABASE_URL'),
+        "db_class_type": type(get_db()).__name__,
+        "db_path": get_db().db_path if hasattr(get_db(), 'db_path') else None
+    }
+
+
 @router.get("/categories/debug", dependencies=[])
 async def debug_categories():
     """카테고리 데이터 디버그"""
