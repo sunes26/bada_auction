@@ -681,6 +681,10 @@ async def register_products_to_playauto(request: dict):
                 # 플레이오토 API 형식으로 변환
                 product_data = build_product_data_from_db(product, site_list)
 
+                # 디버깅: 실제 전달 데이터 로그
+                logger.info(f"[상품등록] product_id={product_id}, category='{product.get('category')}', sol_cate_no={product.get('sol_cate_no')}")
+                logger.info(f"[상품등록] product_data sol_cate_no={product_data.get('sol_cate_no')}")
+
                 # 플레이오토 등록
                 result = await registration_api.register_product(product_data)
 
