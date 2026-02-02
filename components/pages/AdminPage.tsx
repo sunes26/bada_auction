@@ -712,10 +712,11 @@ function ImagesTab() {
         level1: newLevel1.trim(),
         level2: newLevel2.trim(),
         level3: newLevel3.trim(),
-        level4: newLevel4.trim()
+        level4: newLevel4.trim(),
+        folder_number: nextFolderNumber?.toString() || ''
       });
 
-      const data = await adminPost('/api/admin/images/create-folder?${params}');
+      const data = await adminPost(`/api/admin/images/create-folder?${params}`);
       if (data.success) {
         alert(data.message);
         // 입력 필드 초기화
@@ -724,6 +725,7 @@ function ImagesTab() {
         setNewLevel2('');
         setNewLevel3('');
         setNewLevel4('');
+        setNextFolderNumber(null);
         setShowCreateFolder(false);
         loadImageStats();
       } else {

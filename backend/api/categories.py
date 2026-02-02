@@ -161,13 +161,32 @@ async def create_category(category: CategoryCreate):
 async def get_next_folder_number():
     """다음 폴더 번호 조회 (자동 증가)"""
     try:
-        db = get_db()
-        conn = db.get_connection()
-        cursor = conn.execute("SELECT MAX(folder_number) as max_num FROM categories")
-        result = cursor.fetchone()
-        conn.close()
+        import os
+        database_url = os.getenv('DATABASE_URL')
 
-        max_number = result['max_num'] if result and result['max_num'] else 0
+        # 프로덕션: PostgreSQL 직접 연결
+        if database_url and os.getenv('ENVIRONMENT') == 'production':
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+
+            conn = psycopg2.connect(database_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT MAX(folder_number) as max_num FROM categories")
+            result = cursor.fetchone()
+            cursor.close()
+            conn.close()
+
+            max_number = result['max_num'] if result and result['max_num'] else 0
+        else:
+            # 로컬 개발: SQLite
+            db = get_db()
+            conn = db.get_connection()
+            cursor = conn.execute("SELECT MAX(folder_number) as max_num FROM categories")
+            result = cursor.fetchone()
+            conn.close()
+
+            max_number = result['max_num'] if result and result['max_num'] else 0
+
         next_number = max_number + 1
 
         return {

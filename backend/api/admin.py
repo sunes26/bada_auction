@@ -704,6 +704,8 @@ async def create_folder(
 ):
     """새 폴더 생성 + 카테고리 DB 등록"""
     try:
+        from utils.supabase_storage import supabase
+
         # 입력값 검증
         if not folder_name or folder_name.strip() == "":
             return {"success": False, "detail": "폴더명을 입력해주세요"}
@@ -712,46 +714,99 @@ async def create_folder(
 
         folder_name = folder_name.strip()
 
-        # 폴더 번호 자동 생성 (제공되지 않은 경우)
-        db = get_db()
-        conn = db.get_connection()
+        # 데이터베이스 연결 (PostgreSQL/SQLite 자동 선택)
+        database_url = os.getenv('DATABASE_URL')
 
-        if folder_number is None:
-            cursor = conn.execute("SELECT MAX(folder_number) as max_num FROM categories")
-            result = cursor.fetchone()
-            max_number = result['max_num'] if result and result['max_num'] else 0
-            folder_number = max_number + 1
+        if database_url and os.getenv('ENVIRONMENT') == 'production':
+            # 프로덕션: PostgreSQL
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
 
-        full_folder_name = f"{folder_number}_{folder_name}"
+            conn = psycopg2.connect(database_url)
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        # 1. 폴더 번호 중복 체크 (DB)
-        cursor = conn.execute("SELECT id FROM categories WHERE folder_number = ?", (folder_number,))
-        if cursor.fetchone():
+            # 폴더 번호 자동 생성
+            if folder_number is None:
+                cursor.execute("SELECT MAX(folder_number) as max_num FROM categories")
+                result = cursor.fetchone()
+                max_number = result['max_num'] if result and result['max_num'] else 0
+                folder_number = max_number + 1
+
+            full_folder_name = f"{folder_number}_{folder_name}"
+
+            # 폴더 번호 중복 체크
+            cursor.execute("SELECT id FROM categories WHERE folder_number = %s", (folder_number,))
+            if cursor.fetchone():
+                cursor.close()
+                conn.close()
+                return {"success": False, "detail": f"폴더 번호 {folder_number}는 이미 사용 중입니다"}
+
+            # Supabase Storage에 폴더 생성 (빈 파일 업로드로 폴더 생성)
+            if supabase:
+                storage_folder = f"cat-{folder_number}"
+                try:
+                    # .placeholder 파일 업로드하여 폴더 생성
+                    supabase.storage.from_("product-images").upload(
+                        f"{storage_folder}/.placeholder",
+                        b"",
+                        {"content-type": "text/plain"}
+                    )
+                except Exception as e:
+                    print(f"[WARN] Failed to create folder in Supabase Storage: {e}")
+
+            # DB에 카테고리 등록
+            cursor.execute("""
+                INSERT INTO categories (folder_number, folder_name, level1, level2, level3, level4)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (folder_number, full_folder_name, level1, level2, level3, level4))
+            conn.commit()
+            cursor.close()
             conn.close()
-            return {"success": False, "detail": f"폴더 번호 {folder_number}는 이미 사용 중입니다"}
+        else:
+            # 로컬 개발: SQLite
+            db = get_db()
+            conn = db.get_connection()
 
-        # 2. 폴더 생성
-        folder_path = IMAGES_DIR / full_folder_name
-        if folder_path.exists():
+            # 폴더 번호 자동 생성
+            if folder_number is None:
+                cursor = conn.execute("SELECT MAX(folder_number) as max_num FROM categories")
+                result = cursor.fetchone()
+                max_number = result['max_num'] if result and result['max_num'] else 0
+                folder_number = max_number + 1
+
+            full_folder_name = f"{folder_number}_{folder_name}"
+
+            # 폴더 번호 중복 체크
+            cursor = conn.execute("SELECT id FROM categories WHERE folder_number = ?", (folder_number,))
+            if cursor.fetchone():
+                conn.close()
+                return {"success": False, "detail": f"폴더 번호 {folder_number}는 이미 사용 중입니다"}
+
+            # 로컬 폴더 생성
+            folder_path = IMAGES_DIR / full_folder_name
+            if folder_path.exists():
+                conn.close()
+                return {"success": False, "detail": f"폴더 '{full_folder_name}'이(가) 이미 존재합니다"}
+
+            folder_path.mkdir(parents=True, exist_ok=True)
+
+            # DB에 카테고리 등록
+            conn.execute("""
+                INSERT INTO categories (folder_number, folder_name, level1, level2, level3, level4)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (folder_number, full_folder_name, level1, level2, level3, level4))
+            conn.commit()
             conn.close()
-            return {"success": False, "detail": f"폴더 '{full_folder_name}'이(가) 이미 존재합니다"}
-
-        folder_path.mkdir(parents=True, exist_ok=True)
-
-        # 3. DB에 카테고리 등록
-        conn.execute("""
-            INSERT INTO categories (folder_number, folder_name, level1, level2, level3, level4)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (folder_number, full_folder_name, level1, level2, level3, level4))
-        conn.commit()
-        conn.close()
 
         return {
             "success": True,
             "message": f"폴더 '{full_folder_name}'이(가) 생성되고 카테고리가 등록되었습니다",
-            "folder_name": full_folder_name
+            "folder_name": full_folder_name,
+            "folder_number": folder_number
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
