@@ -97,6 +97,8 @@ class PlayautoProductRegistration:
             endpoint = "/products/add/v1.2"
 
             logger.info(f"[플레이오토] 상품 등록 시작: {product_data.get('shop_sale_name')}")
+            logger.info(f"[플레이오토] 요청 데이터 - sol_cate_no: {product_data.get('sol_cate_no')}, c_sale_cd: {product_data.get('c_sale_cd')}")
+            logger.info(f"[플레이오토] 요청 데이터 - site_list: {product_data.get('site_list')}")
 
             # API 호출
             if not self.client:
