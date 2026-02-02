@@ -313,7 +313,7 @@ async def fetch_and_sync_orders(
     Returns:
         동기화 결과
     """
-    from database.db import get_db
+    from database.db_wrapper import get_db
 
     try:
         # 주문 수집

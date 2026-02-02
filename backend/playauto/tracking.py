@@ -204,7 +204,7 @@ async def auto_upload_tracking_from_local(days: int = 7) -> Dict:
     Returns:
         업로드 결과
     """
-    from database.db import get_db
+    from database.db_wrapper import get_db
 
     try:
         db = get_db()

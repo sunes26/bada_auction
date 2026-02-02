@@ -8,7 +8,7 @@ import os
 import httpx
 from typing import Dict, Optional, Tuple
 from datetime import datetime, timedelta
-from database.db import get_db
+from database.db_wrapper import get_db
 from .crypto import decrypt_api_key, encrypt_api_key
 from .exceptions import PlayautoAuthError
 
