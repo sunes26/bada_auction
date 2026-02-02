@@ -1,7 +1,7 @@
 """
 관리자 페이지 API 엔드포인트
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File, Header, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Header, Depends, Request
 from typing import Optional, Dict, Any, List
 import os
 import time
@@ -35,12 +35,21 @@ except ImportError:
 from database.db import get_db
 
 # Admin API 인증 (프로덕션 환경에서만)
-def verify_admin_access(x_admin_password: Optional[str] = Header(None)):
+def verify_admin_access(
+    request: Request,
+    x_admin_password: Optional[str] = Header(None)
+):
     """
     Admin API 접근 검증
     프로덕션 환경에서는 X-Admin-Password 헤더 필요
     개발 환경에서는 인증 생략
+
+    CORS preflight (OPTIONS) 요청은 인증 생략
     """
+    # CORS preflight 요청은 인증 생략
+    if request.method == "OPTIONS":
+        return True
+
     # 개발 환경에서는 인증 생략
     if os.getenv('ENVIRONMENT') != 'production':
         return True

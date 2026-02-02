@@ -196,16 +196,15 @@ if os.getenv('ENVIRONMENT') == 'production':
         allowed_origins.append(frontend_url)
         print(f"[OK] CORS allowed origin: {frontend_url}")
     else:
-        # FRONTEND_URL이 설정되지 않은 경우 경고
-        print("[WARN] FRONTEND_URL not set in production - CORS may fail")
-        # 임시로 모든 origin 허용 (보안 위험 - FRONTEND_URL 설정 권장)
-        allowed_origins = ["*"]
+        # FRONTEND_URL이 설정되지 않은 경우 Vercel 도메인 허용
+        print("[WARN] FRONTEND_URL not set - allowing Vercel domains")
+        allowed_origins.append("https://bada-auction.vercel.app")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True if allowed_origins != ["*"] else False,  # 와일드카드 사용 시 credentials 비활성화
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=[
         "Content-Type",
         "Authorization",
@@ -215,7 +214,10 @@ app.add_middleware(
         "DNT",
         "Cache-Control",
         "X-Requested-With",
+        "X-Admin-Password",  # Admin API 인증 헤더
     ],
+    # Vercel preview 도메인을 위한 정규식 패턴
+    allow_origin_regex=r"https://.*\.vercel\.app",
 )
 
 # Static 파일 서빙 설정 (개발 환경에서만 필요)
