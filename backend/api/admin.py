@@ -233,6 +233,98 @@ def get_category_name_map():
         return {}
 
 
+@router.get("/images/folders")
+async def get_image_folders():
+    """이미지 폴더 목록만 조회 (통계 제외) - 빠른 로딩용"""
+    try:
+        from utils.supabase_storage import supabase
+
+        # 카테고리 이름 매핑 로드
+        category_map = get_category_name_map()
+
+        # Supabase Storage 사용
+        if supabase:
+            try:
+                # 모든 폴더(카테고리) 목록 조회
+                all_folders = []
+                offset = 0
+                limit = 1000
+
+                while True:
+                    folder_batch = supabase.storage.from_("product-images").list(
+                        "",
+                        {
+                            "limit": limit,
+                            "offset": offset
+                        }
+                    )
+
+                    if not folder_batch:
+                        break
+
+                    all_folders.extend(folder_batch)
+
+                    if len(folder_batch) < limit:
+                        break
+
+                    offset += limit
+
+                folders = []
+
+                for folder_obj in all_folders:
+                    folder_name = folder_obj['name']
+
+                    # 폴더명에서 카테고리 ID 추출 (cat-1 -> 1)
+                    category_id = None
+                    display_name = folder_name
+                    if folder_name.startswith('cat-'):
+                        category_id = folder_name.replace('cat-', '')
+                        # 카테고리 이름 조회
+                        if category_id in category_map:
+                            display_name = category_map[category_id]
+                        else:
+                            display_name = folder_name
+
+                    folders.append({
+                        "name": folder_name,  # 실제 스토리지 폴더명 (cat-1)
+                        "display_name": display_name,  # UI 표시용 이름 (1_흰밥)
+                        "category_id": int(category_id) if category_id and category_id.isdigit() else 999999  # 정렬용
+                    })
+
+                # category_id로 정렬
+                folders.sort(key=lambda x: x["category_id"])
+
+                return {
+                    "success": True,
+                    "folders": folders,
+                    "total_folders": len(folders)
+                }
+
+            except Exception as e:
+                print(f"[ERROR] Supabase Storage 폴더 목록 조회 실패: {e}")
+                return {"success": False, "detail": str(e)}
+
+        # Supabase 없을 경우 로컬 폴더 사용
+        folders = []
+        for folder_path in IMAGES_DIR.iterdir():
+            if folder_path.is_dir():
+                folders.append({
+                    "name": folder_path.name,
+                    "display_name": folder_path.name,
+                    "category_id": 999999
+                })
+
+        return {
+            "success": True,
+            "folders": folders,
+            "total_folders": len(folders)
+        }
+
+    except Exception as e:
+        print(f"[ERROR] 폴더 목록 조회 실패: {e}")
+        return {"success": False, "detail": str(e)}
+
+
 @router.get("/images/stats")
 async def get_image_stats():
     """이미지 통계 조회 - Supabase Storage 우선"""

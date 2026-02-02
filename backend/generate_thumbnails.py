@@ -80,7 +80,7 @@ def generate_all_thumbnails():
                 try:
                     existing_thumbs = supabase.storage.from_(BUCKET_NAME).list(f"{folder_name}/thumbs")
                     if any(t.get('name') == filename for t in existing_thumbs):
-                        print(f"  ⏭️  Skipping {filename} (thumbnail exists)")
+                        print(f"  [SKIP] {filename} (thumbnail exists)")
                         total_skipped += 1
                         continue
                 except:
@@ -90,28 +90,28 @@ def generate_all_thumbnails():
                 try:
                     response = supabase.storage.from_(BUCKET_NAME).download(original_path)
                     if not response:
-                        print(f"  ❌ Failed to download {filename}")
+                        print(f"  [FAIL] Failed to download {filename}")
                         total_failed += 1
                         continue
 
                     # 썸네일 생성
                     thumb_data = create_thumbnail(response)
                     if not thumb_data:
-                        print(f"  ❌ Failed to create thumbnail for {filename}")
+                        print(f"  [FAIL] Failed to create thumbnail for {filename}")
                         total_failed += 1
                         continue
 
                     # 썸네일 업로드
                     thumb_url = upload_image_from_bytes(thumb_data, thumb_path, "image/jpeg")
                     if thumb_url:
-                        print(f"  ✅ Created thumbnail: {filename}")
+                        print(f"  [OK] Created thumbnail: {filename}")
                         total_created += 1
                     else:
-                        print(f"  ❌ Failed to upload thumbnail for {filename}")
+                        print(f"  [FAIL] Failed to upload thumbnail for {filename}")
                         total_failed += 1
 
                 except Exception as e:
-                    print(f"  ❌ Error processing {filename}: {e}")
+                    print(f"  [ERROR] Error processing {filename}: {e}")
                     total_failed += 1
 
         except Exception as e:
@@ -128,15 +128,25 @@ def generate_all_thumbnails():
     print("="*60)
 
 if __name__ == "__main__":
+    import sys
+
     print("="*60)
     print("BATCH THUMBNAIL GENERATOR")
     print("="*60)
     print()
 
-    confirmation = input("This will generate thumbnails for ALL images in Supabase Storage.\nContinue? (yes/no): ")
+    # --auto 플래그가 있으면 자동 실행
+    auto_confirm = "--auto" in sys.argv or "-y" in sys.argv
 
-    if confirmation.lower() in ['yes', 'y']:
+    if auto_confirm:
+        print("[AUTO] Auto-confirmation enabled. Starting thumbnail generation...")
         generate_all_thumbnails()
         print("\n[DONE] Thumbnail generation completed!")
     else:
-        print("[CANCELLED] Operation cancelled by user")
+        confirmation = input("This will generate thumbnails for ALL images in Supabase Storage.\nContinue? (yes/no): ")
+
+        if confirmation.lower() in ['yes', 'y']:
+            generate_all_thumbnails()
+            print("\n[DONE] Thumbnail generation completed!")
+        else:
+            print("[CANCELLED] Operation cancelled by user")

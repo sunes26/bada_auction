@@ -657,12 +657,13 @@ function ImagesTab() {
 
   const loadImageStats = async () => {
     try {
-      const data = await adminGet('/api/admin/images/stats');
+      // 폴더 목록만 빠르게 로드 (통계 제외)
+      const data = await adminGet('/api/admin/images/folders');
       if (data.success) {
         setImageStats(data);
       }
     } catch (error) {
-      console.error('이미지 통계 로드 실패:', error);
+      console.error('이미지 폴더 목록 로드 실패:', error);
     }
   };
 
@@ -946,9 +947,6 @@ function ImagesTab() {
                   <FolderOpen className="w-8 h-8 text-blue-600" />
                   <div>
                     <div className="font-semibold text-gray-800">{folder.display_name || folder.name}</div>
-                    <div className="text-xs text-gray-500">
-                      {folder.image_count}개 · {folder.size_mb.toFixed(2)} MB
-                    </div>
                   </div>
                 </div>
                 <Eye className="w-5 h-5 text-gray-400" />
