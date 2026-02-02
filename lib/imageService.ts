@@ -1,5 +1,6 @@
 import { categoryIdMapping } from './categories';
 import type { Category } from '@/types';
+import { adminGet } from './adminApi';
 
 class ImageService {
   private static instance: ImageService;
@@ -13,16 +14,8 @@ class ImageService {
 
   async getImagesFromFolder(folderId: string): Promise<string[]> {
     try {
-      // Admin API의 gallery 엔드포인트 사용
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_BASE_URL}/api/admin/images/gallery/${folderId}`);
-
-      if (!response.ok) {
-        console.warn(`No images found in folder ${folderId}`);
-        return [];
-      }
-
-      const data = await response.json();
+      // Admin API의 gallery 엔드포인트 사용 (인증 헤더 자동 추가)
+      const data = await adminGet<{ success: boolean; images?: any[] }>(`/api/admin/images/gallery/${folderId}`);
 
       if (!data.success || !data.images) {
         console.warn(`Invalid response for folder ${folderId}`);
