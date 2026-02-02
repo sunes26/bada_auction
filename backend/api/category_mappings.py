@@ -4,7 +4,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-import sqlite3
+from database.database_manager import get_database_manager
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -36,15 +36,17 @@ class CategoryInfoCodeMappingUpdate(BaseModel):
 
 
 def get_db_connection():
-    """DB 연결 (절대 경로 사용)"""
-    import os
-    from pathlib import Path
+    """DB 연결 (SQLite 및 PostgreSQL 지원)"""
+    db_manager = get_database_manager()
+    conn = db_manager.engine.raw_connection()
+    return conn, db_manager.is_sqlite
 
-    # 절대 경로로 DB 경로 생성
-    db_path = Path(__file__).parent.parent / 'monitoring.db'
-    conn = sqlite3.connect(str(db_path.absolute()))
-    conn.row_factory = sqlite3.Row
-    return conn
+
+def dict_from_row(cursor, row):
+    """DB row를 dict로 변환"""
+    if row is None:
+        return None
+    return {cursor.description[i][0]: row[i] for i in range(len(cursor.description))}
 
 
 @router.get("/category-infocode-mappings", response_model=List[CategoryInfoCodeMapping])
@@ -53,7 +55,7 @@ async def get_all_mappings():
     모든 카테고리-infoCode 매핑 조회
     """
     try:
-        conn = get_db_connection()
+        conn, is_sqlite = get_db_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -64,12 +66,13 @@ async def get_all_mappings():
 
         mappings = []
         for row in cursor.fetchall():
+            row_dict = dict_from_row(cursor, row)
             mappings.append({
-                "id": row["id"],
-                "level1": row["level1"],
-                "info_code": row["info_code"],
-                "info_code_name": row["info_code_name"],
-                "notes": row["notes"]
+                "id": row_dict["id"],
+                "level1": row_dict["level1"],
+                "info_code": row_dict["info_code"],
+                "info_code_name": row_dict["info_code_name"],
+                "notes": row_dict["notes"]
             })
 
         conn.close()
@@ -88,13 +91,14 @@ async def get_mapping(mapping_id: int):
     특정 매핑 조회
     """
     try:
-        conn = get_db_connection()
+        conn, is_sqlite = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
+        placeholder = "?" if is_sqlite else "%s"
+        cursor.execute(f"""
             SELECT id, level1, info_code, info_code_name, notes
             FROM category_infocode_mapping
-            WHERE id = ?
+            WHERE id = {placeholder}
         """, (mapping_id,))
 
         row = cursor.fetchone()
@@ -103,12 +107,13 @@ async def get_mapping(mapping_id: int):
         if not row:
             raise HTTPException(status_code=404, detail="매핑을 찾을 수 없습니다")
 
+        row_dict = dict_from_row(cursor, row)
         return {
-            "id": row["id"],
-            "level1": row["level1"],
-            "info_code": row["info_code"],
-            "info_code_name": row["info_code_name"],
-            "notes": row["notes"]
+            "id": row_dict["id"],
+            "level1": row_dict["level1"],
+            "info_code": row_dict["info_code"],
+            "info_code_name": row_dict["info_code_name"],
+            "notes": row_dict["notes"]
         }
 
     except HTTPException:
@@ -124,12 +129,13 @@ async def create_mapping(mapping: CategoryInfoCodeMappingCreate):
     새 매핑 추가
     """
     try:
-        conn = get_db_connection()
+        conn, is_sqlite = get_db_connection()
         cursor = conn.cursor()
 
         # 중복 체크
+        placeholder = "?" if is_sqlite else "%s"
         cursor.execute(
-            "SELECT id FROM category_infocode_mapping WHERE level1 = ?",
+            f"SELECT id FROM category_infocode_mapping WHERE level1 = {placeholder}",
             (mapping.level1,)
         )
         if cursor.fetchone():
@@ -140,13 +146,20 @@ async def create_mapping(mapping: CategoryInfoCodeMappingCreate):
             )
 
         # 삽입
-        cursor.execute("""
-            INSERT INTO category_infocode_mapping (level1, info_code, info_code_name, notes)
-            VALUES (?, ?, ?, ?)
-        """, (mapping.level1, mapping.info_code, mapping.info_code_name, mapping.notes))
+        if is_sqlite:
+            cursor.execute("""
+                INSERT INTO category_infocode_mapping (level1, info_code, info_code_name, notes)
+                VALUES (?, ?, ?, ?)
+            """, (mapping.level1, mapping.info_code, mapping.info_code_name, mapping.notes))
+        else:
+            cursor.execute("""
+                INSERT INTO category_infocode_mapping (level1, info_code, info_code_name, notes)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id
+            """, (mapping.level1, mapping.info_code, mapping.info_code_name, mapping.notes))
 
         conn.commit()
-        mapping_id = cursor.lastrowid
+        mapping_id = cursor.lastrowid if is_sqlite else cursor.fetchone()[0]
         conn.close()
 
         logger.info(f"[카테고리 매핑] 새 매핑 추가: {mapping.level1} -> {mapping.info_code}")
@@ -172,12 +185,13 @@ async def update_mapping(mapping_id: int, mapping: CategoryInfoCodeMappingUpdate
     매핑 수정
     """
     try:
-        conn = get_db_connection()
+        conn, is_sqlite = get_db_connection()
         cursor = conn.cursor()
 
         # 존재 여부 확인
+        placeholder = "?" if is_sqlite else "%s"
         cursor.execute(
-            "SELECT level1 FROM category_infocode_mapping WHERE id = ?",
+            f"SELECT level1 FROM category_infocode_mapping WHERE id = {placeholder}",
             (mapping_id,)
         )
         row = cursor.fetchone()
@@ -185,14 +199,21 @@ async def update_mapping(mapping_id: int, mapping: CategoryInfoCodeMappingUpdate
             conn.close()
             raise HTTPException(status_code=404, detail="매핑을 찾을 수 없습니다")
 
-        level1 = row["level1"]
+        level1 = row[0]
 
         # 업데이트
-        cursor.execute("""
-            UPDATE category_infocode_mapping
-            SET info_code = ?, info_code_name = ?, notes = ?
-            WHERE id = ?
-        """, (mapping.info_code, mapping.info_code_name, mapping.notes, mapping_id))
+        if is_sqlite:
+            cursor.execute("""
+                UPDATE category_infocode_mapping
+                SET info_code = ?, info_code_name = ?, notes = ?
+                WHERE id = ?
+            """, (mapping.info_code, mapping.info_code_name, mapping.notes, mapping_id))
+        else:
+            cursor.execute("""
+                UPDATE category_infocode_mapping
+                SET info_code = %s, info_code_name = %s, notes = %s
+                WHERE id = %s
+            """, (mapping.info_code, mapping.info_code_name, mapping.notes, mapping_id))
 
         conn.commit()
         conn.close()
@@ -220,12 +241,13 @@ async def delete_mapping(mapping_id: int):
     매핑 삭제
     """
     try:
-        conn = get_db_connection()
+        conn, is_sqlite = get_db_connection()
         cursor = conn.cursor()
 
         # 존재 여부 확인
+        placeholder = "?" if is_sqlite else "%s"
         cursor.execute(
-            "SELECT level1 FROM category_infocode_mapping WHERE id = ?",
+            f"SELECT level1 FROM category_infocode_mapping WHERE id = {placeholder}",
             (mapping_id,)
         )
         row = cursor.fetchone()
@@ -233,10 +255,13 @@ async def delete_mapping(mapping_id: int):
             conn.close()
             raise HTTPException(status_code=404, detail="매핑을 찾을 수 없습니다")
 
-        level1 = row["level1"]
+        level1 = row[0]
 
         # 삭제
-        cursor.execute("DELETE FROM category_infocode_mapping WHERE id = ?", (mapping_id,))
+        cursor.execute(
+            f"DELETE FROM category_infocode_mapping WHERE id = {placeholder}",
+            (mapping_id,)
+        )
         conn.commit()
         conn.close()
 
