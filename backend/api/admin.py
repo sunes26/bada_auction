@@ -324,7 +324,8 @@ async def get_image_stats():
                             "display_name": display_name,  # UI 표시용 이름 (1_흰밥)
                             "path": f"product-images/{folder_name}",
                             "image_count": len(all_images),
-                            "size_mb": round(folder_size / (1024 * 1024), 2)
+                            "size_mb": round(folder_size / (1024 * 1024), 2),
+                            "category_id": int(category_id) if category_id and category_id.isdigit() else 999999  # 정렬용
                         })
 
                         total_images += len(all_images)
@@ -332,13 +333,16 @@ async def get_image_stats():
                     except:
                         continue
 
+                # 카테고리 ID 순으로 정렬 (숫자 정렬)
+                folders.sort(key=lambda x: x.get('category_id', 999999))
+
                 return {
                     "success": True,
                     "storage_type": "Supabase Storage",
                     "total_folders": len(folders),
                     "total_images": total_images,
                     "total_size_mb": round(total_size / (1024 * 1024), 2),
-                    "folders": folders  # 모든 폴더 반환
+                    "folders": folders  # 카테고리 ID 순 정렬된 폴더
                 }
             except Exception as e:
                 print(f"[ERROR] Supabase Storage stats failed: {e}")
@@ -359,7 +363,7 @@ async def get_image_stats():
         total_images = 0
         total_size = 0
 
-        for folder in sorted(IMAGES_DIR.iterdir()):
+        for folder in IMAGES_DIR.iterdir():
             if folder.is_dir():
                 images = list(folder.glob("*.[jJ][pP][gG]")) + \
                         list(folder.glob("*.[jJ][pP][eE][gG]")) + \
@@ -369,15 +373,24 @@ async def get_image_stats():
 
                 folder_size = sum(img.stat().st_size for img in images)
 
+                # 폴더명에서 숫자 추출 (1_흰밥 -> 1)
+                folder_number = folder.name.split('_')[0] if '_' in folder.name else folder.name
+                category_id = int(folder_number) if folder_number.isdigit() else 999999
+
                 folders.append({
                     "name": folder.name,
+                    "display_name": folder.name,
                     "path": str(folder),
                     "image_count": len(images),
-                    "size_mb": round(folder_size / (1024 * 1024), 2)
+                    "size_mb": round(folder_size / (1024 * 1024), 2),
+                    "category_id": category_id
                 })
 
                 total_images += len(images)
                 total_size += folder_size
+
+        # 카테고리 ID 순으로 정렬 (숫자 정렬)
+        folders.sort(key=lambda x: x.get('category_id', 999999))
 
         return {
             "success": True,

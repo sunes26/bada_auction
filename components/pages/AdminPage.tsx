@@ -63,6 +63,7 @@ interface ImageStats {
     display_name?: string;
     image_count: number;
     size_mb: number;
+    category_id?: number;
   }>;
 }
 
