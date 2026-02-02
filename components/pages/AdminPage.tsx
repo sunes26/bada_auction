@@ -60,6 +60,7 @@ interface ImageStats {
   total_size_mb: number;
   folders: Array<{
     name: string;
+    display_name?: string;
     image_count: number;
     size_mb: number;
   }>;
