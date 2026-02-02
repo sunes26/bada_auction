@@ -546,15 +546,28 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       return;
     }
 
-    // Extract folder ID from image URL (e.g., /supabase-images/1_흰밥/...)
-    // 새 형식: /supabase-images/[숫자]_[이름]/[파일명]
-    const folderMatch = currentImage.match(/\/supabase-images\/(\d+)_/);
-    if (!folderMatch) {
+    // Extract folder ID from image URL
+    // 로컬 형식: /supabase-images/1_흰밥/...
+    // Supabase Storage 형식: https://.../product-images/cat-1/...
+    let folderId: string | null = null;
+
+    // Try Supabase Storage format first (cat-{id})
+    const supabaseMatch = currentImage.match(/\/cat-(\d+)\//);
+    if (supabaseMatch) {
+      folderId = supabaseMatch[1];
+    } else {
+      // Fallback to local format ({id}_name)
+      const localMatch = currentImage.match(/\/supabase-images\/(\d+)_/);
+      if (localMatch) {
+        folderId = localMatch[1];
+      }
+    }
+
+    if (!folderId) {
       console.warn('폴더 경로를 찾을 수 없습니다:', currentImage);
       return;
     }
 
-    const folderId = folderMatch[1];
     console.log('이미지 새로고침 - 폴더 ID:', folderId);
 
     try {
