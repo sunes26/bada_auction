@@ -107,6 +107,37 @@ async def lifespan(app: FastAPI):
     # Startup
     print("[INFO] 서버 시작 중...")
 
+    # 데이터베이스 자동 마이그레이션 (프로덕션 환경)
+    try:
+        from database.database_manager import get_database_manager
+        db_manager = get_database_manager()
+
+        # PostgreSQL인 경우에만 마이그레이션 실행
+        if db_manager.is_postgresql:
+            print("[INFO] PostgreSQL 데이터베이스 마이그레이션 확인 중...")
+            from database.migrate_playauto_fields import get_columns_to_add
+
+            conn = db_manager.engine.raw_connection()
+            cursor = conn.cursor()
+
+            columns_to_add = get_columns_to_add(cursor, 'my_selling_products', 'postgresql')
+
+            if columns_to_add:
+                print(f"[MIGRATION] {len(columns_to_add)}개 컬럼 추가 중...")
+                for col_name, col_type in columns_to_add:
+                    print(f"   추가: {col_name} ({col_type})")
+                    cursor.execute(f"ALTER TABLE my_selling_products ADD COLUMN {col_name} {col_type}")
+
+                conn.commit()
+                print("[OK] 데이터베이스 마이그레이션 완료")
+            else:
+                print("[OK] 데이터베이스가 최신 상태입니다")
+
+            cursor.close()
+            conn.close()
+    except Exception as e:
+        print(f"[WARN] 데이터베이스 마이그레이션 실패 (계속 진행): {e}")
+
     # 플레이오토 스케줄러 시작
     try:
         db = get_db()

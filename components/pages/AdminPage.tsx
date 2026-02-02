@@ -26,7 +26,8 @@ import {
   Eye,
   Code,
   Users,
-  Plus
+  Plus,
+  Tag
 } from 'lucide-react';
 
 import { API_BASE_URL } from '@/lib/api';
