@@ -2,6 +2,11 @@
 Product Repository
 
 상품 관련 DB 접근 전용 클래스
+
+⚠️ WARNING: This repository is currently NOT USED in production code.
+All methods use SQLite-style placeholders (?) that need to be updated
+to use self.get_placeholder() for PostgreSQL compatibility when this
+class is actually used.
 """
 from .base_repository import BaseRepository
 from typing import Optional, List, Dict
@@ -9,7 +14,11 @@ from datetime import datetime
 
 
 class ProductRepository(BaseRepository):
-    """상품 관련 DB 접근 전용 클래스"""
+    """
+    상품 관련 DB 접근 전용 클래스
+
+    ⚠️ NOT CURRENTLY USED - placeholder (?) needs PostgreSQL compatibility fixes
+    """
 
     def get_table_name(self) -> str:
         return "monitored_products"

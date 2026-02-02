@@ -1266,10 +1266,26 @@ async def restore_database(backup_filename: str):
 async def optimize_database():
     """데이터베이스 최적화"""
     try:
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.execute("VACUUM")
-        conn.execute("ANALYZE")
-        conn.close()
+        db = get_db()
+
+        # PostgreSQL/SQLite 자동 감지하여 최적화
+        if hasattr(db, 'is_postgresql') and db.is_postgresql:
+            # PostgreSQL의 경우 VACUUM ANALYZE 실행
+            from database.database_manager import get_database_manager
+            db_manager = get_database_manager()
+            conn = db_manager.engine.raw_connection()
+            cursor = conn.cursor()
+            # PostgreSQL VACUUM은 트랜잭션 밖에서 실행해야 함
+            conn.autocommit = True
+            cursor.execute("VACUUM ANALYZE")
+            cursor.close()
+            conn.close()
+        else:
+            # SQLite의 경우
+            conn = sqlite3.connect(str(DB_PATH))
+            conn.execute("VACUUM")
+            conn.execute("ANALYZE")
+            conn.close()
 
         return {
             "success": True,

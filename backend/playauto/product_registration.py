@@ -5,7 +5,6 @@
 """
 
 from typing import Dict, List, Optional
-import sqlite3
 from .client import PlayautoClient
 from logger import get_logger
 

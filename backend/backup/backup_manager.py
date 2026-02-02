@@ -2,6 +2,7 @@
 데이터베이스 자동 백업 시스템
 
 매일 새벽 2시 자동 백업 및 7일 이상 된 백업 삭제
+(SQLite 전용 - PostgreSQL은 Supabase 대시보드에서 백업)
 """
 
 import os
@@ -15,6 +16,9 @@ BACKEND_DIR = Path(__file__).parent.parent
 BACKUPS_DIR = BACKEND_DIR / 'backups'
 DB_FILE = BACKEND_DIR / 'monitoring.db'
 
+# PostgreSQL 사용 여부 확인
+USE_POSTGRESQL = os.getenv('USE_POSTGRESQL', 'false').lower() == 'true'
+
 
 def ensure_backup_directory():
     """백업 디렉토리 생성"""
@@ -25,11 +29,17 @@ def ensure_backup_directory():
 def backup_database():
     """
     데이터베이스 백업 수행
+    (SQLite만 지원 - PostgreSQL은 Supabase에서 자동 백업)
 
     Returns:
         bool: 백업 성공 여부
     """
     try:
+        # PostgreSQL 사용 중이면 백업 건너뛰기
+        if USE_POSTGRESQL:
+            print("[BACKUP] PostgreSQL 사용 중 - 백업 건너뜀 (Supabase에서 자동 백업)")
+            return True
+
         # 백업 디렉토리 확인
         ensure_backup_directory()
 
