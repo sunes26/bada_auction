@@ -190,11 +190,19 @@ def get_category_name_map():
             SELECT folder_number, folder_name
             FROM categories
         """)
-        category_map = {str(row['folder_number']): row['folder_name'] for row in cursor.fetchall()}
+        rows = cursor.fetchall()
+        category_map = {str(row['folder_number']): row['folder_name'] for row in rows}
         conn.close()
+
+        print(f"[DEBUG] Loaded {len(category_map)} categories from database")
+        if len(category_map) > 0:
+            print(f"[DEBUG] Sample categories: {dict(list(category_map.items())[:3])}")
+
         return category_map
     except Exception as e:
         print(f"[ERROR] Failed to load category map: {e}")
+        import traceback
+        traceback.print_exc()
         return {}
 
 
@@ -249,7 +257,9 @@ async def get_image_stats():
                         # 카테고리 이름 조회
                         if category_id in category_map:
                             display_name = f"{category_id}_{category_map[category_id]}"
+                            print(f"[DEBUG] Folder {folder_name} -> display_name: {display_name}")
                         else:
+                            print(f"[DEBUG] Category ID {category_id} not found in category_map")
                             display_name = folder_name
 
                     # 폴더 내 이미지 목록 조회 (페이지네이션)
@@ -494,6 +504,44 @@ async def get_image_gallery(folder_name: str):
             return {"success": False, "detail": f"Supabase Storage 조회 실패: {str(e)}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/categories/debug")
+async def debug_categories():
+    """카테고리 데이터 디버그"""
+    try:
+        db = get_db()
+        conn = db.get_connection()
+
+        # 전체 카테고리 개수 확인
+        cursor = conn.execute("SELECT COUNT(*) as count FROM categories")
+        total_count = cursor.fetchone()['count']
+
+        # 샘플 카테고리 조회
+        cursor = conn.execute("""
+            SELECT folder_number, folder_name, level1, level2, level3, level4
+            FROM categories
+            ORDER BY folder_number
+            LIMIT 10
+        """)
+        sample_categories = [dict(row) for row in cursor.fetchall()]
+
+        conn.close()
+
+        # 카테고리 맵 생성
+        category_map = get_category_name_map()
+
+        return {
+            "success": True,
+            "total_categories": total_count,
+            "category_map_size": len(category_map),
+            "sample_categories": sample_categories,
+            "sample_map_entries": dict(list(category_map.items())[:10]) if category_map else {}
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
 
 
 @router.get("/images/debug-storage")
