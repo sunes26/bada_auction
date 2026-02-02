@@ -37,7 +37,18 @@ class SSGSeleniumScraper(BaseScraper):
             chrome_options.add_argument('--window-size=1920,1080')
             chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
 
-            service = Service(ChromeDriverManager().install())
+            # ChromeDriver 경로 설정 (프로덕션/개발 환경 자동 감지)
+            import os
+            import shutil
+
+            chromedriver_path = '/usr/local/bin/chromedriver'
+            if os.path.exists(chromedriver_path):
+                service = Service(chromedriver_path)
+            elif shutil.which('chromedriver'):
+                service = Service(shutil.which('chromedriver'))
+            else:
+                service = Service(ChromeDriverManager().install())
+
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
     def _close_driver(self):

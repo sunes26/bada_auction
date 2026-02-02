@@ -36,10 +36,13 @@ class CategoryInfoCodeMappingUpdate(BaseModel):
 
 
 def get_db_connection():
-    """DB 연결"""
+    """DB 연결 (절대 경로 사용)"""
     import os
-    db_path = os.path.join(os.path.dirname(__file__), '..', 'monitoring.db')
-    conn = sqlite3.connect(db_path)
+    from pathlib import Path
+
+    # 절대 경로로 DB 경로 생성
+    db_path = Path(__file__).parent.parent / 'monitoring.db'
+    conn = sqlite3.connect(str(db_path.absolute()))
     conn.row_factory = sqlite3.Row
     return conn
 

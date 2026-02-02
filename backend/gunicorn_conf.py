@@ -16,8 +16,12 @@ worker_class = 'uvicorn.workers.UvicornWorker'
 worker_connections = 1000
 max_requests = 1000
 max_requests_jitter = 50
-timeout = 120
+# Timeout increased for Selenium operations (scraping, monitoring)
+# Railway 환경에서 네트워크 레이턴시를 고려하여 180초로 증가
+timeout = int(os.getenv('GUNICORN_TIMEOUT', 180))  # 120초 → 180초 (3분)
 keepalive = 5
+# Graceful timeout for worker shutdown
+graceful_timeout = 30
 
 # Logging
 accesslog = '-'

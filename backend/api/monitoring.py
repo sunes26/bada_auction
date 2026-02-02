@@ -623,8 +623,8 @@ async def save_thumbnail(request: SaveThumbnailRequest):
         from datetime import datetime
         from utils.supabase_storage import upload_image_from_bytes, supabase
 
-        # 이미지 다운로드
-        response = requests.get(request.image_url, timeout=10)
+        # 이미지 다운로드 (Railway 환경 고려하여 타임아웃 증가)
+        response = requests.get(request.image_url, timeout=20)  # 10초 → 20초
         if not response.ok:
             raise HTTPException(status_code=400, detail="이미지 다운로드 실패")
 

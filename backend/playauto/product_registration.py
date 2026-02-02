@@ -31,11 +31,12 @@ def get_infocode_for_category(category: str) -> str:
     level1 = category.split(">")[0].strip() if ">" in category else category.strip()
 
     try:
-        # DB에서 infoCode 조회
-        # backend 폴더 내에서 실행되므로 상대 경로 사용
+        # DB에서 infoCode 조회 (절대 경로 사용)
         import os
-        db_path = os.path.join(os.path.dirname(__file__), '..', 'monitoring.db')
-        conn = sqlite3.connect(db_path)
+        from pathlib import Path
+
+        db_path = Path(__file__).parent.parent / 'monitoring.db'
+        conn = sqlite3.connect(str(db_path.absolute()))
         cursor = conn.cursor()
 
         cursor.execute(

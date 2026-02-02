@@ -60,16 +60,37 @@ else:
     logger.warning(f".env.local 파일을 찾을 수 없습니다: {env_path}")
 
 # 필수 환경 변수 검증
-REQUIRED_ENV_VARS = ['OPENAI_API_KEY']  # 필수 환경 변수 목록
-missing_vars = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
+# 프로덕션과 개발 환경에서 필요한 변수 구분
+REQUIRED_ENV_VARS_DEV = []  # 개발 환경 필수 변수 (선택적)
+REQUIRED_ENV_VARS_PROD = [
+    'DATABASE_URL',  # PostgreSQL 연결 (프로덕션 필수)
+    'SUPABASE_URL',  # Supabase Storage (이미지 저장)
+    'SUPABASE_SERVICE_ROLE_KEY',  # Supabase 인증
+]
+
+# OPENAI_API_KEY는 AI 기능 사용시에만 필요 (경고만)
+OPTIONAL_ENV_VARS = ['OPENAI_API_KEY', 'PLAYAUTO_API_KEY', 'PLAYAUTO_SOLUTION_KEY']
+
+# 환경에 따라 검증
+is_production = os.getenv('ENVIRONMENT') == 'production'
+required_vars = REQUIRED_ENV_VARS_PROD if is_production else REQUIRED_ENV_VARS_DEV
+
+missing_vars = [var for var in required_vars if not os.getenv(var)]
 if missing_vars:
     logger.error(f"필수 환경 변수 누락: {', '.join(missing_vars)}")
-    logger.error("애플리케이션을 시작할 수 없습니다. .env.local 파일을 확인하세요.")
-    # 개발 환경에서는 경고만 표시, 프로덕션에서는 종료
-    if os.getenv('ENVIRONMENT') == 'production':
+    if is_production:
+        logger.error("프로덕션 환경에서 필수 변수 누락으로 시작 불가")
         raise RuntimeError(f"Missing required environment variables: {', '.join(missing_vars)}")
-else:
-    logger.info("모든 필수 환경 변수 확인 완료")
+    else:
+        logger.warning("개발 환경에서 일부 변수 누락 (계속 진행)")
+
+# 선택적 변수 경고
+missing_optional = [var for var in OPTIONAL_ENV_VARS if not os.getenv(var)]
+if missing_optional:
+    logger.warning(f"선택적 환경 변수 누락 (일부 기능 제한): {', '.join(missing_optional)}")
+
+if not missing_vars:
+    logger.info(f"환경 변수 검증 완료 ({'production' if is_production else 'development'} 모드)")
 
 # Windows 환경에서 Playwright 실행을 위한 설정
 if sys.platform == 'win32':
@@ -197,20 +218,40 @@ app.add_middleware(
     ],
 )
 
-# Static 파일 서빙 설정
+# Static 파일 서빙 설정 (개발 환경에서만 필요)
 import os
 from pathlib import Path
-static_dir = Path(__file__).parent / "static"
-static_dir.mkdir(exist_ok=True)
-app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# 이미지 파일 서빙 설정
-images_dir = Path(__file__).parent.parent / "supabase-images"
-if images_dir.exists():
-    app.mount("/supabase-images", StaticFiles(directory=str(images_dir)), name="supabase-images")
-    print(f"[OK] 이미지 디렉토리 마운트: {images_dir}")
+# Static 디렉토리 마운트 (읽기 전용 환경 고려)
+static_dir = Path(__file__).parent / "static"
+try:
+    # 디렉토리가 없으면 생성 시도 (개발 환경)
+    if not static_dir.exists() and os.getenv('ENVIRONMENT') != 'production':
+        static_dir.mkdir(parents=True, exist_ok=True)
+
+    # 디렉토리가 존재하면 마운트
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+        logger.info(f"Static 파일 서빙 활성화: {static_dir}")
+    else:
+        logger.warning("Static 디렉토리 없음 (프로덕션에서는 Supabase Storage 사용)")
+except Exception as e:
+    logger.warning(f"Static 파일 마운트 실패 (무시): {e}")
+
+# 이미지 파일 서빙 설정 (개발 환경에서만)
+# 프로덕션에서는 Supabase Storage 직접 사용
+if os.getenv('ENVIRONMENT') != 'production':
+    images_dir = Path(__file__).parent.parent / "supabase-images"
+    if images_dir.exists():
+        try:
+            app.mount("/supabase-images", StaticFiles(directory=str(images_dir)), name="supabase-images")
+            logger.info(f"이미지 디렉토리 마운트: {images_dir}")
+        except Exception as e:
+            logger.warning(f"이미지 디렉토리 마운트 실패: {e}")
+    else:
+        logger.info("로컬 이미지 디렉토리 없음 (Supabase Storage 사용)")
 else:
-    print(f"[WARN] 이미지 디렉토리를 찾을 수 없습니다: {images_dir}")
+    logger.info("프로덕션 환경: Supabase Storage 사용 (로컬 이미지 마운트 비활성화)")
 
 # 라우터 등록
 app.include_router(sourcing_router)
@@ -272,9 +313,16 @@ for route in app.routes:
         if 'products' in route.path or 'admin' in route.path:
             logger.debug(f"  {route.path} {route.methods}")
 
-# 디버그: 전체 라우트 확인
+# 디버그: 전체 라우트 확인 (개발 환경에서만)
 @app.get("/debug/routes")
 async def debug_routes():
+    # 프로덕션 환경에서는 비활성화
+    if os.getenv('ENVIRONMENT') == 'production':
+        raise HTTPException(
+            status_code=404,
+            detail="Debug endpoints are disabled in production"
+        )
+
     routes = []
     for route in app.routes:
         if hasattr(route, 'path'):

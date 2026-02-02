@@ -30,9 +30,12 @@ class DatabaseManager:
         if database_url is None:
             database_url = os.getenv('DATABASE_URL')
 
-        # Default to SQLite if no URL provided
+        # Default to SQLite if no URL provided (개발 환경)
         if database_url is None:
-            database_url = 'sqlite:///monitoring.db'
+            # 절대 경로로 SQLite DB 생성 (작업 디렉토리 의존성 제거)
+            from pathlib import Path
+            db_path = Path(__file__).parent.parent / 'monitoring.db'
+            database_url = f'sqlite:///{db_path.absolute()}'
 
         # Handle Supabase connection pooler URL
         # Supabase provides pooled connections at port 6543

@@ -1,7 +1,7 @@
 """
 관리자 페이지 API 엔드포인트
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Header, Depends
 from typing import Optional, Dict, Any, List
 import os
 import time
@@ -34,7 +34,42 @@ except ImportError:
 
 from database.db import get_db
 
-router = APIRouter(prefix="/api/admin", tags=["admin"])
+# Admin API 인증 (프로덕션 환경에서만)
+def verify_admin_access(x_admin_password: Optional[str] = Header(None)):
+    """
+    Admin API 접근 검증
+    프로덕션 환경에서는 X-Admin-Password 헤더 필요
+    개발 환경에서는 인증 생략
+    """
+    # 개발 환경에서는 인증 생략
+    if os.getenv('ENVIRONMENT') != 'production':
+        return True
+
+    # 프로덕션 환경: 비밀번호 검증
+    expected_password = os.getenv('NEXT_PUBLIC_ADMIN_PASSWORD', '8888')
+
+    if not x_admin_password:
+        raise HTTPException(
+            status_code=401,
+            detail="Admin authentication required. Provide X-Admin-Password header.",
+            headers={"WWW-Authenticate": "X-Admin-Password"}
+        )
+
+    if x_admin_password != expected_password:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid admin password"
+        )
+
+    return True
+
+# Admin router with authentication
+# 프로덕션 환경에서는 모든 엔드포인트에 인증 필요
+router = APIRouter(
+    prefix="/api/admin",
+    tags=["admin"],
+    dependencies=[Depends(verify_admin_access)]
+)
 
 # 프로젝트 루트 경로
 PROJECT_ROOT = Path(__file__).parent.parent.parent

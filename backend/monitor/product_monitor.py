@@ -56,12 +56,31 @@ class ProductMonitor:
             }
             chrome_options.add_experimental_option('prefs', prefs)
 
-            service = Service(ChromeDriverManager().install())
+            # ChromeDriver 경로 설정
+            # 프로덕션 환경: /usr/local/bin/chromedriver (Dockerfile에서 설치)
+            # 개발 환경: ChromeDriverManager 자동 다운로드
+            import os
+            import shutil
+
+            chromedriver_path = '/usr/local/bin/chromedriver'
+            if os.path.exists(chromedriver_path):
+                # 프로덕션 환경 (Docker)
+                service = Service(chromedriver_path)
+                logger.info("프로덕션 ChromeDriver 사용: /usr/local/bin/chromedriver")
+            elif shutil.which('chromedriver'):
+                # 시스템 PATH에 있는 경우
+                service = Service(shutil.which('chromedriver'))
+                logger.info(f"시스템 ChromeDriver 사용: {shutil.which('chromedriver')}")
+            else:
+                # 개발 환경 - 자동 다운로드 (fallback)
+                service = Service(ChromeDriverManager().install())
+                logger.info("ChromeDriverManager로 자동 다운로드")
+
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
-            # 타임아웃 설정
-            self.driver.set_page_load_timeout(15)  # 15초 타임아웃
-            self.driver.implicitly_wait(3)  # 암묵적 대기 3초
+            # 타임아웃 설정 (Railway 환경 고려하여 증가)
+            self.driver.set_page_load_timeout(30)  # 15초 → 30초
+            self.driver.implicitly_wait(5)  # 3초 → 5초
 
             # navigator.webdriver 속성 제거
             self.driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
@@ -93,8 +112,8 @@ class ProductMonitor:
                 'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
             }
 
-            # 빠른 HTTP 요청 (타임아웃 5초)
-            response = requests.get(product_url, headers=headers, timeout=5)
+            # 빠른 HTTP 요청 (Railway 환경 고려)
+            response = requests.get(product_url, headers=headers, timeout=15)  # 5초 → 15초
             response.raise_for_status()
 
             soup = BeautifulSoup(response.text, 'html.parser')
