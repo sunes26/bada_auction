@@ -328,19 +328,32 @@ async def get_image_gallery(folder_name: str):
             }
 
         # Supabase Storage에서 이미지 목록 조회
-        # 폴더명에서 카테고리 ID 추출 (예: "100_식혜" → "100")
-        category_id = folder_name.split('_')[0]
+        # 폴더명에서 카테고리 ID 추출 (예: "100_식혜" → "100" 또는 "1" → "1")
+        category_id = folder_name.split('_')[0] if '_' in folder_name else folder_name
         storage_folder = f"cat-{category_id}"
+
+        print(f"[DEBUG] Gallery request - folder_name: {folder_name}, category_id: {category_id}, storage_folder: {storage_folder}")
 
         # 이미지 목록 조회
         try:
             files = supabase.storage.from_("product-images").list(storage_folder)
+            print(f"[DEBUG] Supabase Storage returned {len(files) if files else 0} files from {storage_folder}")
+
+            if files:
+                print(f"[DEBUG] First 3 files: {[f.get('name', 'no-name') for f in files[:3]]}")
 
             image_list = []
             for file in files:
+                # 파일인지 폴더인지 확인 (폴더는 제외)
+                if file.get('id') is None:
+                    print(f"[DEBUG] Skipping folder: {file.get('name')}")
+                    continue
+
                 # 공개 URL 생성
                 storage_path = f"{storage_folder}/{file['name']}"
                 public_url = get_public_url(storage_path)
+
+                print(f"[DEBUG] File: {file['name']} -> {public_url}")
 
                 image_list.append({
                     "filename": file['name'],
@@ -352,6 +365,8 @@ async def get_image_gallery(folder_name: str):
                     "modified": file.get('updated_at', file.get('created_at', ''))
                 })
 
+            print(f"[DEBUG] Returning {len(image_list)} images")
+
             return {
                 "success": True,
                 "folder": folder_name,
@@ -360,9 +375,63 @@ async def get_image_gallery(folder_name: str):
             }
         except Exception as e:
             print(f"[ERROR] Failed to list images from Supabase Storage: {e}")
+            import traceback
+            traceback.print_exc()
             return {"success": False, "detail": f"Supabase Storage 조회 실패: {str(e)}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/images/debug-storage")
+async def debug_supabase_storage():
+    """Supabase Storage 디버그 - 모든 폴더와 파일 목록 조회"""
+    try:
+        from utils.supabase_storage import supabase, BUCKET_NAME, get_public_url
+
+        if not supabase:
+            return {"success": False, "detail": "Supabase client not initialized"}
+
+        # 루트 폴더 목록 조회
+        folders = supabase.storage.from_(BUCKET_NAME).list()
+
+        result = {
+            "success": True,
+            "bucket": BUCKET_NAME,
+            "folders": []
+        }
+
+        for folder in folders[:10]:  # 처음 10개만
+            folder_name = folder.get('name', 'unknown')
+            folder_info = {
+                "name": folder_name,
+                "id": folder.get('id'),
+                "is_folder": folder.get('id') is None,
+                "files": []
+            }
+
+            # 폴더면 내부 파일 목록 조회
+            if folder.get('id') is None:
+                try:
+                    files = supabase.storage.from_(BUCKET_NAME).list(folder_name)
+                    for file in files[:5]:  # 각 폴더에서 처음 5개만
+                        storage_path = f"{folder_name}/{file.get('name', 'unknown')}"
+                        public_url = get_public_url(storage_path)
+                        folder_info["files"].append({
+                            "name": file.get('name'),
+                            "url": public_url,
+                            "size": file.get('metadata', {}).get('size', 0)
+                        })
+                except Exception as e:
+                    folder_info["error"] = str(e)
+
+            result["folders"].append(folder_info)
+
+        return result
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "detail": str(e)}
 
 
 @router.delete("/images/delete")
