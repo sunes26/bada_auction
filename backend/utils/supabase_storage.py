@@ -134,14 +134,19 @@ def get_public_url(storage_path: str) -> str:
         storage_path: Storage 내 경로 (예: "1_흰밥/image.jpg")
 
     Returns:
-        공개 URL
+        공개 URL (URL 인코딩 적용)
     """
     if not supabase or not SUPABASE_URL:
         return f"/supabase-images/{storage_path}"  # 로컬 fallback
 
+    # URL 인코딩 (공백, 특수문자 처리)
+    from urllib.parse import quote
+    # 슬래시는 인코딩하지 않고, 나머지만 인코딩
+    encoded_path = '/'.join(quote(part, safe='') for part in storage_path.split('/'))
+
     # Supabase Storage 공개 URL 형식
     # https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
-    return f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{storage_path}"
+    return f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{encoded_path}"
 
 
 def list_images(folder: str = "") -> List[str]:
