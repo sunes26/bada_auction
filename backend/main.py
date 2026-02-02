@@ -120,6 +120,37 @@ async def lifespan(app: FastAPI):
             conn = db_manager.engine.raw_connection()
             cursor = conn.cursor()
 
+            # 1. category_playauto_mapping 테이블 생성
+            try:
+                cursor.execute("""
+                    SELECT to_regclass('public.category_playauto_mapping')
+                """)
+                table_exists = cursor.fetchone()[0] is not None
+
+                if not table_exists:
+                    print("[MIGRATION] category_playauto_mapping 테이블 생성 중...")
+                    cursor.execute("""
+                        CREATE TABLE category_playauto_mapping (
+                            id SERIAL PRIMARY KEY,
+                            our_category TEXT NOT NULL UNIQUE,
+                            sol_cate_no INTEGER NOT NULL,
+                            playauto_category TEXT,
+                            similarity TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
+                    cursor.execute("""
+                        CREATE INDEX idx_category_playauto_mapping_our_category
+                        ON category_playauto_mapping(our_category)
+                    """)
+                    conn.commit()
+                    print("[OK] category_playauto_mapping 테이블 생성 완료")
+            except Exception as e:
+                print(f"[WARN] category_playauto_mapping 테이블 생성 중 오류: {e}")
+                conn.rollback()
+
+            # 2. my_selling_products 컬럼 추가
             columns_to_add = get_columns_to_add(cursor, 'my_selling_products', 'postgresql')
 
             if columns_to_add:

@@ -555,3 +555,21 @@ BEGIN
     UPDATE tracking_upload_scheduler SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
+-- ==========================================
+-- PlayAuto 카테고리 매핑
+-- ==========================================
+-- 우리 시스템 카테고리를 PlayAuto 카테고리 코드(sol_cate_no)로 매핑
+CREATE TABLE IF NOT EXISTS category_playauto_mapping (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    our_category TEXT NOT NULL UNIQUE,
+    sol_cate_no INTEGER NOT NULL,
+    playauto_category TEXT,
+    similarity TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 인덱스 생성
+CREATE INDEX IF NOT EXISTS idx_category_playauto_mapping_our_category
+ON category_playauto_mapping(our_category);
+
