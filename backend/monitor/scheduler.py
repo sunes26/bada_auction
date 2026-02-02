@@ -9,7 +9,7 @@ import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from datetime import datetime
-from database.db import get_db
+from database.db_wrapper import get_db
 from monitor.product_monitor import ProductMonitor
 
 

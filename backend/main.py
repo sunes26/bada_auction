@@ -25,7 +25,7 @@ except Exception as e:
     import traceback
     traceback.print_exc()
     admin_router = None
-from database.db import get_db
+from database.db_wrapper import get_db
 from playauto.scheduler import start_scheduler as start_playauto_scheduler, stop_scheduler as stop_playauto_scheduler
 from monitor.scheduler import start_scheduler as start_monitor_scheduler, stop_scheduler as stop_monitor_scheduler
 from backup.scheduler import start_scheduler as start_backup_scheduler, stop_scheduler as stop_backup_scheduler

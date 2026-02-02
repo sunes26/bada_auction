@@ -2,7 +2,7 @@
 import sys
 sys.path.insert(0, '.')
 
-from database.db import get_db
+from database.db_wrapper import get_db
 import time
 
 def main():

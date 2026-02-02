@@ -7,7 +7,7 @@
 import asyncio
 from playauto.client import PlayautoClient
 from playauto.product_registration import build_product_data_from_db
-from database.db import get_db
+from database.db_wrapper import get_db
 from dotenv import load_dotenv
 import os
 

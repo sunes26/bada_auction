@@ -4,7 +4,7 @@
 품절 상품 자동 비활성화 및 재입고 알림 기능
 """
 
-from database.db import get_db
+from database.db_wrapper import get_db
 from notifications.notifier import send_notification
 from typing import Optional
 

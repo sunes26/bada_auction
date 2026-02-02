@@ -7,7 +7,7 @@
 import asyncio
 from datetime import datetime
 from typing import List, Dict, Optional
-from database.db import get_db
+from database.db_wrapper import get_db
 from playauto.tracking import PlayautoTrackingAPI
 import json
 

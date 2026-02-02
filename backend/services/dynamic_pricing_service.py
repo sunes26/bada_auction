@@ -6,7 +6,7 @@
 
 import asyncio
 from typing import Dict, List
-from database.db import get_db
+from database.db_wrapper import get_db
 from playauto.products import (
     PlayautoProductAPI,
     calculate_selling_price_with_margin,

@@ -660,7 +660,7 @@ def send_notification(
     """
     try:
         # DB에서 활성화된 Webhook 설정 조회
-        from database.db import get_db
+        from database.db_wrapper import get_db
         db = get_db()
         webhooks = db.get_all_webhook_settings(enabled_only=True)
 

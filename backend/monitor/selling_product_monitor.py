@@ -6,7 +6,7 @@
 
 import asyncio
 from datetime import datetime
-from database.db import get_db
+from database.db_wrapper import get_db
 from monitor.product_monitor import ProductMonitor
 from logger import get_logger
 

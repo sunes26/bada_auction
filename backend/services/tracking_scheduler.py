@@ -8,7 +8,7 @@ import asyncio
 from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from database.db import get_db
+from database.db_wrapper import get_db
 from services.tracking_upload_service import TrackingUploadService
 
 
