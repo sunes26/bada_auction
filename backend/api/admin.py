@@ -254,9 +254,9 @@ async def get_image_stats():
                     display_name = folder_name
                     if folder_name.startswith('cat-'):
                         category_id = folder_name.replace('cat-', '')
-                        # 카테고리 이름 조회
+                        # 카테고리 이름 조회 (folder_name이 이미 "1_흰밥" 형식으로 저장됨)
                         if category_id in category_map:
-                            display_name = f"{category_id}_{category_map[category_id]}"
+                            display_name = category_map[category_id]  # 그대로 사용 (이미 "1_흰밥" 형식)
                             print(f"[DEBUG] Folder {folder_name} -> display_name: {display_name}")
                         else:
                             print(f"[DEBUG] Category ID {category_id} not found in category_map")
