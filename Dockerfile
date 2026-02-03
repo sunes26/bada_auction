@@ -4,10 +4,7 @@ FROM python:3.9-slim
 # Set working directory
 WORKDIR /app
 
-# Copy backend directory
-COPY backend/ /app/
-
-# Install system dependencies including Chrome for Selenium
+# Install system dependencies including Chrome for Selenium (least frequently changed)
 RUN apt-get update && apt-get install -y \
     gcc \
     wget \
@@ -42,20 +39,17 @@ RUN wget -q -O /tmp/google-chrome-key.pub https://dl-ssl.google.com/linux/linux_
     && rm -rf /var/lib/apt/lists/* /tmp/google-chrome-key.pub
 
 # Install ChromeDriver matching Chrome version
-# Chrome 115+ uses Chrome for Testing repository
 RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}') && \
     echo "Chrome version: $CHROME_VERSION" && \
     CHROME_MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d'.' -f1) && \
     echo "Chrome major version: $CHROME_MAJOR_VERSION" && \
     if [ "$CHROME_MAJOR_VERSION" -ge 115 ]; then \
-        # Chrome 115+: Use Chrome for Testing
         CHROMEDRIVER_URL="https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${CHROME_MAJOR_VERSION}"; \
         CHROMEDRIVER_VERSION=$(curl -s "$CHROMEDRIVER_URL" || echo "$CHROME_VERSION"); \
         echo "ChromeDriver version: $CHROMEDRIVER_VERSION"; \
         wget -q "https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip" -O chromedriver.zip || \
         wget -q "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip" -O chromedriver.zip; \
     else \
-        # Chrome < 115: Use old ChromeDriver repository
         CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION}"); \
         echo "ChromeDriver version: $CHROMEDRIVER_VERSION"; \
         wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" -O chromedriver.zip; \
@@ -70,8 +64,14 @@ RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}') && \
     rm -rf chromedriver.zip chromedriver-linux64 && \
     echo "ChromeDriver installed: $(chromedriver --version)"
 
-# Install Python dependencies
+# Copy only requirements first to leverage Docker cache
+COPY backend/requirements.txt /app/requirements.txt
+
+# Install Python dependencies (cached unless requirements.txt changes)
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the backend code (changes frequently)
+COPY backend/ /app/
 
 # Create static directory for development fallback
 RUN mkdir -p /app/static/thumbnails && chmod -R 777 /app/static || true
