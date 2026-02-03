@@ -733,8 +733,9 @@ DATABASE_URL=postgresql://...  # Supabase PostgreSQL
 **해결**:
 - ✅ **138개 카테고리를 새 시스템(category.xlsx)으로 수동 매핑 완료**
 - ✅ 모든 카테고리 코드를 PlayAuto 호환 코드로 변경
-- ✅ `categories` 테이블: 138/138개 업데이트
-- ✅ `category_playauto_mapping` 테이블: 81/81개 카테고리 업데이트
+- ✅ `categories` 테이블: 138/138개 sol_cate_no 업데이트
+- ✅ `category_playauto_mapping` 테이블: 81/81개 sol_cate_no 업데이트
+- ✅ `playauto_category` 컬럼: 81/81개 카테고리명 업데이트 (관리자 화면 표시)
 
 **변경 사항**:
 ```
@@ -754,21 +755,32 @@ DATABASE_URL=postgresql://...  # Supabase PostgreSQL
 **영향**:
 - ✅ PlayAuto 상품 등록 시 올바른 카테고리 코드 사용
 - ✅ 계정에 등록된 카테고리와 일치
+- ✅ 관리자 화면에서 새 카테고리명 정상 표시
 - ✅ 모든 상품 카테고리 정상 작동
 
-**다음 단계**:
-1. PlayAuto 웹사이트에서 각 카테고리 확인
-2. 상품 등록 테스트
+**검증 완료**:
+- ✅ 데이터베이스: 구 코드 0개, 신 코드 81개
+- ✅ 코드 범위: 6226500 ~ 34030100
+- ✅ 관리자 화면 표시 정상
+
+**권장 테스트**:
+1. PlayAuto 웹사이트에서 카테고리 확인
+2. 실제 상품 등록 테스트
 3. 필요시 PlayAuto 계정에 추가 카테고리 등록
 
 **관련 파일**:
-- `backend/manual_mapping_template.xlsx`: 수동 매핑 템플릿
+- `backend/manual_mapping_template.xlsx`: 수동 매핑 템플릿 (사용자 작업 완료)
 - `backend/categories_list.csv`: 138개 카테고리 목록
 - `backend/MANUAL_MAPPING_GUIDE.md`: 매핑 가이드
+- `backend/search_category.py`: 카테고리 검색 도구
+- `backend/apply_manual_mapping.py`: 매핑 적용 스크립트
+- `backend/prepare_manual_mapping.py`: 템플릿 생성 스크립트
+- `category.xlsx`: PlayAuto 카테고리 마스터 파일 (13,363개)
 
 **커밋 해시**:
+- `d5f789d`: PlayAuto 카테고리 문제 근본 원인 파악
 - `f900d85`: Railway 빌드 최적화
-- (다음): 카테고리 시스템 개편 완료 (2026-02-03)
+- `3f0d4dd`: PlayAuto 카테고리 시스템 마이그레이션 완료 (138개 수동 매핑)
 
 ---
 
