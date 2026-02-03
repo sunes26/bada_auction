@@ -217,44 +217,50 @@ def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -
         product_name_style = text_styles.get("productName", {})
         html_parts.append(f"<h1 style='font-size: 32px; font-weight: bold; margin-bottom: 20px;'>{content.get('productName', product_name)}</h1>")
 
-        # 이미지들 추가 (크기 정보 반영) - 최대 10개로 제한 (PlayAuto 제약)
+        # 이미지들 추가 (크기 정보 반영) - 최대 3개로 제한 (PlayAuto 안정성)
         image_count = 0
-        max_images = 10
+        max_images = 3
 
+        # 우선순위: 메인 이미지 먼저
+        priority_keys = ['template1_bg', 'template2_main', 'food_template1_bg', 'food_template2_main']
+
+        # 우선순위 이미지 먼저
+        for key in priority_keys:
+            if image_count >= max_images:
+                break
+            if key in images:
+                image_url = images[key]
+                if isinstance(image_url, str) and image_url.startswith("http"):
+                    size = image_sizes.get(key, 80)
+                    style = f"width: {size}%; height: auto; display: block; margin: 20px auto;"
+                    html_parts.append(f"<img src='{image_url}' style='{style}' alt='상품 이미지' />")
+                    image_count += 1
+
+        # 나머지 이미지
         for key, image_url in images.items():
             if image_count >= max_images:
                 break
-
-            if isinstance(image_url, str) and image_url.startswith("http"):
-                # 이미지 크기 (%)
-                size = image_sizes.get(key, 100)
-
-                # 이미지 위치 (있으면 absolute positioning)
-                position = image_positions.get(key, {})
-
-                style_parts = [
-                    f"width: {size}%",
-                    "height: auto",
-                    "display: block",
-                    "margin: 20px auto"
-                ]
-
-                style = "; ".join(style_parts)
+            if key not in priority_keys and isinstance(image_url, str) and image_url.startswith("http"):
+                size = image_sizes.get(key, 80)
+                style = f"width: {size}%; height: auto; display: block; margin: 20px auto;"
                 html_parts.append(f"<img src='{image_url}' style='{style}' alt='상품 이미지' />")
                 image_count += 1
 
-        # 텍스트 컨텐츠 추가
-        if "subtitle" in content:
-            html_parts.append(f"<p style='font-size: 18px; color: #666; margin: 15px 0;'>{content['subtitle']}</p>")
-
+        # 텍스트 컨텐츠 추가 (간단하게)
         if "coreMessage1" in content:
-            html_parts.append(f"<p style='font-size: 20px; font-weight: bold; margin: 20px 0;'>{content['coreMessage1']}</p>")
+            html_parts.append(f"<h2 style='font-size: 24px; font-weight: bold; margin: 30px 0 20px;'>{content['coreMessage1']}</h2>")
 
-        if "tag1" in content:
-            tags = [content.get(f'tag{i}', '') for i in range(1, 4) if content.get(f'tag{i}')]
-            if tags:
-                tag_html = ' '.join([f"<span style='background: #f0f0f0; padding: 5px 10px; margin: 0 5px; border-radius: 5px;'>{tag}</span>" for tag in tags])
-                html_parts.append(f"<div style='margin: 20px 0;'>{tag_html}</div>")
+        if "subtitle" in content:
+            html_parts.append(f"<p style='font-size: 18px; color: #666; margin: 15px 0; line-height: 1.6;'>{content['subtitle']}</p>")
+
+        # 상품 설명 추가 (간단한 안내)
+        html_parts.append("<div style='margin-top: 40px; padding: 20px; background: #f9f9f9; border-radius: 10px;'>")
+        html_parts.append("<p style='font-size: 16px; color: #333; line-height: 1.8;'>")
+        html_parts.append("- 신선하고 품질 좋은 상품을 제공합니다<br>")
+        html_parts.append("- 빠른 배송으로 신속하게 받아보실 수 있습니다<br>")
+        html_parts.append("- 궁금하신 사항은 언제든지 문의해주세요")
+        html_parts.append("</p>")
+        html_parts.append("</div>")
 
         html_parts.append("</div>")
 
@@ -337,8 +343,16 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
         "std_ol_yn": "Y",  # 단일상품 (지마켓/옥션 등록 필수 - PlayAuto 지원팀 안내)
 
         # 옵션 정보
-        "opt_type": "옵션없음",  # 현재는 옵션 없음으로 처리 (추후 확장 가능)
-        "opts": [],
+        # 스마트스토어는 옵션없음 미지원 → 독립형 더미 옵션 사용
+        "opt_type": "독립형",
+        "opts": [
+            {
+                "opt_sort1": "선택",
+                "opt_sort1_desc": "기본",
+                "stock_cnt": 999,
+                "status": "정상"
+            }
+        ],
 
         # 상세 및 기타 정보
         "tax_type": "과세",
