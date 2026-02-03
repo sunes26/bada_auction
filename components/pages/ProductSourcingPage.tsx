@@ -53,7 +53,7 @@ export default function ProductSourcingPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');  // 기본 필터: 전체
 
   // 검색 및 정렬
   const [searchQuery, setSearchQuery] = useState('');
