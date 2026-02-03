@@ -187,16 +187,14 @@ class PlayautoProductRegistration:
 
 def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -> str:
     """
-    detail_page_data JSON을 HTML로 변환 (텍스트만, 이미지 제외)
-
-    이미지는 sale_img1~11로 별도 전달하므로 detail_desc에서는 제외
+    detail_page_data JSON을 HTML로 변환 (이미지 포함)
 
     Args:
         detail_page_data: JSON 형태의 상세페이지 데이터
         product_name: 상품명 (fallback용)
 
     Returns:
-        HTML 문자열 (텍스트만)
+        HTML 문자열 (이미지 포함)
     """
     if not detail_page_data:
         return f"<div style='padding: 20px;'><h1>{product_name}</h1><p>상품 상세 정보</p></div>"
@@ -207,30 +205,62 @@ def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -
 
         # 데이터 추출
         content = data.get("content", {})
+        images = data.get("images", {})
+        template = data.get("template", "")
 
-        # HTML 생성 (이미지 없이 텍스트만)
-        html_parts = [f"<div style='max-width: 800px; margin: 0 auto; padding: 20px;'>"]
+        # HTML 생성
+        html_parts = [f"<div style='max-width: 1000px; margin: 0 auto; padding: 20px;'>"]
 
         # 상품명
-        html_parts.append(f"<h1 style='font-size: 28px; font-weight: bold; margin-bottom: 20px; color: #333;'>{content.get('productName', product_name)}</h1>")
+        html_parts.append(f"<h1 style='font-size: 32px; font-weight: bold; margin-bottom: 30px; color: #333; text-align: center;'>{content.get('productName', product_name)}</h1>")
+
+        # 메인 이미지 (템플릿별)
+        main_image_keys = ['template1_bg', 'template2_main', 'food_template1_bg', 'food_template2_main']
+        for key in main_image_keys:
+            if key in images and images[key]:
+                url = images[key]
+                # 로컬 경로(/static, /uploads 등)는 제외 - 플레이오토가 접근 불가
+                if isinstance(url, str) and url.startswith("/"):
+                    logger.warning(f"[플레이오토] 로컬 경로 이미지 제외: {url}")
+                    continue
+                if isinstance(url, str) and (url.startswith("http") or url.startswith("//")):
+                    if url.startswith("//"):
+                        url = f"https:{url}"
+                    html_parts.append(f"<div style='text-align: center; margin: 30px 0;'><img src='{url}' style='max-width: 100%; height: auto;' /></div>")
 
         # 텍스트 컨텐츠
         if "coreMessage1" in content:
-            html_parts.append(f"<h2 style='font-size: 22px; font-weight: bold; margin: 30px 0 15px; color: #444;'>{content['coreMessage1']}</h2>")
+            html_parts.append(f"<h2 style='font-size: 26px; font-weight: bold; margin: 40px 0 20px; color: #444; text-align: center;'>{content['coreMessage1']}</h2>")
 
         if "subtitle" in content:
-            html_parts.append(f"<p style='font-size: 18px; color: #666; margin: 15px 0; line-height: 1.8;'>{content['subtitle']}</p>")
+            html_parts.append(f"<p style='font-size: 18px; color: #666; margin: 20px 0; line-height: 1.8; text-align: center;'>{content['subtitle']}</p>")
 
         # 태그
         if "tag1" in content:
             tags = [content.get(f'tag{i}', '') for i in range(1, 4) if content.get(f'tag{i}')]
             if tags:
-                tag_html = ' '.join([f"<span style='display: inline-block; background: #f0f0f0; padding: 8px 15px; margin: 5px; border-radius: 20px; font-size: 14px;'>{tag}</span>" for tag in tags])
-                html_parts.append(f"<div style='margin: 25px 0;'>{tag_html}</div>")
+                tag_html = ' '.join([f"<span style='display: inline-block; background: #f0f0f0; padding: 10px 20px; margin: 5px; border-radius: 25px; font-size: 16px;'>{tag}</span>" for tag in tags])
+                html_parts.append(f"<div style='margin: 30px 0; text-align: center;'>{tag_html}</div>")
 
-        # 상품 설명
-        html_parts.append("<div style='margin-top: 40px; padding: 25px; background: #f9f9f9; border-radius: 10px; border-left: 4px solid #4CAF50;'>")
-        html_parts.append("<h3 style='font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #333;'>상품 안내</h3>")
+        # 나머지 이미지들 (서브 이미지, 상세 이미지 등)
+        sub_images = []
+        for key, url in images.items():
+            if key not in main_image_keys and isinstance(url, str):
+                # 로컬 경로 제외
+                if url.startswith("/"):
+                    continue
+                if url.startswith("http") or url.startswith("//"):
+                    if url.startswith("//"):
+                        url = f"https:{url}"
+                    sub_images.append(url)
+
+        # 서브 이미지 출력
+        for url in sub_images:
+            html_parts.append(f"<div style='text-align: center; margin: 20px 0;'><img src='{url}' style='max-width: 100%; height: auto;' /></div>")
+
+        # 상품 안내
+        html_parts.append("<div style='margin-top: 50px; padding: 30px; background: #f9f9f9; border-radius: 10px; border-left: 4px solid #4CAF50;'>")
+        html_parts.append("<h3 style='font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333;'>상품 안내</h3>")
         html_parts.append("<ul style='font-size: 16px; color: #555; line-height: 2; padding-left: 20px;'>")
         html_parts.append("<li>신선하고 품질 좋은 상품을 제공합니다</li>")
         html_parts.append("<li>빠른 배송으로 신속하게 받아보실 수 있습니다</li>")
@@ -281,15 +311,22 @@ def extract_images_from_detail_page(detail_page_data: str) -> List[str]:
                 break
             if key in images:
                 url = images[key]
-                if isinstance(url, str) and url.startswith("http"):
+                # 로컬 경로 제외, 외부 URL만 사용
+                if isinstance(url, str) and not url.startswith("/") and (url.startswith("http") or url.startswith("//")):
+                    if url.startswith("//"):
+                        url = f"https:{url}"
                     image_urls.append(url)
 
         # 나머지 이미지
         for key, url in images.items():
             if len(image_urls) >= 10:
                 break
-            if key not in priority_keys and isinstance(url, str) and url.startswith("http"):
-                image_urls.append(url)
+            if key not in priority_keys and isinstance(url, str):
+                # 로컬 경로 제외, 외부 URL만 사용
+                if not url.startswith("/") and (url.startswith("http") or url.startswith("//")):
+                    if url.startswith("//"):
+                        url = f"https:{url}"
+                    image_urls.append(url)
 
         return image_urls
 
@@ -322,20 +359,18 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
     # 썸네일 URL 처리
     # 1. thumbnail_url (Supabase Storage) 우선 사용 - 안정적인 외부 접근
     # 2. 없으면 original_thumbnail_url 사용 (외부 URL, CDN 차단 가능성)
-    # 3. 로컬 경로면 절대 URL로 변환 (localhost - 플레이오토가 접근 불가)
+    # 3. 로컬 경로는 사용 불가 (플레이오토가 접근 불가)
     thumbnail_url = product.get("thumbnail_url") or product.get("original_thumbnail_url") or ""
 
     # // 로 시작하는 URL은 https: 추가
     if thumbnail_url.startswith("//"):
         thumbnail_url = f"https:{thumbnail_url}"
 
-    # 로컬 경로인 경우 (플레이오토가 접근할 수 없음 - 경고 로그)
-    if thumbnail_url and thumbnail_url.startswith("/static"):
-        import os
-        logger.warning(f"[플레이오토] 썸네일이 로컬 경로입니다. 플레이오토가 접근할 수 없습니다: {thumbnail_url}")
-        # 서버 URL로 변환 시도 (하지만 localhost면 여전히 접근 불가)
-        server_url = os.getenv("SERVER_URL", "http://localhost:8000")
-        thumbnail_url = f"{server_url}{thumbnail_url}"
+    # 로컬 경로인 경우 무시 (플레이오토가 접근할 수 없음)
+    if thumbnail_url and thumbnail_url.startswith("/"):
+        logger.error(f"[플레이오토] 썸네일이 로컬 경로라서 사용할 수 없습니다: {thumbnail_url}")
+        logger.error(f"[플레이오토] 상세페이지 생성기에서 이미지를 Supabase Storage에 업로드하도록 수정이 필요합니다")
+        thumbnail_url = ""  # 빈 값으로 설정하여 오류 방지
 
     # 카테고리에 맞는 infoCode 조회
     category = product.get("category", "")
