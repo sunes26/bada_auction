@@ -92,19 +92,33 @@ def update_database(mapping, dry_run=True):
 
         # 2. category_playauto_mapping 테이블 업데이트
         print("Updating category_playauto_mapping table...")
+
+        # categories 테이블에서 경로 -> ID 매핑 생성
+        cursor.execute("SELECT id, level1, level2, level3, level4 FROM categories")
+        path_to_id = {}
+        for row in cursor.fetchall():
+            cat_id = row[0]
+            path = ' > '.join([x for x in [row[1], row[2], row[3], row[4]] if x])
+            path_to_id[path] = cat_id
+
+        # category_playauto_mapping 업데이트
         cursor.execute("SELECT id, our_category FROM category_playauto_mapping")
         existing = cursor.fetchall()
 
         mapping_update_count = 0
         for row in existing:
-            mapping_id, cat_id = row
-            if cat_id in mapping:
-                new_code = mapping[cat_id]
-                cursor.execute(
-                    f"UPDATE category_playauto_mapping SET sol_cate_no = {placeholder} WHERE id = {placeholder}",
-                    (new_code, mapping_id)
-                )
-                mapping_update_count += cursor.rowcount
+            mapping_id, our_category_path = row
+            # 경로로 ID 찾기
+            if our_category_path in path_to_id:
+                cat_id = path_to_id[our_category_path]
+                # ID로 새 코드 찾기
+                if cat_id in mapping:
+                    new_code = mapping[cat_id]
+                    cursor.execute(
+                        f"UPDATE category_playauto_mapping SET sol_cate_no = {placeholder} WHERE id = {placeholder}",
+                        (new_code, mapping_id)
+                    )
+                    mapping_update_count += cursor.rowcount
 
         # 3. playauto_category 컬럼 업데이트 (카테고리명)
         print("Updating playauto_category names...")
