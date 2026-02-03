@@ -1,12 +1,22 @@
 # PlayAuto ESM 채널 등록 제한
 
-## 문제
+## ✅ 해결됨 (2026-02-03)
 
-상품 등록 시 "ESM은 단일상품만 등록 가능합니다" 에러가 발생합니다.
+**A006 (옥션) ESM 템플릿을 default_templates에서 제거하여 해결**
+- 현재 등록 채널: A001 (네이버), A077 (스마트스토어)
+- 모든 카테고리 (식품 포함) 등록 가능
+
+---
+
+## 문제 (과거)
+
+상품 등록 시 "ESM은 단일상품만 등록 가능합니다" 에러가 발생했습니다.
 
 ```
 [플레이오토] 상품 등록 실패: ESM은 단일상품만 등록 가능합니다.
 ```
+
+**원인**: A006 (옥션) 템플릿 2235971이 ESM 모드로 설정되어 있었음
 
 ## 원인
 
@@ -107,8 +117,30 @@ ESM 대신 다음 채널을 사용하세요:
 | G마켓 (일반) | GMK | 전 카테고리 | ESM 아님 |
 | 옥션 (일반) | AUC | 전 카테고리 | ESM 아님 |
 
+## 적용된 수정사항
+
+### 1. A006 템플릿 제거 (2026-02-03)
+```bash
+# backend/fix_remove_esm_template.py 실행
+# default_templates에서 A006 (옥션 ESM 템플릿) 제거
+# 결과: A001 (네이버), A077 (스마트스토어)만 사용
+```
+
+### 2. ESM 에러 자동 감지 및 재시도 강화
+**backend/api/products.py:693-711**
+```python
+# ESM 에러 감지 시 A006도 함께 필터링
+if "ESM" in error_msg and "단일상품" in error_msg:
+    filtered_site_list = [
+        site for site in product_data.get("site_list", [])
+        if site.get("shop_cd") not in ["ESM", "esm", "Esm", "A006"]
+    ]
+    # 나머지 채널로 재시도
+```
+
 ## 참고
 
 - ESM은 eBay Korea의 간편 판매 모드입니다
 - 일반 G마켓/옥션 등록(`GMK`, `AUC`)은 모든 카테고리 지원
 - ESM보다 일반 등록을 권장합니다
+- **현재 시스템은 네이버(A001)와 스마트스토어(A077)를 사용하여 모든 카테고리 등록 가능**
