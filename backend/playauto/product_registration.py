@@ -298,7 +298,7 @@ def extract_images_from_detail_page(detail_page_data: str) -> List[str]:
         return []
 
 
-def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
+def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_type: str = "smartstore") -> Dict:
     """
     DB 상품 정보를 플레이오토 API 형식으로 변환
 
@@ -312,6 +312,9 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
                     "template_no": 템플릿번호
                 }
             ]
+        channel_type: 채널 타입 ("gmk_auction" 또는 "smartstore")
+            - "gmk_auction": 지마켓/옥션 (std_ol_yn="Y", opt_type="옵션없음")
+            - "smartstore": 스마트스토어 등 (std_ol_yn="N", opt_type="독립형")
 
     Returns:
         플레이오토 API 형식 데이터
@@ -360,6 +363,27 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
     for i, url in enumerate(detail_images[:10], start=2):
         image_fields[f"sale_img{i}"] = url
 
+    # 채널 타입에 따른 옵션 설정
+    if channel_type == "gmk_auction":
+        # 지마켓/옥션: 단일상품 필수, 옵션없음
+        std_ol_yn = "Y"
+        opt_type = "옵션없음"
+        opts = []
+        logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=옵션없음")
+    else:
+        # 스마트스토어 등: 단일상품 아님, 독립형 옵션
+        std_ol_yn = "N"
+        opt_type = "독립형"
+        opts = [
+            {
+                "opt_sort1": "상품선택",
+                "opt_sort1_desc": product.get("product_name", "기본"),
+                "stock_cnt": 999,
+                "status": "정상"
+            }
+        ]
+        logger.info(f"[플레이오토] 스마트스토어 설정: std_ol_yn=N, opt_type=독립형")
+
     return {
         # 기본 정보
         "c_sale_cd": product.get("c_sale_cd") or "__AUTO__",
@@ -369,19 +393,11 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
         "sale_price": int(product.get("selling_price", 0)),
         "sale_cnt_limit": 999,
         "site_list": site_list,
-        "std_ol_yn": "Y",  # 단일상품 (지마켓/옥션 등록 필수 - PlayAuto 지원팀 안내)
+        "std_ol_yn": std_ol_yn,
 
-        # 옵션 정보
-        # 스마트스토어는 옵션없음 미지원 → 독립형 옵션 사용 (상품명으로)
-        "opt_type": "독립형",
-        "opts": [
-            {
-                "opt_sort1": "상품선택",
-                "opt_sort1_desc": product.get("product_name", "기본"),
-                "stock_cnt": 999,
-                "status": "정상"
-            }
-        ],
+        # 옵션 정보 (채널 타입에 따라 다르게 설정)
+        "opt_type": opt_type,
+        "opts": opts,
 
         # 상세 및 기타 정보
         "tax_type": "과세",
