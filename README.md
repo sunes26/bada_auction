@@ -653,6 +653,74 @@ python main.py  # 자동으로 새 DB 생성
 
 ## 📈 업데이트 히스토리
 
+### 2026-02-03: PlayAuto 상품 등록 시스템 개선 🚀
+
+**PlayAuto 채널별 설정 분리 구현**:
+- ✅ 지마켓/옥션과 스마트스토어를 별도로 등록하도록 분리
+- ✅ 채널별 최적 설정 자동 적용:
+  - **지마켓/옥션(GMK, A001, A006)**: `std_ol_yn="Y"` (단일상품), `opt_type="옵션없음"`
+  - **스마트스토어(A077 등)**: `std_ol_yn="N"` (단일상품 아님), `opt_type="독립형"`
+- ✅ ESM 채널 자동 제외 (단일상품 제약으로 인한 오류 방지)
+
+**이미지 처리 시스템 개선**:
+- ✅ 상세페이지 이미지를 Supabase Storage에 직접 업로드
+  - `/api/products/upload-image` 엔드포인트 추가
+  - DetailPage 이미지 업로드/드롭 시 자동 Supabase 업로드
+- ✅ 썸네일 자동 Supabase 업로드
+  - URL 추출 후 즉시 Supabase Storage에 저장
+  - 외부 접근 가능한 공개 URL 사용
+- ✅ 로컬 경로 이미지 자동 제외
+  - `/static`, `/uploads` 등 로컬 경로는 PlayAuto 접근 불가
+  - 외부 URL(http://, https://)만 사용하도록 필터링
+- ✅ detail_desc HTML에 모든 이미지 포함
+  - 이전: 이미지 제거 → 빈 상세페이지
+  - 수정: 모든 이미지 포함 → 완전한 상세페이지
+
+**상품 관리 UX 개선**:
+- ✅ 상품 기본 상태 변경: "판매중" → "중단"
+  - 상세페이지에서 추가한 상품은 검토 후 활성화
+- ✅ 상품탭 기본 필터 변경: "판매중" → "전체"
+  - 새로 추가된 중단 상품도 바로 확인 가능
+
+**버그 수정**:
+- 🐛 스마트스토어 상품정보고시 에러 수정
+  - "유전자변형식품 표시는 Y또는 N으로만 입력할 수 있습니다" 해결
+  - `infoDetail`에 GMO 필드 명시: `"유전자변형식품의 경우의 표시": "N"`
+- 🐛 Scheduler cursor AttributeError 수정
+  - `Session` 객체에 `.cursor()` 호출 에러 해결
+  - SQLAlchemy ORM 쿼리 방식으로 변경
+  - `db.update_selling_product()` 메서드 사용
+
+**상세 로깅 추가**:
+- 📊 채널별 등록 상황 실시간 확인
+  - 원본 site_list 전체 출력
+  - 각 채널 정보 (shop_cd, shop_id, template_no) 상세 로깅
+  - 채널 분리 결과 표시 (지마켓/옥션, 스마트스토어, ESM)
+  - 각 그룹별 등록 시작/성공/실패 명확히 표시
+  - 설정값 (std_ol_yn, opt_type) 로깅
+
+**해결된 문제**:
+- ✅ "ESM은 단일상품만 등록 가능합니다" → ESM 채널 자동 제외
+- ✅ "단일상품인경우 독립형 옵션은 사용하실 수 없습니다" → 채널별 설정 분리
+- ✅ 썸네일 이미지가 다름 → Supabase URL 사용
+- ✅ 상세페이지에 사진/글 없음 → 이미지 포함 + Supabase 업로드
+- ✅ 이미지 업로드 405 에러 → API_BASE_URL 사용
+- ✅ sortOrder 매개변수 오류 → 이미지를 HTML에 포함하되 Supabase URL만 사용
+
+**커밋 해시**:
+- `16214ec`: GMK/Auction 이미지 매개변수 에러 수정 (이미지 분리)
+- `42d4df7`: 상품 기본 상태 "중단", 필터 "전체" 변경
+- `0602e84`: 채널별 설정 분리 (GMK/Auction vs SmartStore)
+- `ecd75a8`: ESM 채널 자동 제외
+- `7f58446`: detail_desc HTML에 이미지 포함, 로컬 경로 제외
+- `ae030fc`: Supabase Storage 이미지 업로드 시스템
+- `8b55e59`: API_BASE_URL 사용 수정
+- `e2915a9`: 채널별 상세 로깅 추가
+- `dca172f`: 스마트스토어 GMO 필드 수정
+- `9751468`: Scheduler cursor 에러 수정
+
+---
+
 ### 2026-02-02: SQLite 완전 제거 및 PostgreSQL 전환 🗄️
 
 **치명적인 데이터 손실 문제 발견 및 해결**:
