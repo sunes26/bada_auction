@@ -248,7 +248,7 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
         "sale_price": int(product.get("selling_price", 0)),
         "sale_cnt_limit": 999,
         "site_list": site_list,
-        "std_ol_yn": "N",  # 단일상품 아님 (일반 등록 모드, ESM 제한 회피)
+        "std_ol_yn": "Y",  # 단일상품 (지마켓/옥션 등록 필수 - PlayAuto 지원팀 안내)
 
         # 옵션 정보
         "opt_type": "옵션없음",  # 현재는 옵션 없음으로 처리 (추후 확장 가능)
