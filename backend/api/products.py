@@ -690,24 +690,26 @@ async def register_products_to_playauto(request: dict):
                 # 플레이오토 등록
                 result = await registration_api.register_product(product_data)
 
-                # ESM 에러 시 재시도 (ESM 채널 제외)
+                # ESM 에러 시 재시도 (ESM 채널 및 ESM 템플릿 사용 채널 제외)
                 if not result.get("success") and result.get("error"):
                     error_msg = result.get("error", "")
                     if "ESM" in error_msg and "단일상품" in error_msg:
-                        logger.warning(f"[상품등록] ESM 에러 감지 - ESM 제외하고 재시도: {product.get('product_name')}")
+                        logger.warning(f"[상품등록] ESM 에러 감지 - 문제 채널 제외하고 재시도: {product.get('product_name')}")
+                        logger.warning(f"[상품등록] 원본 에러: {error_msg}")
 
-                        # site_list에서 ESM 제외
+                        # site_list에서 ESM 채널 제외 (shop_cd가 ESM인 것 + A006 옥션도 제외)
+                        # A006 (옥션)은 ESM 템플릿을 사용할 수 있으므로 함께 제외
                         filtered_site_list = [
                             site for site in product_data.get("site_list", [])
-                            if site.get("shop_cd") not in ["ESM", "esm", "Esm"]
+                            if site.get("shop_cd") not in ["ESM", "esm", "Esm", "A006"]
                         ]
 
                         if filtered_site_list:
                             product_data["site_list"] = filtered_site_list
-                            logger.info(f"[상품등록] ESM 제외 후 {len(filtered_site_list)}개 채널로 재시도")
+                            logger.info(f"[상품등록] ESM/A006 제외 후 {len(filtered_site_list)}개 채널로 재시도")
                             result = await registration_api.register_product(product_data)
                         else:
-                            logger.error(f"[상품등록] ESM만 있어서 재시도 불가")
+                            logger.error(f"[상품등록] 등록 가능한 채널이 없어 재시도 불가")
 
                 if result.get("success"):
                     # 플레이오토 상품 번호 및 쇼핑몰 번호 저장

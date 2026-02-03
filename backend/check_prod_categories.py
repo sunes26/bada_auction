@@ -50,6 +50,33 @@ def main():
         print(f"    {row[0]}")
     print()
 
+    # 4. 신구 코드 분포
+    cursor.execute("SELECT COUNT(*) FROM category_playauto_mapping WHERE sol_cate_no >= 6000000")
+    new_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM category_playauto_mapping WHERE sol_cate_no < 6000000")
+    old_count = cursor.fetchone()[0]
+
+    print(f"[3] Code distribution:")
+    print(f"  New codes (>= 6000000): {new_count} rows")
+    print(f"  Old codes (< 6000000): {old_count} rows")
+    print()
+
+    if new_count > 0:
+        cursor.execute("SELECT id, our_category, sol_cate_no, playauto_category FROM category_playauto_mapping WHERE sol_cate_no >= 6000000 ORDER BY sol_cate_no LIMIT 5")
+        print(f"  Sample rows with NEW codes:")
+        for row in cursor.fetchall():
+            sol_code = row[2]
+            print(f"    ID: {row[0]}, sol_cate_no: {sol_code} (type: {type(sol_code).__name__})")
+            print(f"       our_category: {row[1][:50]}")
+            print(f"       playauto_category: {row[3][:50]}")
+        print()
+
+    # 5. 모든 sol_cate_no 범위 확인
+    cursor.execute("SELECT MIN(sol_cate_no), MAX(sol_cate_no) FROM category_playauto_mapping")
+    min_code, max_code = cursor.fetchone()
+    print(f"[4] sol_cate_no range: {min_code} ~ {max_code}")
+    print()
+
     conn.close()
 
 if __name__ == "__main__":
