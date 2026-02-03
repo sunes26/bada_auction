@@ -217,8 +217,14 @@ def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -
         product_name_style = text_styles.get("productName", {})
         html_parts.append(f"<h1 style='font-size: 32px; font-weight: bold; margin-bottom: 20px;'>{content.get('productName', product_name)}</h1>")
 
-        # 이미지들 추가 (크기 정보 반영)
+        # 이미지들 추가 (크기 정보 반영) - 최대 10개로 제한 (PlayAuto 제약)
+        image_count = 0
+        max_images = 10
+
         for key, image_url in images.items():
+            if image_count >= max_images:
+                break
+
             if isinstance(image_url, str) and image_url.startswith("http"):
                 # 이미지 크기 (%)
                 size = image_sizes.get(key, 100)
@@ -235,6 +241,7 @@ def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -
 
                 style = "; ".join(style_parts)
                 html_parts.append(f"<img src='{image_url}' style='{style}' alt='상품 이미지' />")
+                image_count += 1
 
         # 텍스트 컨텐츠 추가
         if "subtitle" in content:
