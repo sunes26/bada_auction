@@ -343,12 +343,12 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
         "std_ol_yn": "Y",  # 단일상품 (지마켓/옥션 등록 필수 - PlayAuto 지원팀 안내)
 
         # 옵션 정보
-        # 스마트스토어는 옵션없음 미지원 → 독립형 더미 옵션 사용
+        # 스마트스토어는 옵션없음 미지원 → 독립형 옵션 사용 (상품명으로)
         "opt_type": "독립형",
         "opts": [
             {
-                "opt_sort1": "선택",
-                "opt_sort1_desc": "기본",
+                "opt_sort1": "상품선택",
+                "opt_sort1_desc": product.get("product_name", "기본"),
                 "stock_cnt": 999,
                 "status": "정상"
             }
