@@ -643,6 +643,7 @@ async def register_products_to_playauto(request: dict):
             default_templates = json.loads(default_templates_json)
 
             # 템플릿 정보를 site_list 형식으로 변환
+            # ESM 채널은 제외 (ESM은 단일상품만 등록 가능하며 카테고리 제약이 있음)
             site_list = [
                 {
                     "shop_cd": t.get("shop_cd"),
@@ -650,9 +651,10 @@ async def register_products_to_playauto(request: dict):
                     "template_no": t.get("template_no")
                 }
                 for t in default_templates
+                if t.get("shop_cd") not in ["ESM", "esm"]  # ESM 채널 제외
             ]
 
-            logger.info(f"[상품등록] 기본 템플릿 사용: {len(site_list)}개 쇼핑몰")
+            logger.info(f"[상품등록] 기본 템플릿 사용: {len(site_list)}개 쇼핑몰 (ESM 제외)")
 
         # 플레이오토 API 클라이언트
         from playauto.product_registration import PlayautoProductRegistration, build_product_data_from_db
@@ -687,6 +689,25 @@ async def register_products_to_playauto(request: dict):
 
                 # 플레이오토 등록
                 result = await registration_api.register_product(product_data)
+
+                # ESM 에러 시 재시도 (ESM 채널 제외)
+                if not result.get("success") and result.get("error"):
+                    error_msg = result.get("error", "")
+                    if "ESM" in error_msg and "단일상품" in error_msg:
+                        logger.warning(f"[상품등록] ESM 에러 감지 - ESM 제외하고 재시도: {product.get('product_name')}")
+
+                        # site_list에서 ESM 제외
+                        filtered_site_list = [
+                            site for site in product_data.get("site_list", [])
+                            if site.get("shop_cd") not in ["ESM", "esm", "Esm"]
+                        ]
+
+                        if filtered_site_list:
+                            product_data["site_list"] = filtered_site_list
+                            logger.info(f"[상품등록] ESM 제외 후 {len(filtered_site_list)}개 채널로 재시도")
+                            result = await registration_api.register_product(product_data)
+                        else:
+                            logger.error(f"[상품등록] ESM만 있어서 재시도 불가")
 
                 if result.get("success"):
                     # 플레이오토 상품 번호 및 쇼핑몰 번호 저장
