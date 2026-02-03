@@ -31,33 +31,27 @@ async def update_selling_products_sourcing_price():
         pricing_service = DynamicPricingService(target_margin_rate=50.0)
 
         # 소싱 URL이 있는 활성 판매 상품 조회 (업데이트가 오래된 순서대로)
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT
-                    id,
-                    product_name,
-                    sourcing_url,
-                    sourcing_source,
-                    sourcing_price,
-                    selling_price
-                FROM my_selling_products
-                WHERE is_active = 1
-                  AND sourcing_url IS NOT NULL
-                  AND sourcing_url != ''
-                ORDER BY updated_at ASC
-                LIMIT 20
-            """)
+        with db.db_manager.get_session() as session:
+            from database.models import MySellingProduct
+            from sqlalchemy import and_
+
+            query_results = session.query(MySellingProduct).filter(
+                and_(
+                    MySellingProduct.is_active == True,
+                    MySellingProduct.sourcing_url.isnot(None),
+                    MySellingProduct.sourcing_url != ''
+                )
+            ).order_by(MySellingProduct.updated_at.asc()).limit(20).all()
 
             products = []
-            for row in cursor.fetchall():
+            for row in query_results:
                 products.append({
-                    'id': row[0],
-                    'product_name': row[1],
-                    'sourcing_url': row[2],
-                    'sourcing_source': row[3],
-                    'sourcing_price': row[4],
-                    'selling_price': row[5]
+                    'id': row.id,
+                    'product_name': row.product_name,
+                    'sourcing_url': row.sourcing_url,
+                    'sourcing_source': row.sourcing_source,
+                    'sourcing_price': float(row.sourcing_price) if row.sourcing_price else None,
+                    'selling_price': float(row.selling_price) if row.selling_price else None
                 })
 
         if not products:
@@ -96,15 +90,10 @@ async def update_selling_products_sourcing_price():
                         print(f"[SELLING_MONITOR] 가격 변동 감지: {old_price}원 → {new_price}원")
 
                         # 1. 소싱가 업데이트
-                        with db.get_connection() as conn:
-                            cursor = conn.cursor()
-                            cursor.execute("""
-                                UPDATE my_selling_products
-                                SET sourcing_price = ?,
-                                    updated_at = CURRENT_TIMESTAMP
-                                WHERE id = ?
-                            """, (new_price, product_id))
-                            conn.commit()
+                        db.update_selling_product(
+                            product_id=product_id,
+                            sourcing_price=new_price
+                        )
 
                         # 2. 동적 가격 조정 (판매가 자동 조정)
                         try:
