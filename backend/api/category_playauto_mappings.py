@@ -17,7 +17,6 @@ class CategoryPlayautoMapping(BaseModel):
     our_category: str
     sol_cate_no: int
     playauto_category: Optional[str] = None
-    similarity: Optional[str] = None
 
 
 class CategoryPlayautoMappingCreate(BaseModel):
@@ -25,14 +24,12 @@ class CategoryPlayautoMappingCreate(BaseModel):
     our_category: str
     sol_cate_no: int
     playauto_category: Optional[str] = None
-    similarity: Optional[str] = None
 
 
 class CategoryPlayautoMappingUpdate(BaseModel):
     """카테고리-PlayAuto 매핑 수정 모델"""
     sol_cate_no: int
     playauto_category: Optional[str] = None
-    similarity: Optional[str] = None
 
 
 def get_db_connection():
@@ -59,7 +56,7 @@ async def get_all_mappings():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, our_category, sol_cate_no, playauto_category, similarity
+            SELECT id, our_category, sol_cate_no, playauto_category
             FROM category_playauto_mapping
             ORDER BY our_category
         """)
@@ -71,8 +68,7 @@ async def get_all_mappings():
                 "id": row_dict["id"],
                 "our_category": row_dict["our_category"],
                 "sol_cate_no": row_dict["sol_cate_no"],
-                "playauto_category": row_dict["playauto_category"],
-                "similarity": row_dict["similarity"]
+                "playauto_category": row_dict["playauto_category"]
             })
 
         conn.close()
@@ -96,7 +92,7 @@ async def get_mapping(mapping_id: int):
 
         placeholder = "?" if is_sqlite else "%s"
         cursor.execute(f"""
-            SELECT id, our_category, sol_cate_no, playauto_category, similarity
+            SELECT id, our_category, sol_cate_no, playauto_category
             FROM category_playauto_mapping
             WHERE id = {placeholder}
         """, (mapping_id,))
@@ -112,8 +108,7 @@ async def get_mapping(mapping_id: int):
             "id": row_dict["id"],
             "our_category": row_dict["our_category"],
             "sol_cate_no": row_dict["sol_cate_no"],
-            "playauto_category": row_dict["playauto_category"],
-            "similarity": row_dict["similarity"]
+            "playauto_category": row_dict["playauto_category"]
         }
 
     except HTTPException:
@@ -149,18 +144,18 @@ async def create_mapping(mapping: CategoryPlayautoMappingCreate):
         if is_sqlite:
             cursor.execute("""
                 INSERT INTO category_playauto_mapping
-                (our_category, sol_cate_no, playauto_category, similarity)
-                VALUES (?, ?, ?, ?)
+                (our_category, sol_cate_no, playauto_category)
+                VALUES (?, ?, ?)
             """, (mapping.our_category, mapping.sol_cate_no,
-                  mapping.playauto_category, mapping.similarity))
+                  mapping.playauto_category))
         else:
             cursor.execute("""
                 INSERT INTO category_playauto_mapping
-                (our_category, sol_cate_no, playauto_category, similarity)
-                VALUES (%s, %s, %s, %s)
+                (our_category, sol_cate_no, playauto_category)
+                VALUES (%s, %s, %s)
                 RETURNING id
             """, (mapping.our_category, mapping.sol_cate_no,
-                  mapping.playauto_category, mapping.similarity))
+                  mapping.playauto_category))
 
         conn.commit()
         mapping_id = cursor.lastrowid if is_sqlite else cursor.fetchone()[0]
@@ -172,8 +167,7 @@ async def create_mapping(mapping: CategoryPlayautoMappingCreate):
             "id": mapping_id,
             "our_category": mapping.our_category,
             "sol_cate_no": mapping.sol_cate_no,
-            "playauto_category": mapping.playauto_category,
-            "similarity": mapping.similarity
+            "playauto_category": mapping.playauto_category
         }
 
     except HTTPException:
@@ -209,19 +203,17 @@ async def update_mapping(mapping_id: int, mapping: CategoryPlayautoMappingUpdate
         if is_sqlite:
             cursor.execute("""
                 UPDATE category_playauto_mapping
-                SET sol_cate_no = ?, playauto_category = ?, similarity = ?,
+                SET sol_cate_no = ?, playauto_category = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            """, (mapping.sol_cate_no, mapping.playauto_category,
-                  mapping.similarity, mapping_id))
+            """, (mapping.sol_cate_no, mapping.playauto_category, mapping_id))
         else:
             cursor.execute("""
                 UPDATE category_playauto_mapping
-                SET sol_cate_no = %s, playauto_category = %s, similarity = %s,
+                SET sol_cate_no = %s, playauto_category = %s,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
-            """, (mapping.sol_cate_no, mapping.playauto_category,
-                  mapping.similarity, mapping_id))
+            """, (mapping.sol_cate_no, mapping.playauto_category, mapping_id))
 
         conn.commit()
         conn.close()
@@ -232,8 +224,7 @@ async def update_mapping(mapping_id: int, mapping: CategoryPlayautoMappingUpdate
             "id": mapping_id,
             "our_category": our_category,
             "sol_cate_no": mapping.sol_cate_no,
-            "playauto_category": mapping.playauto_category,
-            "similarity": mapping.similarity
+            "playauto_category": mapping.playauto_category
         }
 
     except HTTPException:

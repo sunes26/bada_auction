@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from database.db_wrapper import get_db
+from database.database_manager import get_database_manager
 from utils.cache import async_cached
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
@@ -347,12 +348,11 @@ async def get_rpa_stats():
     RPA 통계 조회
     """
     try:
-        db = get_db()
+        db_manager = get_database_manager()
+        conn = db_manager.engine.raw_connection()
+        cursor = conn.cursor()
 
-        # 전체 통계
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-
+        try:
             # 총 실행 횟수
             cursor.execute("SELECT COUNT(*) FROM auto_order_logs")
             total_executions = cursor.fetchone()[0]
@@ -369,26 +369,34 @@ async def get_rpa_stats():
             avg_execution_time = cursor.fetchone()[0] or 0
 
             # 오늘 실행 횟수
-            cursor.execute("""
-                SELECT COUNT(*) FROM auto_order_logs
-                WHERE DATE(created_at) = DATE('now')
-            """)
+            if db_manager.is_sqlite:
+                cursor.execute("""
+                    SELECT COUNT(*) FROM auto_order_logs
+                    WHERE DATE(created_at) = DATE('now')
+                """)
+            else:
+                cursor.execute("""
+                    SELECT COUNT(*) FROM auto_order_logs
+                    WHERE DATE(created_at) = CURRENT_DATE
+                """)
             today_executions = cursor.fetchone()[0]
 
-        # 성공률 계산
-        success_rate = (successful_executions / total_executions * 100) if total_executions > 0 else 0
+            # 성공률 계산
+            success_rate = (successful_executions / total_executions * 100) if total_executions > 0 else 0
 
-        return {
-            "success": True,
-            "stats": {
-                "total_executions": total_executions,
-                "successful_executions": successful_executions,
-                "failed_executions": failed_executions,
-                "success_rate": round(success_rate, 1),
-                "avg_execution_time": round(avg_execution_time, 1),
-                "today_executions": today_executions
+            return {
+                "success": True,
+                "stats": {
+                    "total_executions": total_executions,
+                    "successful_executions": successful_executions,
+                    "failed_executions": failed_executions,
+                    "success_rate": round(success_rate, 1),
+                    "avg_execution_time": round(avg_execution_time, 1),
+                    "today_executions": today_executions
+                }
             }
-        }
+        finally:
+            conn.close()
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"통계 조회 실패: {str(e)}")
@@ -401,11 +409,11 @@ async def get_rpa_stats_by_source():
     소싱처별 RPA 통계 조회
     """
     try:
-        db = get_db()
+        db_manager = get_database_manager()
+        conn = db_manager.engine.raw_connection()
+        cursor = conn.cursor()
 
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-
+        try:
             # 소싱처별 통계
             cursor.execute("""
                 SELECT
@@ -421,24 +429,26 @@ async def get_rpa_stats_by_source():
 
             rows = cursor.fetchall()
 
-        stats = []
-        for row in rows:
-            source, total, success_count, failed_count, avg_time = row
-            success_rate = (success_count / total * 100) if total > 0 else 0
+            stats = []
+            for row in rows:
+                source, total, success_count, failed_count, avg_time = row
+                success_rate = (success_count / total * 100) if total > 0 else 0
 
-            stats.append({
-                "source": source,
-                "total_executions": total,
-                "successful_executions": success_count,
-                "failed_executions": failed_count,
-                "success_rate": round(success_rate, 1),
-                "avg_execution_time": round(avg_time, 1) if avg_time else 0
-            })
+                stats.append({
+                    "source": source,
+                    "total_executions": total,
+                    "successful_executions": success_count,
+                    "failed_executions": failed_count,
+                    "success_rate": round(success_rate, 1),
+                    "avg_execution_time": round(avg_time, 1) if avg_time else 0
+                })
 
-        return {
-            "success": True,
-            "stats": stats
-        }
+            return {
+                "success": True,
+                "stats": stats
+            }
+        finally:
+            conn.close()
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"통계 조회 실패: {str(e)}")
@@ -522,43 +532,72 @@ async def get_daily_rpa_stats(days: int = 7):
     일별 RPA 실행 통계 (최근 N일)
     """
     try:
-        db = get_db()
+        db_manager = get_database_manager()
+        conn = db_manager.engine.raw_connection()
+        cursor = conn.cursor()
 
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-
+        try:
             # 일별 통계
-            cursor.execute("""
-                SELECT
-                    DATE(created_at) as date,
-                    COUNT(*) as total,
-                    SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
-                    SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count
-                FROM auto_order_logs
-                WHERE created_at >= DATE('now', '-' || ? || ' days')
-                GROUP BY DATE(created_at)
-                ORDER BY date ASC
-            """, (days,))
+            placeholder = "?" if db_manager.is_sqlite else "%s"
+            if db_manager.is_sqlite:
+                query = f"""
+                    SELECT
+                        DATE(created_at) as date,
+                        COUNT(*) as total,
+                        SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
+                        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count
+                    FROM auto_order_logs
+                    WHERE created_at >= DATE('now', '-' || {placeholder} || ' days')
+                    GROUP BY DATE(created_at)
+                    ORDER BY date ASC
+                """
+            else:
+                query = f"""
+                    SELECT
+                        DATE(created_at) as date,
+                        COUNT(*) as total,
+                        SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
+                        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count
+                    FROM auto_order_logs
+                    WHERE created_at >= CURRENT_DATE - INTERVAL '{placeholder} days'
+                    GROUP BY DATE(created_at)
+                    ORDER BY date ASC
+                """
+                # PostgreSQL은 다른 방식으로 처리
+                query = f"""
+                    SELECT
+                        DATE(created_at) as date,
+                        COUNT(*) as total,
+                        SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
+                        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count
+                    FROM auto_order_logs
+                    WHERE created_at >= CURRENT_DATE - ({placeholder} || ' days')::INTERVAL
+                    GROUP BY DATE(created_at)
+                    ORDER BY date ASC
+                """
 
+            cursor.execute(query, (days,))
             rows = cursor.fetchall()
 
-        daily_stats = []
-        for row in rows:
-            date, total, success_count, failed_count = row
-            success_rate = (success_count / total * 100) if total > 0 else 0
+            daily_stats = []
+            for row in rows:
+                date, total, success_count, failed_count = row
+                success_rate = (success_count / total * 100) if total > 0 else 0
 
-            daily_stats.append({
-                "date": date,
-                "total_executions": total,
-                "successful_executions": success_count,
-                "failed_executions": failed_count,
-                "success_rate": round(success_rate, 1)
-            })
+                daily_stats.append({
+                    "date": str(date) if date else None,
+                    "total_executions": total,
+                    "successful_executions": success_count,
+                    "failed_executions": failed_count,
+                    "success_rate": round(success_rate, 1)
+                })
 
-        return {
-            "success": True,
-            "daily_stats": daily_stats
-        }
+            return {
+                "success": True,
+                "daily_stats": daily_stats
+            }
+        finally:
+            conn.close()
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"일별 통계 조회 실패: {str(e)}")

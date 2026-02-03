@@ -896,9 +896,9 @@ async def create_folder(
                     if not cursor.fetchone():
                         cursor.execute("""
                             INSERT INTO category_playauto_mapping
-                            (our_category, sol_cate_no, playauto_category, similarity)
-                            VALUES (%s, %s, %s, %s)
-                        """, (our_category, sol_cate_no, None, None))
+                            (our_category, sol_cate_no, playauto_category)
+                            VALUES (%s, %s, %s)
+                        """, (our_category, sol_cate_no, None))
                         conn.commit()
                         print(f"[INFO] PlayAuto 매핑 추가: {our_category} -> {sol_cate_no}")
                 except Exception as e:
@@ -954,9 +954,9 @@ async def create_folder(
                     if not cursor.fetchone():
                         conn.execute("""
                             INSERT INTO category_playauto_mapping
-                            (our_category, sol_cate_no, playauto_category, similarity)
-                            VALUES (?, ?, ?, ?)
-                        """, (our_category, sol_cate_no, None, None))
+                            (our_category, sol_cate_no, playauto_category)
+                            VALUES (?, ?, ?)
+                        """, (our_category, sol_cate_no, None))
                         conn.commit()
                         print(f"[INFO] PlayAuto 매핑 추가: {our_category} -> {sol_cate_no}")
                 except Exception as e:

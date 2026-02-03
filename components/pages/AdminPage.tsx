@@ -2125,13 +2125,13 @@ function CategoryMappingTab() {
             <tbody>
               {loading && mappings.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="border px-4 py-8 text-center text-gray-500">
+                  <td colSpan={4} className="border px-4 py-8 text-center text-gray-500">
                     로딩 중...
                   </td>
                 </tr>
               ) : mappings.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="border px-4 py-8 text-center text-gray-500">
+                  <td colSpan={4} className="border px-4 py-8 text-center text-gray-500">
                     등록된 매핑이 없습니다
                   </td>
                 </tr>
@@ -2206,8 +2206,7 @@ function PlayautoCategoryMappingTab() {
 
   const [formData, setFormData] = useState({
     sol_cate_no: '',
-    playauto_category: '',
-    similarity: ''
+    playauto_category: ''
   });
 
   // 카테고리 옵션
@@ -2256,7 +2255,7 @@ function PlayautoCategoryMappingTab() {
     setLevel2('');
     setLevel3('');
     setLevel4('');
-    setFormData({ sol_cate_no: '', playauto_category: '', similarity: '' });
+    setFormData({ sol_cate_no: '', playauto_category: '' });
   };
 
   const handleEdit = (mapping: any) => {
@@ -2272,8 +2271,7 @@ function PlayautoCategoryMappingTab() {
 
     setFormData({
       sol_cate_no: mapping.sol_cate_no?.toString() || '',
-      playauto_category: mapping.playauto_category || '',
-      similarity: mapping.similarity || ''
+      playauto_category: mapping.playauto_category || ''
     });
   };
 
@@ -2284,7 +2282,7 @@ function PlayautoCategoryMappingTab() {
     setLevel2('');
     setLevel3('');
     setLevel4('');
-    setFormData({ sol_cate_no: '', playauto_category: '', similarity: '' });
+    setFormData({ sol_cate_no: '', playauto_category: '' });
   };
 
   const handleSave = async () => {
@@ -2297,8 +2295,7 @@ function PlayautoCategoryMappingTab() {
       const payload = {
         our_category: our_category,
         sol_cate_no: parseInt(formData.sol_cate_no),
-        playauto_category: formData.playauto_category || null,
-        similarity: formData.similarity || null
+        playauto_category: formData.playauto_category || null
       };
 
       if (editMode === 'add') {
@@ -2318,8 +2315,7 @@ function PlayautoCategoryMappingTab() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sol_cate_no: parseInt(formData.sol_cate_no),
-            playauto_category: formData.playauto_category || null,
-            similarity: formData.similarity || null
+            playauto_category: formData.playauto_category || null
           })
         });
 
@@ -2358,14 +2354,6 @@ function PlayautoCategoryMappingTab() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getSimilarityColor = (similarity: string | null): string => {
-    if (!similarity) return 'text-gray-500';
-    const percent = parseFloat(similarity.replace('%', ''));
-    if (percent >= 80) return 'text-green-600 font-semibold';
-    if (percent >= 50) return 'text-yellow-600 font-semibold';
-    return 'text-red-600 font-semibold';
   };
 
   return (
@@ -2501,17 +2489,6 @@ function PlayautoCategoryMappingTab() {
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">유사도</label>
-                <input
-                  type="text"
-                  value={formData.similarity}
-                  onChange={(e) => setFormData({ ...formData, similarity: e.target.value })}
-                  placeholder="예: 85.2%"
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
             </div>
 
             <div className="flex gap-2">
@@ -2539,20 +2516,19 @@ function PlayautoCategoryMappingTab() {
                 <th className="border px-4 py-2 text-left">우리 카테고리</th>
                 <th className="border px-4 py-2 text-left">sol_cate_no</th>
                 <th className="border px-4 py-2 text-left">PlayAuto 카테고리</th>
-                <th className="border px-4 py-2 text-center">유사도</th>
                 <th className="border px-4 py-2 text-center">작업</th>
               </tr>
             </thead>
             <tbody>
               {loading && filteredMappings.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="border px-4 py-8 text-center text-gray-500">
+                  <td colSpan={4} className="border px-4 py-8 text-center text-gray-500">
                     로딩 중...
                   </td>
                 </tr>
               ) : filteredMappings.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="border px-4 py-8 text-center text-gray-500">
+                  <td colSpan={4} className="border px-4 py-8 text-center text-gray-500">
                     {searchTerm ? '검색 결과가 없습니다' : '등록된 매핑이 없습니다'}
                   </td>
                 </tr>
@@ -2562,9 +2538,6 @@ function PlayautoCategoryMappingTab() {
                     <td className="border px-4 py-2 font-medium">{mapping.our_category}</td>
                     <td className="border px-4 py-2 text-sm font-mono text-blue-600">{mapping.sol_cate_no}</td>
                     <td className="border px-4 py-2 text-sm">{mapping.playauto_category || '-'}</td>
-                    <td className={`border px-4 py-2 text-center ${getSimilarityColor(mapping.similarity)}`}>
-                      {mapping.similarity || '-'}
-                    </td>
                     <td className="border px-4 py-2 text-center">
                       <div className="flex gap-2 justify-center">
                         <button
