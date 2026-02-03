@@ -1,7 +1,7 @@
 """
 내 판매 상품 관리 API
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional, List
 from database.db_wrapper import get_db
@@ -846,3 +846,50 @@ async def register_products_to_playauto(request: dict):
     except Exception as e:
         logger.error(f"[상품등록] 플레이오토 등록 실패: {str(e)}")
         raise HTTPException(status_code=500, detail=f"플레이오토 등록 실패: {str(e)}")
+
+
+@router.post("/upload-image")
+async def upload_image(file: UploadFile = File(...)):
+    """
+    이미지 파일을 Supabase Storage에 업로드
+
+    Returns:
+        업로드된 이미지의 공개 URL
+    """
+    try:
+        from utils.supabase_storage import upload_image_from_bytes
+        import time
+
+        # 파일 내용 읽기
+        contents = await file.read()
+
+        # 파일 확장자 추출
+        filename = file.filename or "image.jpg"
+        file_ext = filename.split('.')[-1].lower()
+        if file_ext not in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
+            file_ext = 'jpg'
+
+        # 고유한 파일명 생성
+        timestamp = int(time.time())
+        import random
+        random_str = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=8))
+        storage_path = f"detail-pages/{timestamp}_{random_str}.{file_ext}"
+
+        # Supabase에 업로드
+        logger.info(f"[이미지업로드] 업로드 시작: {storage_path}")
+        public_url = upload_image_from_bytes(contents, storage_path, content_type=file.content_type)
+
+        if public_url:
+            logger.info(f"[이미지업로드] 성공: {public_url}")
+            return {
+                "success": True,
+                "url": public_url,
+                "storage_path": storage_path
+            }
+        else:
+            logger.error(f"[이미지업로드] 실패: upload_image_from_bytes returned None")
+            raise HTTPException(status_code=500, detail="이미지 업로드에 실패했습니다")
+
+    except Exception as e:
+        logger.error(f"[이미지업로드] 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"이미지 업로드 실패: {str(e)}")

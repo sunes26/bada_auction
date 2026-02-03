@@ -148,7 +148,35 @@ export default function DetailPage() {
           if (thumbnailResponse.ok) {
             const thumbnailResult = await thumbnailResponse.json();
             if (thumbnailResult.success && thumbnailResult.thumbnail_url) {
-              setExtractedThumbnail(thumbnailResult.thumbnail_url);
+              // 썸네일 URL을 Supabase에 업로드
+              try {
+                const saveResponse = await fetch(`${API_BASE_URL}/api/monitor/save-thumbnail`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    image_url: thumbnailResult.thumbnail_url,
+                    product_name: result.product_name || '상품'
+                  }),
+                });
+
+                if (saveResponse.ok) {
+                  const saveResult = await saveResponse.json();
+                  if (saveResult.success && saveResult.thumbnail_url) {
+                    // Supabase URL 사용
+                    setExtractedThumbnail(saveResult.thumbnail_url);
+                  } else {
+                    // Supabase 업로드 실패 시 원본 URL 사용
+                    setExtractedThumbnail(thumbnailResult.thumbnail_url);
+                  }
+                } else {
+                  // 업로드 실패 시 원본 URL 사용
+                  setExtractedThumbnail(thumbnailResult.thumbnail_url);
+                }
+              } catch (uploadError) {
+                console.error('썸네일 Supabase 업로드 실패:', uploadError);
+                // 업로드 실패 시 원본 URL 사용
+                setExtractedThumbnail(thumbnailResult.thumbnail_url);
+              }
             }
           }
         } catch (error) {
@@ -506,29 +534,73 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
     setShowError(false);
   };
 
-  const handleImageUpload = (imageKey: string) => {
+  const handleImageUpload = async (imageKey: string) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = (e: any) => {
+    input.onchange = async (e: any) => {
       const file = e.target.files?.[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setUploadedImages(prev => ({ ...prev, [imageKey]: event.target?.result as string }));
-        };
-        reader.readAsDataURL(file);
+        try {
+          // FormData로 파일 전송
+          const formData = new FormData();
+          formData.append('file', file);
+
+          // Supabase에 업로드
+          const response = await fetch('/api/products/upload-image', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error('이미지 업로드 실패');
+          }
+
+          const data = await response.json();
+
+          if (data.success && data.url) {
+            // Supabase URL 저장
+            setUploadedImages(prev => ({ ...prev, [imageKey]: data.url }));
+          } else {
+            throw new Error('이미지 URL을 받지 못했습니다');
+          }
+        } catch (error) {
+          console.error('이미지 업로드 오류:', error);
+          alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+        }
       }
     };
     input.click();
   };
 
-  const handleImageDrop = (imageKey: string, file: File) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setUploadedImages(prev => ({ ...prev, [imageKey]: event.target?.result as string }));
-    };
-    reader.readAsDataURL(file);
+  const handleImageDrop = async (imageKey: string, file: File) => {
+    try {
+      // FormData로 파일 전송
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Supabase에 업로드
+      const response = await fetch('/api/products/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('이미지 업로드 실패');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        // Supabase URL 저장
+        setUploadedImages(prev => ({ ...prev, [imageKey]: data.url }));
+      } else {
+        throw new Error('이미지 URL을 받지 못했습니다');
+      }
+    } catch (error) {
+      console.error('이미지 업로드 오류:', error);
+      alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
   const handleImageResize = (imageKey: string, size: number) => {
