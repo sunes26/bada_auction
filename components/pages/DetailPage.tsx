@@ -947,6 +947,9 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
           generatedContent={generatedContent}
           selectedTemplate={selectedTemplate}
           uploadedImages={uploadedImages}
+          imageSizes={imageSizes}
+          imagePositions={imagePositions}
+          textStyles={textStyles}
           onClose={() => setShowAddProductModal(false)}
           onSuccess={() => {
             setShowAddProductModal(false);
@@ -1322,6 +1325,9 @@ function AddProductFromDetailPageModal({
   generatedContent,
   selectedTemplate,
   uploadedImages,
+  imageSizes,
+  imagePositions,
+  textStyles,
   onClose,
   onSuccess
 }: {
@@ -1335,6 +1341,9 @@ function AddProductFromDetailPageModal({
   generatedContent: GeneratedContent;
   selectedTemplate: TemplateType | null;
   uploadedImages: Record<string, string>;
+  imageSizes: Record<string, number>;
+  imagePositions: Record<string, { x: number; y: number }>;
+  textStyles: Record<string, { fontSize?: string; color?: string; fontWeight?: string; textAlign?: string }>;
   onClose: () => void;
   onSuccess: () => void;
 }) {
