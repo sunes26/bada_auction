@@ -708,11 +708,22 @@ async def register_products_to_playauto(request: dict):
                 # site_list를 채널 종류별로 분리
                 # 지마켓(GMK), 옥션(Auction) 관련 shop_cd
                 gmk_auction_codes = ["GMK", "gmk", "A006", "a006", "AUCTION", "auction"]
+                esm_codes = ["ESM", "esm", "Esm"]  # ESM은 제외
 
-                gmk_auction_sites = [site for site in site_list if site.get("shop_cd") in gmk_auction_codes]
-                smartstore_sites = [site for site in site_list if site.get("shop_cd") not in gmk_auction_codes]
+                # ESM 제외하고 채널 분리
+                gmk_auction_sites = [site for site in site_list
+                                     if site.get("shop_cd") in gmk_auction_codes
+                                     and site.get("shop_cd") not in esm_codes]
+                smartstore_sites = [site for site in site_list
+                                   if site.get("shop_cd") not in gmk_auction_codes
+                                   and site.get("shop_cd") not in esm_codes]
 
-                logger.info(f"[상품등록] 채널 분리 - 지마켓/옥션: {len(gmk_auction_sites)}개, 스마트스토어 등: {len(smartstore_sites)}개")
+                # ESM 채널 확인 및 경고
+                esm_sites = [site for site in site_list if site.get("shop_cd") in esm_codes]
+                if esm_sites:
+                    logger.warning(f"[상품등록] ESM 채널 {len(esm_sites)}개 감지 - ESM은 단일상품 제약이 있어 자동 등록에서 제외됩니다")
+
+                logger.info(f"[상품등록] 채널 분리 - 지마켓/옥션: {len(gmk_auction_sites)}개, 스마트스토어 등: {len(smartstore_sites)}개 (ESM {len(esm_sites)}개 제외)")
 
                 # 디버깅: 실제 전달 데이터 로그
                 logger.info(f"[상품등록] product_id={product_id}, category='{product.get('category')}', sol_cate_no={product.get('sol_cate_no')}")
