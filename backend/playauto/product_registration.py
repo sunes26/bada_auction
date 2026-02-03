@@ -438,7 +438,7 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         "tax_type": "과세",
         "madein": {
             "madein_no": 1,  # 국내
-            "madein_etc": "경기, 전체",  # 상세 원산지 (시/도, 시/군/구)
+            "madein_etc": "경기도",  # 상세 원산지
             "multi_yn": False
         },
         # detail_page_data를 HTML로 변환 (JSON 형태일 경우 자동 변환)
