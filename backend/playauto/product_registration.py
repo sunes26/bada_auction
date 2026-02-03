@@ -187,7 +187,7 @@ class PlayautoProductRegistration:
 
 def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -> str:
     """
-    detail_page_data JSON을 HTML로 변환
+    detail_page_data JSON을 HTML로 변환 (스타일 정보 포함)
 
     Args:
         detail_page_data: JSON 형태의 상세페이지 데이터
@@ -203,24 +203,51 @@ def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -
         import json
         data = json.loads(detail_page_data)
 
-        # images 추출
+        # 데이터 추출
         images = data.get("images", {})
         content = data.get("content", {})
+        image_sizes = data.get("imageSizes", {})
+        image_positions = data.get("imagePositions", {})
+        text_styles = data.get("textStyles", {})
 
         # HTML 생성
-        html_parts = [f"<div style='max-width: 800px; margin: 0 auto;'>"]
-        html_parts.append(f"<h1>{content.get('productName', product_name)}</h1>")
+        html_parts = [f"<div style='max-width: 1000px; margin: 0 auto; padding: 20px;'>"]
 
-        # 이미지들 추가
-        for key, value in images.items():
-            if isinstance(value, str) and value.startswith("http"):
-                html_parts.append(f"<img src='{value}' style='width: 100%; margin: 10px 0;' />")
+        # 상품명
+        product_name_style = text_styles.get("productName", {})
+        html_parts.append(f"<h1 style='font-size: 32px; font-weight: bold; margin-bottom: 20px;'>{content.get('productName', product_name)}</h1>")
+
+        # 이미지들 추가 (크기 정보 반영)
+        for key, image_url in images.items():
+            if isinstance(image_url, str) and image_url.startswith("http"):
+                # 이미지 크기 (%)
+                size = image_sizes.get(key, 100)
+
+                # 이미지 위치 (있으면 absolute positioning)
+                position = image_positions.get(key, {})
+
+                style_parts = [
+                    f"width: {size}%",
+                    "height: auto",
+                    "display: block",
+                    "margin: 20px auto"
+                ]
+
+                style = "; ".join(style_parts)
+                html_parts.append(f"<img src='{image_url}' style='{style}' alt='상품 이미지' />")
 
         # 텍스트 컨텐츠 추가
-        if "coreMessage1" in content:
-            html_parts.append(f"<p>{content['coreMessage1']}</p>")
         if "subtitle" in content:
-            html_parts.append(f"<p>{content['subtitle']}</p>")
+            html_parts.append(f"<p style='font-size: 18px; color: #666; margin: 15px 0;'>{content['subtitle']}</p>")
+
+        if "coreMessage1" in content:
+            html_parts.append(f"<p style='font-size: 20px; font-weight: bold; margin: 20px 0;'>{content['coreMessage1']}</p>")
+
+        if "tag1" in content:
+            tags = [content.get(f'tag{i}', '') for i in range(1, 4) if content.get(f'tag{i}')]
+            if tags:
+                tag_html = ' '.join([f"<span style='background: #f0f0f0; padding: 5px 10px; margin: 0 5px; border-radius: 5px;'>{tag}</span>" for tag in tags])
+                html_parts.append(f"<div style='margin: 20px 0;'>{tag_html}</div>")
 
         html_parts.append("</div>")
 

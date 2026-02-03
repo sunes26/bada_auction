@@ -1366,11 +1366,14 @@ function AddProductFromDetailPageModal({
     try {
       const categoryString = `${category.level1} > ${category.level2} > ${category.level3} > ${category.level4}`;
 
-      // 상세페이지 데이터를 JSON으로 저장
+      // 상세페이지 데이터를 JSON으로 저장 (스타일 정보 포함)
       const detailPageData = JSON.stringify({
         template: selectedTemplate,
         content: generatedContent,
         images: uploadedImages,
+        imageSizes: imageSizes,
+        imagePositions: imagePositions,
+        textStyles: textStyles,
         createdAt: new Date().toISOString()
       });
 

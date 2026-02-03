@@ -25,6 +25,7 @@ class CreateProductRequest(BaseModel):
     sourcing_price: Optional[float] = None
     sourcing_source: Optional[str] = None
     detail_page_data: Optional[str] = None
+    detail_page_html: Optional[str] = None  # 렌더링된 HTML (우선 사용)
     category: Optional[str] = None
     thumbnail_url: Optional[str] = None
     original_thumbnail_url: Optional[str] = None  # 원본 외부 URL
