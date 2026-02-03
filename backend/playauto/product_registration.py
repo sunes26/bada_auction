@@ -187,79 +187,55 @@ class PlayautoProductRegistration:
 
 def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -> str:
     """
-    detail_page_data JSON을 HTML로 변환 (스타일 정보 포함)
+    detail_page_data JSON을 HTML로 변환 (텍스트만, 이미지 제외)
+
+    이미지는 sale_img1~11로 별도 전달하므로 detail_desc에서는 제외
 
     Args:
         detail_page_data: JSON 형태의 상세페이지 데이터
         product_name: 상품명 (fallback용)
 
     Returns:
-        HTML 문자열
+        HTML 문자열 (텍스트만)
     """
     if not detail_page_data:
-        return f"<div><h1>{product_name}</h1><p>상품 상세 정보</p></div>"
+        return f"<div style='padding: 20px;'><h1>{product_name}</h1><p>상품 상세 정보</p></div>"
 
     try:
         import json
         data = json.loads(detail_page_data)
 
         # 데이터 추출
-        images = data.get("images", {})
         content = data.get("content", {})
-        image_sizes = data.get("imageSizes", {})
-        image_positions = data.get("imagePositions", {})
-        text_styles = data.get("textStyles", {})
 
-        # HTML 생성
-        html_parts = [f"<div style='max-width: 1000px; margin: 0 auto; padding: 20px;'>"]
+        # HTML 생성 (이미지 없이 텍스트만)
+        html_parts = [f"<div style='max-width: 800px; margin: 0 auto; padding: 20px;'>"]
 
         # 상품명
-        product_name_style = text_styles.get("productName", {})
-        html_parts.append(f"<h1 style='font-size: 32px; font-weight: bold; margin-bottom: 20px;'>{content.get('productName', product_name)}</h1>")
+        html_parts.append(f"<h1 style='font-size: 28px; font-weight: bold; margin-bottom: 20px; color: #333;'>{content.get('productName', product_name)}</h1>")
 
-        # 이미지들 추가 (크기 정보 반영) - 최대 3개로 제한 (PlayAuto 안정성)
-        image_count = 0
-        max_images = 3
-
-        # 우선순위: 메인 이미지 먼저
-        priority_keys = ['template1_bg', 'template2_main', 'food_template1_bg', 'food_template2_main']
-
-        # 우선순위 이미지 먼저
-        for key in priority_keys:
-            if image_count >= max_images:
-                break
-            if key in images:
-                image_url = images[key]
-                if isinstance(image_url, str) and image_url.startswith("http"):
-                    size = image_sizes.get(key, 80)
-                    style = f"width: {size}%; height: auto; display: block; margin: 20px auto;"
-                    html_parts.append(f"<img src='{image_url}' style='{style}' alt='상품 이미지' />")
-                    image_count += 1
-
-        # 나머지 이미지
-        for key, image_url in images.items():
-            if image_count >= max_images:
-                break
-            if key not in priority_keys and isinstance(image_url, str) and image_url.startswith("http"):
-                size = image_sizes.get(key, 80)
-                style = f"width: {size}%; height: auto; display: block; margin: 20px auto;"
-                html_parts.append(f"<img src='{image_url}' style='{style}' alt='상품 이미지' />")
-                image_count += 1
-
-        # 텍스트 컨텐츠 추가 (간단하게)
+        # 텍스트 컨텐츠
         if "coreMessage1" in content:
-            html_parts.append(f"<h2 style='font-size: 24px; font-weight: bold; margin: 30px 0 20px;'>{content['coreMessage1']}</h2>")
+            html_parts.append(f"<h2 style='font-size: 22px; font-weight: bold; margin: 30px 0 15px; color: #444;'>{content['coreMessage1']}</h2>")
 
         if "subtitle" in content:
-            html_parts.append(f"<p style='font-size: 18px; color: #666; margin: 15px 0; line-height: 1.6;'>{content['subtitle']}</p>")
+            html_parts.append(f"<p style='font-size: 18px; color: #666; margin: 15px 0; line-height: 1.8;'>{content['subtitle']}</p>")
 
-        # 상품 설명 추가 (간단한 안내)
-        html_parts.append("<div style='margin-top: 40px; padding: 20px; background: #f9f9f9; border-radius: 10px;'>")
-        html_parts.append("<p style='font-size: 16px; color: #333; line-height: 1.8;'>")
-        html_parts.append("- 신선하고 품질 좋은 상품을 제공합니다<br>")
-        html_parts.append("- 빠른 배송으로 신속하게 받아보실 수 있습니다<br>")
-        html_parts.append("- 궁금하신 사항은 언제든지 문의해주세요")
-        html_parts.append("</p>")
+        # 태그
+        if "tag1" in content:
+            tags = [content.get(f'tag{i}', '') for i in range(1, 4) if content.get(f'tag{i}')]
+            if tags:
+                tag_html = ' '.join([f"<span style='display: inline-block; background: #f0f0f0; padding: 8px 15px; margin: 5px; border-radius: 20px; font-size: 14px;'>{tag}</span>" for tag in tags])
+                html_parts.append(f"<div style='margin: 25px 0;'>{tag_html}</div>")
+
+        # 상품 설명
+        html_parts.append("<div style='margin-top: 40px; padding: 25px; background: #f9f9f9; border-radius: 10px; border-left: 4px solid #4CAF50;'>")
+        html_parts.append("<h3 style='font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #333;'>상품 안내</h3>")
+        html_parts.append("<ul style='font-size: 16px; color: #555; line-height: 2; padding-left: 20px;'>")
+        html_parts.append("<li>신선하고 품질 좋은 상품을 제공합니다</li>")
+        html_parts.append("<li>빠른 배송으로 신속하게 받아보실 수 있습니다</li>")
+        html_parts.append("<li>궁금하신 사항은 언제든지 문의해주세요</li>")
+        html_parts.append("</ul>")
         html_parts.append("</div>")
 
         html_parts.append("</div>")
@@ -271,10 +247,55 @@ def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -
         if detail_page_data.strip().startswith("<"):
             return detail_page_data
         else:
-            return f"<div><h1>{product_name}</h1><p>{detail_page_data}</p></div>"
+            return f"<div style='padding: 20px;'><h1>{product_name}</h1><p>{detail_page_data}</p></div>"
     except Exception as e:
         logger.error(f"[플레이오토] detail_page_data 변환 실패: {e}")
-        return f"<div><h1>{product_name}</h1><p>상품 상세 정보</p></div>"
+        return f"<div style='padding: 20px;'><h1>{product_name}</h1><p>상품 상세 정보</p></div>"
+
+
+def extract_images_from_detail_page(detail_page_data: str) -> List[str]:
+    """
+    detail_page_data JSON에서 이미지 URL 목록 추출
+
+    Args:
+        detail_page_data: JSON 형태의 상세페이지 데이터
+
+    Returns:
+        이미지 URL 리스트 (최대 10개)
+    """
+    if not detail_page_data:
+        return []
+
+    try:
+        import json
+        data = json.loads(detail_page_data)
+        images = data.get("images", {})
+
+        # 우선순위 이미지 먼저
+        priority_keys = ['template1_bg', 'template2_main', 'food_template1_bg', 'food_template2_main']
+        image_urls = []
+
+        # 우선순위 이미지
+        for key in priority_keys:
+            if len(image_urls) >= 10:
+                break
+            if key in images:
+                url = images[key]
+                if isinstance(url, str) and url.startswith("http"):
+                    image_urls.append(url)
+
+        # 나머지 이미지
+        for key, url in images.items():
+            if len(image_urls) >= 10:
+                break
+            if key not in priority_keys and isinstance(url, str) and url.startswith("http"):
+                image_urls.append(url)
+
+        return image_urls
+
+    except Exception as e:
+        logger.error(f"[플레이오토] 이미지 추출 실패: {e}")
+        return []
 
 
 def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
@@ -331,6 +352,14 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
         # 임시로 None 반환 - API 호출 시 오류 발생 예상
         sol_cate_no = None
 
+    # detail_page_data에서 이미지 추출 (sale_img2~11에 사용)
+    detail_images = extract_images_from_detail_page(product.get("detail_page_data", ""))
+
+    # 이미지 필드 준비 (sale_img1은 썸네일, sale_img2~11은 상세 이미지)
+    image_fields = {"sale_img1": thumbnail_url}
+    for i, url in enumerate(detail_images[:10], start=2):
+        image_fields[f"sale_img{i}"] = url
+
     return {
         # 기본 정보
         "c_sale_cd": product.get("c_sale_cd") or "__AUTO__",
@@ -370,8 +399,9 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
         "maker": "",
         "keywords": [],
 
-        # 이미지
-        "sale_img1": thumbnail_url,
+        # 이미지 (sale_img1~11)
+        # sale_img1: 썸네일, sale_img2~11: 상세 이미지 (detail_page_data에서 추출)
+        **image_fields,
 
         # 상품정보제공고시
         # infoCode: 전자상거래법에 따른 상품정보제공고시 분류코드
