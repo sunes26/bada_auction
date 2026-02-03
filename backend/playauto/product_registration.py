@@ -458,10 +458,16 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         # infoCode: 전자상거래법에 따른 상품정보제공고시 분류코드
         # 카테고리별로 동적으로 조회된 infoCode 사용
         # is_desc_referred: true로 설정하여 상세페이지 참조 (간소화)
+        #
+        # 스마트스토어는 일부 필드를 명시적으로 요구함 (예: 유전자변형식품 표시)
         "prod_info": [
             {
                 "infoCode": info_code,  # 카테고리별 동적 infoCode
-                "infoDetail": {},  # 빈 객체
+                "infoDetail": {
+                    # 스마트스토어 필수 필드들
+                    "유전자변형식품의 경우의 표시": "N",  # 유전자변형식품 아님
+                    "유전자변형식품에 해당하는 경우의 표시": "N",  # 동일 필드명 다른 버전
+                },
                 "is_desc_referred": True  # 상세페이지 참조
             }
         ],
