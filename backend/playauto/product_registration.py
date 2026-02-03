@@ -185,6 +185,58 @@ class PlayautoProductRegistration:
             }
 
 
+def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -> str:
+    """
+    detail_page_data JSON을 HTML로 변환
+
+    Args:
+        detail_page_data: JSON 형태의 상세페이지 데이터
+        product_name: 상품명 (fallback용)
+
+    Returns:
+        HTML 문자열
+    """
+    if not detail_page_data:
+        return f"<div><h1>{product_name}</h1><p>상품 상세 정보</p></div>"
+
+    try:
+        import json
+        data = json.loads(detail_page_data)
+
+        # images 추출
+        images = data.get("images", {})
+        content = data.get("content", {})
+
+        # HTML 생성
+        html_parts = [f"<div style='max-width: 800px; margin: 0 auto;'>"]
+        html_parts.append(f"<h1>{content.get('productName', product_name)}</h1>")
+
+        # 이미지들 추가
+        for key, value in images.items():
+            if isinstance(value, str) and value.startswith("http"):
+                html_parts.append(f"<img src='{value}' style='width: 100%; margin: 10px 0;' />")
+
+        # 텍스트 컨텐츠 추가
+        if "coreMessage1" in content:
+            html_parts.append(f"<p>{content['coreMessage1']}</p>")
+        if "subtitle" in content:
+            html_parts.append(f"<p>{content['subtitle']}</p>")
+
+        html_parts.append("</div>")
+
+        return "\n".join(html_parts)
+
+    except json.JSONDecodeError:
+        # JSON이 아니면 그대로 반환 (이미 HTML일 수도 있음)
+        if detail_page_data.strip().startswith("<"):
+            return detail_page_data
+        else:
+            return f"<div><h1>{product_name}</h1><p>{detail_page_data}</p></div>"
+    except Exception as e:
+        logger.error(f"[플레이오토] detail_page_data 변환 실패: {e}")
+        return f"<div><h1>{product_name}</h1><p>상품 상세 정보</p></div>"
+
+
 def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
     """
     DB 상품 정보를 플레이오토 API 형식으로 변환
@@ -260,7 +312,11 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
             "madein_no": 1,  # 국내 (기본값, 실제로는 상품별로 설정 필요)
             "multi_yn": False
         },
-        "detail_desc": product.get("detail_page_data") or f"<p>{product.get('product_name')}</p>",
+        # detail_page_data를 HTML로 변환 (JSON 형태일 경우 자동 변환)
+        "detail_desc": convert_detail_page_json_to_html(
+            product.get("detail_page_data", ""),
+            product.get("product_name", "상품")
+        ),
         "brand": "",
         "model": "",
         "maker": "",
@@ -281,9 +337,9 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
             }
         ],
 
-        # 배송 정보
-        "ship_price_type": "무료",
-        "ship_price": 0,
+        # 배송 정보 (선결제 3000원)
+        "ship_price_type": "선결제",
+        "ship_price": 3000,
 
         # 가격 정보
         "supply_price": int(product.get("sourcing_price", 0)),
