@@ -547,7 +547,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
           formData.append('file', file);
 
           // Supabase에 업로드
-          const response = await fetch('/api/products/upload-image', {
+          const response = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
             method: 'POST',
             body: formData,
           });
@@ -580,7 +580,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       formData.append('file', file);
 
       // Supabase에 업로드
-      const response = await fetch('/api/products/upload-image', {
+      const response = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
         method: 'POST',
         body: formData,
       });
