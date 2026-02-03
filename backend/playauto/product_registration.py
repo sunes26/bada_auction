@@ -204,10 +204,10 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict]) -> Dict:
         플레이오토 API 형식 데이터
     """
     # 썸네일 URL 처리
-    # 1. original_thumbnail_url (외부 URL) 우선 사용
-    # 2. 없으면 thumbnail_url 사용 (로컬 저장 경로)
+    # 1. thumbnail_url (Supabase Storage) 우선 사용 - 안정적인 외부 접근
+    # 2. 없으면 original_thumbnail_url 사용 (외부 URL, CDN 차단 가능성)
     # 3. 로컬 경로면 절대 URL로 변환 (localhost - 플레이오토가 접근 불가)
-    thumbnail_url = product.get("original_thumbnail_url") or product.get("thumbnail_url") or ""
+    thumbnail_url = product.get("thumbnail_url") or product.get("original_thumbnail_url") or ""
 
     # // 로 시작하는 URL은 https: 추가
     if thumbnail_url.startswith("//"):
