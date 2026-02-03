@@ -290,6 +290,62 @@ def upload_image_with_thumbnail(
     return original_url, thumbnail_url
 
 
+def upload_image_from_url(image_url: str, storage_path: str) -> Optional[str]:
+    """
+    URL에서 이미지를 다운로드하여 Supabase Storage에 업로드
+
+    Args:
+        image_url: 다운로드할 이미지 URL (11번가 CDN, 네이버 등)
+        storage_path: Storage 내 저장 경로 (예: "thumbnails/product_123.jpg")
+
+    Returns:
+        업로드된 이미지의 Supabase 공개 URL 또는 None
+    """
+    if not supabase:
+        print("[ERROR] Supabase client not initialized")
+        return None
+
+    if not image_url:
+        print("[ERROR] No image URL provided")
+        return None
+
+    try:
+        import requests
+        from mimetypes import guess_type
+
+        # 이미지 다운로드
+        print(f"[INFO] Downloading image from: {image_url[:100]}...")
+        response = requests.get(image_url, timeout=10, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        response.raise_for_status()
+
+        image_data = response.content
+        print(f"[OK] Downloaded {len(image_data)} bytes")
+
+        # Content-Type 추출
+        content_type = response.headers.get('Content-Type', 'image/jpeg')
+        if not content_type.startswith('image/'):
+            # URL에서 추측
+            guessed_type, _ = guess_type(image_url.split('?')[0])
+            content_type = guessed_type or 'image/jpeg'
+
+        # Supabase에 업로드
+        public_url = upload_image_from_bytes(image_data, storage_path, content_type)
+
+        if public_url:
+            print(f"[OK] Uploaded to Supabase: {storage_path}")
+
+        return public_url
+
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Failed to download image from {image_url}: {e}")
+        return None
+    except Exception as e:
+        print(f"[ERROR] Failed to upload image from URL: {e}")
+        return None
+
+
 # 버킷 자동 생성
 if supabase:
     ensure_bucket_exists()

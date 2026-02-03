@@ -66,6 +66,30 @@ async def create_product(request: CreateProductRequest):
                 category_warning = "PlayAuto 카테고리 매핑이 없습니다. 관리자 페이지에서 매핑을 추가해주세요."
                 logger.warning(f"[상품생성] 카테고리 매핑 없음: {request.category}")
 
+        # 썸네일 자동 업로드: original_thumbnail_url이 있으면 Supabase에 업로드
+        thumbnail_url = request.thumbnail_url
+        if request.original_thumbnail_url and not thumbnail_url:
+            from utils.supabase_storage import upload_image_from_url
+            import time
+
+            # 고유한 파일명 생성 (타임스탬프 사용)
+            timestamp = int(time.time())
+            file_ext = request.original_thumbnail_url.split('?')[0].split('.')[-1]
+            if file_ext not in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
+                file_ext = 'jpg'
+
+            storage_path = f"thumbnails/product_{timestamp}.{file_ext}"
+
+            logger.info(f"[상품생성] 썸네일 다운로드 및 업로드 시작: {request.original_thumbnail_url[:100]}...")
+            supabase_url = upload_image_from_url(request.original_thumbnail_url, storage_path)
+
+            if supabase_url:
+                thumbnail_url = supabase_url
+                logger.info(f"[상품생성] 썸네일 업로드 성공: {storage_path}")
+            else:
+                logger.warning(f"[상품생성] 썸네일 업로드 실패, 원본 URL 사용")
+                thumbnail_url = request.original_thumbnail_url
+
         product_id = db.add_selling_product(
             product_name=request.product_name,
             selling_price=request.selling_price,
@@ -76,7 +100,7 @@ async def create_product(request: CreateProductRequest):
             sourcing_source=request.sourcing_source,
             detail_page_data=request.detail_page_data,
             category=request.category,
-            thumbnail_url=request.thumbnail_url,
+            thumbnail_url=thumbnail_url,
             original_thumbnail_url=request.original_thumbnail_url,
             sol_cate_no=sol_cate_no,
             notes=request.notes
