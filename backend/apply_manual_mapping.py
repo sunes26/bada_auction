@@ -11,6 +11,7 @@ from pathlib import Path
 from database.database_manager import get_database_manager
 
 MAPPING_FILE = Path(__file__).parent / "manual_mapping_template.xlsx"
+CATEGORY_FILE = Path(__file__).parent.parent / "category.xlsx"
 
 
 def load_manual_mapping():
@@ -91,7 +92,7 @@ def update_database(mapping, dry_run=True):
 
         # 2. category_playauto_mapping 테이블 업데이트
         print("Updating category_playauto_mapping table...")
-        cursor.execute("SELECT id, category_id FROM category_playauto_mapping")
+        cursor.execute("SELECT id, our_category FROM category_playauto_mapping")
         existing = cursor.fetchall()
 
         mapping_update_count = 0
@@ -105,11 +106,31 @@ def update_database(mapping, dry_run=True):
                 )
                 mapping_update_count += cursor.rowcount
 
+        # 3. playauto_category 컬럼 업데이트 (카테고리명)
+        print("Updating playauto_category names...")
+        category_df = pd.read_excel(CATEGORY_FILE, engine='openpyxl')
+        category_df.columns = ['code', 'classification', 'name']
+        code_to_name = {int(row['code']): row['name'] for _, row in category_df.iterrows()}
+
+        cursor.execute("SELECT DISTINCT sol_cate_no FROM category_playauto_mapping WHERE sol_cate_no IS NOT NULL")
+        used_codes = [row[0] for row in cursor.fetchall()]
+
+        name_update_count = 0
+        for code in used_codes:
+            if code in code_to_name:
+                new_name = code_to_name[code]
+                cursor.execute(
+                    f"UPDATE category_playauto_mapping SET playauto_category = {placeholder} WHERE sol_cate_no = {placeholder}",
+                    (new_name, code)
+                )
+                name_update_count += cursor.rowcount
+
         conn.commit()
 
         print(f"\nUpdated:")
         print(f"  categories: {update_count} rows")
-        print(f"  category_playauto_mapping: {mapping_update_count} rows")
+        print(f"  category_playauto_mapping sol_cate_no: {mapping_update_count} rows")
+        print(f"  category_playauto_mapping playauto_category: {name_update_count} rows")
 
         return update_count + mapping_update_count
 
