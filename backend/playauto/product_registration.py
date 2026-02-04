@@ -490,15 +490,20 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         # 스마트스토어 등: 단일상품 아님, 독립형 옵션
         std_ol_yn = "N"
         opt_type = "독립형"
+
+        # 옵션값에서 콤마 제거 (스마트스토어는 콤마 사용 불가)
+        product_name = product.get("product_name", "기본")
+        option_value = product_name.replace(",", " ").replace("  ", " ").strip()
+
         opts = [
             {
                 "opt_sort1": "상품선택",
-                "opt_sort1_desc": product.get("product_name", "기본"),
+                "opt_sort1_desc": option_value,
                 "stock_cnt": 999,
                 "status": "정상"
             }
         ]
-        logger.info(f"[플레이오토] 스마트스토어 설정: std_ol_yn=N, opt_type=독립형")
+        logger.info(f"[플레이오토] 스마트스토어 설정: std_ol_yn=N, opt_type=독립형, 옵션값='{option_value}'")
 
     return {
         # 기본 정보
