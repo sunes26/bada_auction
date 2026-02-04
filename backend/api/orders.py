@@ -8,6 +8,9 @@ from typing import Optional
 from database.db_wrapper import get_db
 from database.database_manager import get_database_manager
 from utils.cache import async_cached
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
 
@@ -201,14 +204,20 @@ async def get_orders_with_items(
         }
     """
     try:
-        db = get_db()
-        conn = db.get_connection()
+        from database.database_manager import get_database_manager
+
+        db_manager = get_database_manager()
+        conn = db_manager.engine.raw_connection()
+        cursor = conn.cursor()
+
+        # Placeholder (PostgreSQL: %s, SQLite: ?)
+        placeholder = "?" if db_manager.is_sqlite else "%s"
 
         # 전체 개수 조회
         if status:
-            cursor = conn.execute("SELECT COUNT(*) FROM orders WHERE status = ?", (status,))
+            cursor.execute(f"SELECT COUNT(*) FROM orders WHERE status = {placeholder}", (status,))
         else:
-            cursor = conn.execute("SELECT COUNT(*) FROM orders")
+            cursor.execute("SELECT COUNT(*) FROM orders")
         total_count = cursor.fetchone()[0]
 
         # 페이지네이션 계산
@@ -217,28 +226,33 @@ async def get_orders_with_items(
 
         # 주문 목록 조회 (LIMIT, OFFSET 적용)
         if status:
-            cursor = conn.execute("""
+            cursor.execute(f"""
                 SELECT id, order_number, market, customer_name, customer_phone,
                        customer_address, total_amount, status, created_at, updated_at,
                        tracking_number, order_date, sync_source, playauto_order_id
                 FROM orders
-                WHERE status = ?
+                WHERE status = {placeholder}
                 ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
+                LIMIT {placeholder} OFFSET {placeholder}
             """, (status, limit, offset))
         else:
-            cursor = conn.execute("""
+            cursor.execute(f"""
                 SELECT id, order_number, market, customer_name, customer_phone,
                        customer_address, total_amount, status, created_at, updated_at,
                        tracking_number, order_date, sync_source, playauto_order_id
                 FROM orders
                 ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
+                LIMIT {placeholder} OFFSET {placeholder}
             """, (limit, offset))
 
-        orders = [dict(row) for row in cursor.fetchall()]
+        # Row를 dict로 변환 (PostgreSQL과 SQLite 호환)
+        if db_manager.is_sqlite:
+            orders = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        else:
+            orders = [dict(row._mapping) for row in cursor.fetchall()]
 
         # 각 주문의 상품 조회
+        db = get_db()
         for order in orders:
             order_items = db.get_order_items(order['id'])
             order['items'] = order_items
@@ -255,6 +269,8 @@ async def get_orders_with_items(
         }
 
     except Exception as e:
+        logger.error(f"[주문] with-items 조회 실패: {str(e)}")
+        logger.exception(e)
         raise HTTPException(status_code=500, detail=f"주문 조회 실패: {str(e)}")
 
 
