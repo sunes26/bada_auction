@@ -15,6 +15,7 @@ from api.categories import router as categories_router
 from api.accounting import router as accounting_router
 from api.category_mappings import router as category_mappings_router
 from api.category_playauto_mappings import router as category_playauto_mappings_router
+from api.dashboard import router as dashboard_router
 
 # Admin router import with error handling
 try:
@@ -391,6 +392,7 @@ else:
     logger.info("프로덕션 환경: Supabase Storage 사용 (로컬 이미지 마운트 비활성화)")
 
 # 라우터 등록
+app.include_router(dashboard_router)
 app.include_router(sourcing_router)
 app.include_router(monitoring_router)
 app.include_router(orders_router)

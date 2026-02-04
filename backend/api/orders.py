@@ -165,47 +165,81 @@ async def get_orders(status: Optional[str] = None, limit: int = 100):
 
 @router.get("/with-items")
 @async_cached(ttl=15)  # 15초 캐싱
-async def get_orders_with_items(status: Optional[str] = None, limit: int = 1000):
+async def get_orders_with_items(
+    status: Optional[str] = None,
+    limit: int = 50,
+    page: int = 1
+):
     """
-    주문 목록과 주문 상품을 한번에 조회 (N+1 쿼리 방지)
+    주문 목록과 주문 상품을 한번에 조회 (N+1 쿼리 방지, 서버 사이드 페이지네이션)
 
     Args:
         status: 주문 상태 필터 ('pending', 'processing', 'completed', 'cancelled')
-        limit: 최대 조회 건수
+        limit: 페이지당 항목 수 (기본 50)
+        page: 페이지 번호 (1부터 시작)
 
     Returns:
         {
             "success": True,
-            "orders": [
-                {
-                    "id": 1,
-                    "order_number": "ORD-001",
-                    ...
-                    "items": [
-                        {"id": 1, "product_name": "...", "sourcing_price": 10000, "selling_price": 15000, ...},
-                        ...
-                    ]
-                },
-                ...
-            ],
-            "total": 10
+            "orders": [...],
+            "total": 100,
+            "page": 1,
+            "limit": 50,
+            "total_pages": 2
         }
     """
     try:
         db = get_db()
+        conn = db.get_connection()
 
-        # 주문 목록 조회
-        orders = db.get_all_orders(status=status, limit=limit)
+        # 전체 개수 조회
+        if status:
+            cursor = conn.execute("SELECT COUNT(*) FROM orders WHERE status = ?", (status,))
+        else:
+            cursor = conn.execute("SELECT COUNT(*) FROM orders")
+        total_count = cursor.fetchone()[0]
+
+        # 페이지네이션 계산
+        offset = (page - 1) * limit
+        total_pages = (total_count + limit - 1) // limit  # 올림 나눗셈
+
+        # 주문 목록 조회 (LIMIT, OFFSET 적용)
+        if status:
+            cursor = conn.execute("""
+                SELECT id, order_number, market, customer_name, customer_phone,
+                       customer_address, total_amount, status, created_at, updated_at,
+                       tracking_number, order_date, sync_source, playauto_order_id
+                FROM orders
+                WHERE status = ?
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            """, (status, limit, offset))
+        else:
+            cursor = conn.execute("""
+                SELECT id, order_number, market, customer_name, customer_phone,
+                       customer_address, total_amount, status, created_at, updated_at,
+                       tracking_number, order_date, sync_source, playauto_order_id
+                FROM orders
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            """, (limit, offset))
+
+        orders = [dict(row) for row in cursor.fetchall()]
 
         # 각 주문의 상품 조회
         for order in orders:
             order_items = db.get_order_items(order['id'])
             order['items'] = order_items
 
+        conn.close()
+
         return {
             "success": True,
             "orders": orders,
-            "total": len(orders)
+            "total": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages
         }
 
     except Exception as e:

@@ -53,23 +53,24 @@ export default function HomePage() {
     try {
       setLoading(true);
 
-      // 병렬로 여러 API 호출 (공통 API 클라이언트 사용, 캐싱 적용)
-      const [rpaStats, playautoStats, monitorStats, ordersData, allOrdersData] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/orders/rpa/stats`).then(r => r.json()),
-        playautoApi.stats(true),
-        fetch(`${API_BASE_URL}/api/monitor/dashboard/stats`).then(r => r.json()),
-        ordersApi.list(10, true),
-        ordersApi.listWithItems(50, true), // limit를 1000 → 50으로 최적화
-      ]);
+      // 통합 API 호출 (성능 최적화: 5개 API → 1개 API)
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/all`);
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error('대시보드 데이터 로드 실패');
+      }
+
+      const { rpa_stats, playauto_stats, monitor_stats, recent_orders, all_orders } = data;
 
       // 통계 계산 - 실제 주문 데이터 사용
-      const totalOrders = allOrdersData.success ? (allOrdersData.orders?.length || 0) : 0;
+      const totalOrders = all_orders?.length || 0;
 
       // 오늘 생성된 주문 수 계산
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const todayOrders = allOrdersData.success
-        ? allOrdersData.orders.filter((order: any) => {
+      const todayOrders = all_orders
+        ? all_orders.filter((order: any) => {
             const orderDate = new Date(order.created_at);
             orderDate.setHours(0, 0, 0, 0);
             return orderDate.getTime() === today.getTime();
@@ -78,8 +79,8 @@ export default function HomePage() {
 
       // 매출 계산 (전체 주문에서)
       let totalRevenue = 0;
-      if (allOrdersData.success && allOrdersData.orders) {
-        totalRevenue = allOrdersData.orders.reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0);
+      if (all_orders) {
+        totalRevenue = all_orders.reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0);
       }
 
       // 평균 마진율 계산 (주문 상품이 이미 포함되어 있음 - N+1 쿼리 제거!)
@@ -87,8 +88,8 @@ export default function HomePage() {
       let totalMarginSum = 0;
       let itemCount = 0;
 
-      if (allOrdersData.success && allOrdersData.orders) {
-        for (const order of allOrdersData.orders) {
+      if (all_orders) {
+        for (const order of all_orders) {
           // order.items는 이미 포함되어 있음 (with-items 엔드포인트 사용)
           if (order.items && order.items.length > 0) {
             for (const item of order.items) {
@@ -107,7 +108,7 @@ export default function HomePage() {
       }
 
       // 역마진 경고
-      const marginAlerts = monitorStats.margin_alerts || 0;
+      const marginAlerts = monitor_stats.margin_issues || 0;
 
       // 트렌드 계산 (최근 7일 vs 이전 7일)
       const now = new Date();
@@ -119,8 +120,8 @@ export default function HomePage() {
       let recentRevenue = 0;
       let previousRevenue = 0;
 
-      if (allOrdersData.success && allOrdersData.orders) {
-        allOrdersData.orders.forEach((order: any) => {
+      if (all_orders) {
+        all_orders.forEach((order: any) => {
           const orderDate = new Date(order.created_at);
           if (orderDate >= sevenDaysAgo) {
             recentOrdersCount++;
@@ -151,8 +152,8 @@ export default function HomePage() {
 
       // 최근 활동 생성
       const recentActivities: Activity[] = [];
-      if (ordersData.success && ordersData.orders) {
-        ordersData.orders.slice(0, 5).forEach((order: any) => {
+      if (recent_orders) {
+        recent_orders.slice(0, 5).forEach((order: any) => {
           recentActivities.push({
             id: `order-${order.id}`,
             type: 'order',
