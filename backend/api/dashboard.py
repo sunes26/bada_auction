@@ -31,106 +31,141 @@ async def get_all_dashboard_data():
         is_true = "TRUE" if not db_manager.is_sqlite else "1"
 
         # 1. RPA 통계 (기존 /api/orders/rpa/stats)
-        cursor.execute("""
-            SELECT
-                COUNT(*) as total,
-                SUM(CASE WHEN status = '대기' THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN status = '완료' THEN 1 ELSE 0 END) as completed,
-                SUM(CASE WHEN status = '실패' THEN 1 ELSE 0 END) as failed
-            FROM rpa_orders
-        """)
-        rpa_row = cursor.fetchone()
-        rpa_stats = {
-            "total": rpa_row[0] if rpa_row else 0,
-            "pending": rpa_row[1] if rpa_row else 0,
-            "completed": rpa_row[2] if rpa_row else 0,
-            "failed": rpa_row[3] if rpa_row else 0
-        }
+        try:
+            cursor.execute("""
+                SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = '대기' THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN status = '완료' THEN 1 ELSE 0 END) as completed,
+                    SUM(CASE WHEN status = '실패' THEN 1 ELSE 0 END) as failed
+                FROM rpa_orders
+            """)
+            rpa_row = cursor.fetchone()
+            rpa_stats = {
+                "total": int(rpa_row[0] or 0),
+                "pending": int(rpa_row[1] or 0),
+                "completed": int(rpa_row[2] or 0),
+                "failed": int(rpa_row[3] or 0)
+            }
+        except Exception as e:
+            logger.warning(f"[대시보드] RPA 통계 조회 실패: {e}")
+            rpa_stats = {"total": 0, "pending": 0, "completed": 0, "failed": 0}
 
         # 2. PlayAuto 통계 (기존 /api/playauto/stats)
-        cursor.execute(f"""
-            SELECT
-                COUNT(*) as total_products,
-                SUM(CASE WHEN is_active = {is_true} THEN 1 ELSE 0 END) as active_products
-            FROM selling_products
-            WHERE playauto_product_no IS NOT NULL
-        """)
-        playauto_row = cursor.fetchone()
-        playauto_stats = {
-            "total_products": playauto_row[0] if playauto_row else 0,
-            "active_products": playauto_row[1] if playauto_row else 0
-        }
+        try:
+            cursor.execute(f"""
+                SELECT
+                    COUNT(*) as total_products,
+                    SUM(CASE WHEN is_active = {is_true} THEN 1 ELSE 0 END) as active_products
+                FROM selling_products
+                WHERE playauto_product_no IS NOT NULL
+            """)
+            playauto_row = cursor.fetchone()
+            playauto_stats = {
+                "total_products": int(playauto_row[0] or 0),
+                "active_products": int(playauto_row[1] or 0)
+            }
+        except Exception as e:
+            logger.warning(f"[대시보드] PlayAuto 통계 조회 실패: {e}")
+            playauto_stats = {"total_products": 0, "active_products": 0}
 
         # 3. 모니터링 통계 (기존 /api/monitor/dashboard/stats)
-        cursor.execute(f"""
-            SELECT
-                COUNT(*) as total,
-                SUM(CASE WHEN is_active = {is_true} THEN 1 ELSE 0 END) as active,
-                SUM(CASE WHEN has_margin_issue = {is_true} THEN 1 ELSE 0 END) as margin_issues
-            FROM monitoring_products
-        """)
-        monitor_row = cursor.fetchone()
-        monitor_stats = {
-            "total": monitor_row[0] if monitor_row else 0,
-            "active": monitor_row[1] if monitor_row else 0,
-            "margin_issues": monitor_row[2] if monitor_row else 0
-        }
+        try:
+            cursor.execute(f"""
+                SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN is_active = {is_true} THEN 1 ELSE 0 END) as active,
+                    SUM(CASE WHEN has_margin_issue = {is_true} THEN 1 ELSE 0 END) as margin_issues
+                FROM monitoring_products
+            """)
+            monitor_row = cursor.fetchone()
+            monitor_stats = {
+                "total": int(monitor_row[0] or 0),
+                "active": int(monitor_row[1] or 0),
+                "margin_issues": int(monitor_row[2] or 0)
+            }
+        except Exception as e:
+            logger.warning(f"[대시보드] 모니터링 통계 조회 실패: {e}")
+            monitor_stats = {"total": 0, "active": 0, "margin_issues": 0}
 
         # 4. 최근 주문 목록 (limit 10)
-        cursor.execute("""
-            SELECT id, order_number, market, customer_name, total_amount,
-                   status, created_at, updated_at
-            FROM orders
-            ORDER BY created_at DESC
-            LIMIT 10
-        """)
+        try:
+            cursor.execute("""
+                SELECT id, order_number, market, customer_name, total_amount,
+                       status, created_at, updated_at
+                FROM orders
+                ORDER BY created_at DESC
+                LIMIT 10
+            """)
 
-        # Row를 dict로 변환 (PostgreSQL과 SQLite 호환)
-        if db_manager.is_sqlite:
-            recent_orders = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
-        else:
-            recent_orders = [dict(row._mapping) for row in cursor.fetchall()]
+            # Row를 dict로 변환 (안전한 방식 - cursor.description 사용)
+            columns = [col[0] for col in cursor.description]
+            recent_orders = []
+            for row in cursor.fetchall():
+                order_dict = {}
+                for i, col in enumerate(columns):
+                    value = row[i]
+                    # datetime을 문자열로 변환
+                    if hasattr(value, 'isoformat'):
+                        value = value.isoformat()
+                    order_dict[col] = value
+                recent_orders.append(order_dict)
+        except Exception as e:
+            logger.warning(f"[대시보드] 최근 주문 조회 실패: {e}")
+            recent_orders = []
 
         # 5. 전체 주문 통계 (with items, limit 50)
-        cursor.execute("""
-            SELECT o.id, o.order_number, o.market, o.customer_name,
-                   o.total_amount, o.status, o.created_at, o.updated_at,
-                   oi.id as item_id, oi.product_name, oi.quantity,
-                   oi.sourcing_price, oi.selling_price
-            FROM orders o
-            LEFT JOIN order_items oi ON o.id = oi.order_id
-            ORDER BY o.created_at DESC
-            LIMIT 50
-        """)
+        try:
+            cursor.execute("""
+                SELECT o.id, o.order_number, o.market, o.customer_name,
+                       o.total_amount, o.status, o.created_at, o.updated_at,
+                       oi.id as item_id, oi.product_name, oi.quantity,
+                       oi.sourcing_price, oi.selling_price
+                FROM orders o
+                LEFT JOIN order_items oi ON o.id = oi.order_id
+                ORDER BY o.created_at DESC
+                LIMIT 50
+            """)
 
-        # 주문과 아이템 그룹화
-        orders_dict = {}
-        for row in cursor.fetchall():
-            order_id = row[0]
-            if order_id not in orders_dict:
-                orders_dict[order_id] = {
-                    "id": row[0],
-                    "order_number": row[1],
-                    "market": row[2],
-                    "customer_name": row[3],
-                    "total_amount": row[4],
-                    "status": row[5],
-                    "created_at": str(row[6]) if row[6] else None,
-                    "updated_at": str(row[7]) if row[7] else None,
-                    "items": []
-                }
+            # 주문과 아이템 그룹화
+            orders_dict = {}
+            for row in cursor.fetchall():
+                order_id = row[0]
+                if order_id not in orders_dict:
+                    # datetime을 문자열로 변환
+                    created_at = row[6]
+                    if hasattr(created_at, 'isoformat'):
+                        created_at = created_at.isoformat()
+                    updated_at = row[7]
+                    if hasattr(updated_at, 'isoformat'):
+                        updated_at = updated_at.isoformat()
 
-            # 아이템 추가
-            if row[8]:  # item_id가 있으면
-                orders_dict[order_id]["items"].append({
-                    "id": row[8],
-                    "product_name": row[9],
-                    "quantity": row[10],
-                    "sourcing_price": row[11],
-                    "selling_price": row[12]
-                })
+                    orders_dict[order_id] = {
+                        "id": row[0],
+                        "order_number": row[1],
+                        "market": row[2],
+                        "customer_name": row[3],
+                        "total_amount": float(row[4]) if row[4] else 0,
+                        "status": row[5],
+                        "created_at": created_at,
+                        "updated_at": updated_at,
+                        "items": []
+                    }
 
-        all_orders = list(orders_dict.values())
+                # 아이템 추가
+                if row[8]:  # item_id가 있으면
+                    orders_dict[order_id]["items"].append({
+                        "id": row[8],
+                        "product_name": row[9],
+                        "quantity": int(row[10]) if row[10] else 0,
+                        "sourcing_price": float(row[11]) if row[11] else 0,
+                        "selling_price": float(row[12]) if row[12] else 0
+                    })
+
+            all_orders = list(orders_dict.values())
+        except Exception as e:
+            logger.warning(f"[대시보드] 전체 주문 조회 실패: {e}")
+            all_orders = []
 
         conn.close()
 

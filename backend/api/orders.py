@@ -245,11 +245,18 @@ async def get_orders_with_items(
                 LIMIT {placeholder} OFFSET {placeholder}
             """, (limit, offset))
 
-        # Row를 dict로 변환 (PostgreSQL과 SQLite 호환)
-        if db_manager.is_sqlite:
-            orders = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
-        else:
-            orders = [dict(row._mapping) for row in cursor.fetchall()]
+        # Row를 dict로 변환 (안전한 방식 - cursor.description 사용)
+        columns = [col[0] for col in cursor.description]
+        orders = []
+        for row in cursor.fetchall():
+            order_dict = {}
+            for i, col in enumerate(columns):
+                value = row[i]
+                # datetime을 문자열로 변환
+                if hasattr(value, 'isoformat'):
+                    value = value.isoformat()
+                order_dict[col] = value
+            orders.append(order_dict)
 
         # 각 주문의 상품 조회
         db = get_db()
