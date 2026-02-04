@@ -96,6 +96,18 @@ async def create_order(request: CreateOrderRequest):
         except Exception as e:
             print(f"[WARN] 주문 생성 알림 발송 실패: {e}")
 
+        # WebSocket 실시간 알림
+        try:
+            from api.websocket import notify_order_created
+            await notify_order_created(
+                order_id=order_id,
+                order_number=request.order_number,
+                market=request.market,
+                total_amount=request.total_amount
+            )
+        except Exception as e:
+            print(f"[WARN] WebSocket 알림 실패: {e}")
+
         return {
             "success": True,
             "order_id": order_id,

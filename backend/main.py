@@ -16,6 +16,7 @@ from api.accounting import router as accounting_router
 from api.category_mappings import router as category_mappings_router
 from api.category_playauto_mappings import router as category_playauto_mappings_router
 from api.dashboard import router as dashboard_router
+from api.websocket import router as websocket_router
 
 # Admin router import with error handling
 try:
@@ -442,6 +443,10 @@ print(f"[DEBUG] Category mappings router registered. Total app routes: {len(app.
 print(f"[DEBUG] About to register category_playauto_mappings_router with {len(category_playauto_mappings_router.routes)} routes")
 app.include_router(category_playauto_mappings_router)
 print(f"[DEBUG] PlayAuto category mappings router registered. Total app routes: {len(app.routes)}")
+
+# WebSocket router
+app.include_router(websocket_router)
+print(f"[OK] WebSocket router registered")
 
 # Admin router (with error handling)
 if admin_router is not None:
