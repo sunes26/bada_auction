@@ -259,14 +259,26 @@ async def edit_playauto_product(
                 data[key] = value
 
         logger.info(f"[플레이오토] 상품 수정 시작: c_sale_cd={c_sale_cd}, shop_cd={shop_cd}")
+        logger.info(f"[플레이오토] 요청 데이터: {data}")
 
         # API 호출 - PUT 메서드 사용
         endpoint = "/api/products/edit/v1.2"
         async with client as c:
             result = await c.put(endpoint, data=data)
 
-        if result.get("status") or result.get("result") == "success":
+        # 전체 응답 로깅
+        logger.info(f"[플레이오토] API 응답 전체: {result}")
+
+        # PDF에 따르면 응답은 result (String, "성공"/"실패") 또는 status (Boolean)
+        is_success = (
+            result.get("result") == "성공" or
+            result.get("status") == True or
+            result.get("status") == "true"
+        )
+
+        if is_success:
             logger.info(f"[플레이오토] 상품 수정 성공: {c_sale_cd}")
+            logger.info(f"[플레이오토] 반환된 c_sale_cd: {result.get('c_sale_cd')}")
             return {
                 "success": True,
                 "message": "상품 수정 완료",
@@ -275,6 +287,7 @@ async def edit_playauto_product(
         else:
             error_msg = result.get("message", "알 수 없는 오류")
             logger.error(f"[플레이오토] 상품 수정 실패: {error_msg}")
+            logger.error(f"[플레이오토] 실패 응답 전체: {result}")
             return {
                 "success": False,
                 "message": error_msg,

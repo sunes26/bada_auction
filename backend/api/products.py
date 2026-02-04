@@ -478,12 +478,17 @@ async def update_product(product_id: int, request: UpdateProductRequest):
                     **playauto_changes  # 변경된 필드들만 전달
                 )
 
+                # PlayAuto 응답 로깅
+                logger.info(f"[상품수정] PlayAuto 응답: {result}")
+
                 if result.get('success'):
                     playauto_updated = True
                     logger.info(f"[상품수정] 플레이오토 업데이트 성공: {playauto_product_no}")
+                    logger.info(f"[상품수정] PlayAuto data 필드: {result.get('data')}")
                 else:
                     error_msg = result.get('message', '알 수 없는 오류')
                     logger.error(f"[상품수정] 플레이오토 업데이트 실패: {error_msg}")
+                    logger.error(f"[상품수정] 실패 상세: {result}")
 
             except Exception as e:
                 logger.error(f"[상품수정] 플레이오토 업데이트 실패: {str(e)}")
