@@ -800,6 +800,8 @@ async def register_products_to_playauto(request: dict):
 
                 # 플레이오토 등록 (채널별로 분리)
                 result = {"success": False, "error": "등록 가능한 채널이 없습니다."}
+                c_sale_cd_gmk = None
+                c_sale_cd_smart = None
 
                 # 1. 지마켓/옥션 등록 (있는 경우)
                 if gmk_auction_sites:
@@ -810,7 +812,9 @@ async def register_products_to_playauto(request: dict):
                     result_gmk = await registration_api.register_product(product_data_gmk)
 
                     if result_gmk.get("success"):
+                        c_sale_cd_gmk = result_gmk.get("c_sale_cd")
                         logger.info(f"[상품등록] ✓ 지마켓/옥션 등록 성공")
+                        logger.info(f"[상품등록] c_sale_cd_gmk: {c_sale_cd_gmk}")
                         logger.info(f"[상품등록] 등록 결과: {result_gmk.get('site_list')}")
                         result = result_gmk
                     else:
@@ -826,7 +830,9 @@ async def register_products_to_playauto(request: dict):
                     result_smart = await registration_api.register_product(product_data_smart)
 
                     if result_smart.get("success"):
+                        c_sale_cd_smart = result_smart.get("c_sale_cd")
                         logger.info(f"[상품등록] ✓ 스마트스토어 등 등록 성공")
+                        logger.info(f"[상품등록] c_sale_cd_smart: {c_sale_cd_smart}")
                         logger.info(f"[상품등록] 등록 결과: {result_smart.get('site_list')}")
                         # 지마켓/옥션 결과와 병합
                         if result.get("success"):
@@ -861,7 +867,6 @@ async def register_products_to_playauto(request: dict):
 
                 if result.get("success"):
                     # 플레이오토 상품 번호 및 쇼핑몰 번호 저장
-                    c_sale_cd = result.get("c_sale_cd")
                     site_list_result = result.get("site_list", [])
 
                     # ol_shop_no는 첫 번째 등록 성공한 쇼핑몰 번호를 저장
@@ -874,9 +879,17 @@ async def register_products_to_playauto(request: dict):
 
                     # 등록 성공 시 is_active = True로 변경하고 PlayAuto ID 저장
                     update_params = {"product_id": product_id, "is_active": True}
-                    if c_sale_cd:
-                        update_params["playauto_product_no"] = c_sale_cd
-                        logger.info(f"[상품등록] PlayAuto 상품번호 저장: {c_sale_cd}")
+
+                    # 채널별 c_sale_cd 저장
+                    if c_sale_cd_gmk:
+                        update_params["c_sale_cd_gmk"] = c_sale_cd_gmk
+                        update_params["playauto_product_no"] = c_sale_cd_gmk  # 하위 호환성
+                        logger.info(f"[상품등록] 지마켓/옥션 c_sale_cd 저장: {c_sale_cd_gmk}")
+                    if c_sale_cd_smart:
+                        update_params["c_sale_cd_smart"] = c_sale_cd_smart
+                        if not c_sale_cd_gmk:  # gmk가 없으면 smart를 playauto_product_no에 저장
+                            update_params["playauto_product_no"] = c_sale_cd_smart
+                        logger.info(f"[상품등록] 스마트스토어 c_sale_cd 저장: {c_sale_cd_smart}")
                     if ol_shop_no:
                         update_params["ol_shop_no"] = ol_shop_no
                         logger.info(f"[상품등록] 온라인 쇼핑몰 번호 저장: {ol_shop_no}")
@@ -894,7 +907,8 @@ async def register_products_to_playauto(request: dict):
                     "product_name": product.get("product_name"),
                     "success": result.get("success"),
                     "error": result.get("error"),
-                    "c_sale_cd": result.get("c_sale_cd")
+                    "c_sale_cd_gmk": c_sale_cd_gmk,
+                    "c_sale_cd_smart": c_sale_cd_smart
                 })
 
             except Exception as e:

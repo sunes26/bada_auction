@@ -332,6 +332,8 @@ class MySellingProduct(Base):
     sol_cate_no = Column(BigInteger)
     playauto_product_no = Column(Text)
     ol_shop_no = Column(Text)
+    c_sale_cd_gmk = Column(Text)  # 지마켓/옥션용 판매자 관리코드
+    c_sale_cd_smart = Column(Text)  # 스마트스토어용 판매자 관리코드
     is_active = Column(Boolean, default=False)  # 기본값: 중단 (상세페이지 생성기에서 추가된 상품은 중단 상태로 시작)
     created_at = Column(DateTime, default=func.current_timestamp())
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
