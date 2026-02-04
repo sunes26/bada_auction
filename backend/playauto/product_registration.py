@@ -475,13 +475,9 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         # 임시로 None 반환 - API 호출 시 오류 발생 예상
         sol_cate_no = None
 
-    # detail_page_data에서 이미지 추출 (sale_img2~11에 사용)
-    detail_images = extract_images_from_detail_page(product.get("detail_page_data", ""))
-
-    # 이미지 필드 준비 (sale_img1은 썸네일, sale_img2~11은 상세 이미지)
+    # 이미지 필드 준비 (sale_img1만 사용 - 썸네일)
+    # sale_img2~11은 전송하지 않음 (상세페이지는 JPG로 detail_desc에 포함됨)
     image_fields = {"sale_img1": thumbnail_url}
-    for i, url in enumerate(detail_images[:10], start=2):
-        image_fields[f"sale_img{i}"] = url
 
     # 채널 타입에 따른 옵션 설정
     if channel_type == "gmk_auction":
@@ -536,8 +532,9 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         "maker": "",
         "keywords": [],
 
-        # 이미지 (sale_img1~11)
-        # sale_img1: 썸네일, sale_img2~11: 상세 이미지 (detail_page_data에서 추출)
+        # 이미지 (sale_img1만 사용)
+        # sale_img1: 썸네일 (상품 추출 시 저장된 이미지)
+        # 상세 이미지는 JPG로 변환되어 detail_desc에 포함됨
         **image_fields,
 
         # 상품정보제공고시
