@@ -27,7 +27,9 @@ export interface Product {
   notes?: string;
 
   // PlayAuto fields
-  c_sale_cd?: string;
+  c_sale_cd?: string;  // 하위 호환성을 위해 유지
+  c_sale_cd_gmk?: string;  // 지마켓/옥션용 판매자 관리코드
+  c_sale_cd_smart?: string;  // 스마트스토어 등용 판매자 관리코드
   playauto_product_no?: string;
   sol_cate_no?: number;
 
@@ -206,7 +208,9 @@ export interface CreateProductRequest {
 
 export interface UpdateProductRequest extends Partial<CreateProductRequest> {
   is_active?: boolean;
-  c_sale_cd?: string;
+  c_sale_cd?: string;  // 하위 호환성
+  c_sale_cd_gmk?: string;  // 지마켓/옥션용
+  c_sale_cd_smart?: string;  // 스마트스토어용
 }
 
 export interface CreateOrderRequest {
