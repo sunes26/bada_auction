@@ -263,17 +263,19 @@ export default function ProductSourcingPage() {
 
     try {
       toast.info('PlayAuto 동기화 중...');
-      const data = await productsApi.syncToPlayauto(productId);
+      const response = await productsApi.syncToPlayauto(productId);
 
-      if (data.success) {
+      if (response.success) {
+        // 타입 assertion: 백엔드가 product_name, selling_price를 직접 반환
+        const data = response as any;
         toast.success(
           `PlayAuto 동기화 완료!\n\n` +
-          `상품명: ${data.product_name}\n` +
-          `판매가: ${data.selling_price?.toLocaleString()}원`
+          `상품명: ${data.product_name || productName}\n` +
+          `판매가: ${data.selling_price?.toLocaleString() || '-'}원`
         );
         cache.clearProducts();
       } else {
-        toast.error(`PlayAuto 동기화 실패\n\n${data.message || '알 수 없는 오류'}`);
+        toast.error(`PlayAuto 동기화 실패\n\n${response.message || '알 수 없는 오류'}`);
       }
     } catch (error: any) {
       console.error('PlayAuto 동기화 실패:', error);
