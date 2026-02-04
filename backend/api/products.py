@@ -478,8 +478,15 @@ async def update_product(product_id: int, request: UpdateProductRequest):
                     logger.info(f"[상품수정] PlayAuto data 필드: {result.get('data')}")
                 else:
                     error_msg = result.get('message', '알 수 없는 오류')
-                    logger.error(f"[상품수정] 플레이오토 업데이트 실패: {error_msg}")
-                    logger.error(f"[상품수정] 실패 상세: {result}")
+                    error_code = result.get('data', {}).get('error_code')
+
+                    # e4036: 존재하지 않는 마스터상품
+                    if error_code == 'e4036':
+                        logger.warning(f"[상품수정] PlayAuto에 존재하지 않는 상품: {playauto_product_no}")
+                        logger.warning(f"[상품수정] DB의 playauto_product_no를 초기화하고 다시 등록하세요.")
+                    else:
+                        logger.error(f"[상품수정] 플레이오토 업데이트 실패: {error_msg}")
+                        logger.error(f"[상품수정] 실패 상세: {result}")
 
             except Exception as e:
                 logger.error(f"[상품수정] 플레이오토 업데이트 실패: {str(e)}")
