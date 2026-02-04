@@ -262,7 +262,8 @@ async def edit_playauto_product(
         logger.info(f"[플레이오토] 요청 데이터: {data}")
 
         # API 호출 - PUT 메서드 사용
-        endpoint = "/api/products/edit/v1.2"
+        # base_url이 이미 /api로 끝나므로 /api 제외
+        endpoint = "/products/edit/v1.2"
         async with client as c:
             result = await c.put(endpoint, data=data)
 
