@@ -669,6 +669,99 @@ python main.py  # 자동으로 새 DB 생성
 
 ## 📈 업데이트 히스토리
 
+### 2026-02-04 (최신): PlayAuto 채널별 판매자 관리코드 분리 + 자동 가격 조정 수정 🔧💰
+
+**PlayAuto 채널별 c_sale_cd 분리 구현**:
+- ✅ **문제 발견**: 상품이 PlayAuto에 2번 등록되지만(지마켓/옥션, 스마트스토어) 판매자 관리코드는 1개만 저장
+- ✅ **DB 스키마 변경**:
+  - `c_sale_cd_gmk` 컬럼 추가 (지마켓/옥션용 판매자 관리코드)
+  - `c_sale_cd_smart` 컬럼 추가 (스마트스토어용 판매자 관리코드)
+  - 기존 `c_sale_cd` 필드는 하위 호환성을 위해 유지
+- ✅ **데이터베이스 마이그레이션**:
+  - 로컬 SQLite: `backend/migrate_split_c_sale_cd.py`
+  - 프로덕션 PostgreSQL: `backend/migrate_split_c_sale_cd_postgres.py`
+  - Supabase SQL Editor에서 직접 실행 완료
+- ✅ **상품 등록 자동화**:
+  - `/api/products/register-to-playauto` 수정
+  - 지마켓/옥션 등록 시 → `c_sale_cd_gmk` 자동 저장
+  - 스마트스토어 등록 시 → `c_sale_cd_smart` 자동 저장
+  - 두 채널 독립적으로 등록 및 저장
+- ✅ **UI 개선** (EditProductModal):
+  - 🛒 지마켓/옥션용 판매자 관리코드 (주황색 테두리)
+  - 🏪 스마트스토어용 판매자 관리코드 (녹색 테두리)
+  - 설명 텍스트 추가 (왜 2개인지 안내)
+  - 각 필드별 placeholder 예시
+- ✅ **상품 수정 API 개선**:
+  - `/api/products/{product_id}` 수정
+  - 두 c_sale_cd 모두 수정 시 각각 PlayAuto API 호출
+  - `playauto_updated_gmk`, `playauto_updated_smart` 별도 반환
+  - 각 채널별 성공/실패 로깅
+
+**자동 가격 조정 API 수정**:
+- ✅ **500 에러 수정** (`/api/auto-pricing/settings`):
+  - 존재하지 않는 `settings` 테이블 참조 → `playauto_settings` 사용
+  - 잘못된 테이블 이름 `selling_products` → `my_selling_products`
+  - 원시 SQL 쿼리 → db wrapper 메소드 사용
+  - PostgreSQL 호환성 보장
+- ✅ **자동 가격 조정 기능 확인**:
+  - `/api/auto-pricing/adjust-product/{id}` - 개별 상품 가격 조정
+  - `/api/auto-pricing/adjust-all` - 전체 상품 일괄 조정
+  - DynamicPricingService: 소싱가 변동 시 자동 조정
+  - Scheduler 연동: 자동 가격 모니터링
+
+**데이터베이스 변경사항**:
+```sql
+-- 로컬 SQLite
+ALTER TABLE my_selling_products ADD COLUMN c_sale_cd_gmk TEXT;
+ALTER TABLE my_selling_products ADD COLUMN c_sale_cd_smart TEXT;
+
+-- 프로덕션 PostgreSQL (Supabase)
+ALTER TABLE my_selling_products
+ADD COLUMN IF NOT EXISTS c_sale_cd_gmk TEXT;
+
+ALTER TABLE my_selling_products
+ADD COLUMN IF NOT EXISTS c_sale_cd_smart TEXT;
+```
+
+**TypeScript 타입 업데이트**:
+```typescript
+export interface Product {
+  // ... 기존 필드 ...
+  c_sale_cd?: string;          // 하위 호환성
+  c_sale_cd_gmk?: string;      // 지마켓/옥션용
+  c_sale_cd_smart?: string;    // 스마트스토어용
+  playauto_product_no?: string;
+  // ...
+}
+```
+
+**API 응답 예시**:
+```json
+{
+  "success": true,
+  "message": "상품이 수정되었습니다.",
+  "playauto_updated_gmk": true,
+  "playauto_updated_smart": true,
+  "playauto_changes": ["sale_price", "shop_sale_name"]
+}
+```
+
+**영향**:
+- ✅ 상품 등록 시 두 채널의 c_sale_cd 자동 저장
+- ✅ 상품 수정 화면에서 두 코드 모두 확인 가능
+- ✅ 가격/정보 수정 시 두 채널 모두 PlayAuto 자동 동기화
+- ✅ 각 채널별 성공/실패 독립 처리 및 로깅
+- ✅ 자동 가격 조정 설정 페이지 정상 작동
+
+**커밋 해시**:
+- `a216b00`: Implement dual c_sale_cd fields for channel-specific PlayAuto sync
+- `bb7fa2c`: Fix migration script to use correct table name and encoding
+- `e76c909`: Add PostgreSQL migration script for dual c_sale_cd fields
+- `b0f89ce`: Auto-save dual c_sale_cd values on product registration
+- `84da6e2`: Fix auto-pricing settings API 500 error
+
+---
+
 ### 2026-02-04: 검색 기능 + 자동 가격 조정 + 상세페이지 JPG 최적화 + 성능 개선 + 실시간 알림 🔍💰🎨⚡🔔
 
 **주문 검색 기능**:
