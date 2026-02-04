@@ -1454,9 +1454,7 @@ function AddProductFromDetailPageModal({
       let detailImageUrl = '';
       if (templateRef?.current) {
         try {
-          const htmlToImage = (await import('html-to-image')).default;
-
-          // JPG 생성
+          // JPG 생성 (이미 상단에서 import한 htmlToImage 사용)
           const dataUrl = await htmlToImage.toJpeg(templateRef.current, {
             quality: 0.9,
             width: 860,

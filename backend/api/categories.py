@@ -3,7 +3,7 @@
 """
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any, Optional
-from database.db_wrapper import get_db
+from database.database_manager import get_database_manager
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
@@ -52,14 +52,21 @@ async def get_category_structure():
     4단계 계층 구조로 반환
     """
     try:
-        db = get_db()
-        conn = db.get_connection()
-        cursor = conn.execute("""
+        db_manager = get_database_manager()
+        conn = db_manager.engine.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
             SELECT level1, level2, level3, level4, folder_number
             FROM categories
             ORDER BY level1, level2, level3, level4
         """)
-        categories = cursor.fetchall()
+
+        # SQLite와 PostgreSQL 모두 지원
+        if db_manager.is_sqlite:
+            categories = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        else:
+            categories = [dict(row._mapping) for row in cursor.fetchall()]
+
         conn.close()
 
         # 계층 구조로 변환
@@ -92,34 +99,37 @@ async def get_category_levels(level1: Optional[str] = None, level2: Optional[str
     카테고리 계층별 옵션 조회
     """
     try:
-        db = get_db()
-        conn = db.get_connection()
+        db_manager = get_database_manager()
+        conn = db_manager.engine.raw_connection()
+        cursor = conn.cursor()
+        placeholder = "?" if db_manager.is_sqlite else "%s"
 
         if not level1:
             # level1 옵션 반환
-            cursor = conn.execute("SELECT DISTINCT level1 FROM categories ORDER BY level1")
-            result = [row['level1'] for row in cursor.fetchall()]
+            cursor.execute("SELECT DISTINCT level1 FROM categories ORDER BY level1")
+            result = [row[0] for row in cursor.fetchall()]
             conn.close()
             return {"success": True, "options": result}
 
         elif level1 and not level2:
             # level2 옵션 반환
-            cursor = conn.execute("SELECT DISTINCT level2 FROM categories WHERE level1 = ? ORDER BY level2", (level1,))
-            result = [row['level2'] for row in cursor.fetchall()]
+            cursor.execute(f"SELECT DISTINCT level2 FROM categories WHERE level1 = {placeholder} ORDER BY level2", (level1,))
+            result = [row[0] for row in cursor.fetchall()]
             conn.close()
             return {"success": True, "options": result}
 
         elif level1 and level2 and not level3:
             # level3 옵션 반환
-            cursor = conn.execute("SELECT DISTINCT level3 FROM categories WHERE level1 = ? AND level2 = ? ORDER BY level3", (level1, level2))
-            result = [row['level3'] for row in cursor.fetchall()]
+            cursor.execute(f"SELECT DISTINCT level3 FROM categories WHERE level1 = {placeholder} AND level2 = {placeholder} ORDER BY level3", (level1, level2))
+            result = [row[0] for row in cursor.fetchall()]
             conn.close()
             return {"success": True, "options": result}
 
         else:
             # level4 옵션 반환
-            cursor = conn.execute("SELECT DISTINCT level4, folder_number FROM categories WHERE level1 = ? AND level2 = ? AND level3 = ? ORDER BY level4", (level1, level2, level3))
-            result = [{"name": row['level4'], "folder_number": row['folder_number']} for row in cursor.fetchall()]
+            cursor.execute(f"SELECT DISTINCT level4, folder_number FROM categories WHERE level1 = {placeholder} AND level2 = {placeholder} AND level3 = {placeholder} ORDER BY level4", (level1, level2, level3))
+            rows = cursor.fetchall()
+            result = [{"name": row[0], "folder_number": row[1]} for row in rows]
             conn.close()
             return {"success": True, "options": result}
 
