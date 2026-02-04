@@ -910,3 +910,105 @@ async def upload_image(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"[이미지업로드] 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=f"이미지 업로드 실패: {str(e)}")
+
+
+@router.post("/{product_id}/sync-to-playauto")
+async def sync_product_to_playauto(product_id: int):
+    """
+    상품 정보를 PlayAuto에 동기화 (수정)
+
+    Args:
+        product_id: 동기화할 상품 ID
+
+    Returns:
+        동기화 결과
+    """
+    try:
+        db = get_db()
+        conn = db.get_connection()
+
+        # 상품 정보 조회
+        cursor = conn.execute("""
+            SELECT id, product_name, selling_price, sourcing_price,
+                   category, thumbnail_url, detail_page_data,
+                   playauto_product_no, c_sale_cd
+            FROM selling_products
+            WHERE id = ?
+        """, (product_id,))
+        product = cursor.fetchone()
+        conn.close()
+
+        if not product:
+            raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다")
+
+        product_dict = {
+            'id': product[0],
+            'product_name': product[1],
+            'selling_price': product[2],
+            'sourcing_price': product[3],
+            'category': product[4],
+            'thumbnail_url': product[5],
+            'detail_page_data': product[6],
+            'playauto_product_no': product[7],
+            'c_sale_cd': product[8]
+        }
+
+        # PlayAuto 상품 번호가 없으면 에러
+        if not product_dict.get('c_sale_cd'):
+            raise HTTPException(
+                status_code=400,
+                detail="PlayAuto에 등록되지 않은 상품입니다. 먼저 '상품등록'을 진행해주세요."
+            )
+
+        # PlayAuto 상품 수정 API 호출
+        from playauto.products import edit_playauto_product
+
+        # 카테고리 코드 조회
+        sol_cate_no = None
+        if product_dict.get('category'):
+            from playauto.product_registration import get_sol_cate_no_for_category
+            sol_cate_no = get_sol_cate_no_for_category(product_dict['category'])
+
+        # 옵션 구성 (기본 옵션)
+        opts = [{
+            "opt_sort1": "상품선택",
+            "opt_sort1_desc": product_dict['product_name'][:50].replace(",", " "),
+            "stock_cnt": 999,
+            "status": "정상"
+        }]
+
+        # 상품 수정 요청
+        result = await edit_playauto_product(
+            c_sale_cd=product_dict['c_sale_cd'],
+            shop_cd="master",  # 마스터 상품 수정
+            shop_id="master",
+            shop_sale_name=product_dict['product_name'],
+            sale_price=int(product_dict['selling_price']),
+            sol_cate_no=sol_cate_no,
+            edit_slave_all=True,  # 하위 쇼핑몰 상품도 함께 수정
+            sale_img1=product_dict.get('thumbnail_url'),
+            opts=opts
+        )
+
+        if result.get('success'):
+            logger.info(f"[상품동기화] PlayAuto 동기화 성공: product_id={product_id}, c_sale_cd={product_dict['c_sale_cd']}")
+
+            # 캐시 무효화
+            clear_all_cache()
+
+            return {
+                "success": True,
+                "message": "PlayAuto에 상품 정보가 동기화되었습니다.",
+                "product_name": product_dict['product_name'],
+                "selling_price": product_dict['selling_price']
+            }
+        else:
+            error_msg = result.get('message', '알 수 없는 오류')
+            logger.error(f"[상품동기화] PlayAuto 동기화 실패: {error_msg}")
+            raise HTTPException(status_code=500, detail=f"PlayAuto 동기화 실패: {error_msg}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[상품동기화] 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"상품 동기화 실패: {str(e)}")

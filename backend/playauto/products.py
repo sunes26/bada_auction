@@ -185,3 +185,105 @@ def calculate_required_margin_rate(
     margin_rate = (margin / sourcing_price) * 100
 
     return round(margin_rate, 2)
+
+
+async def edit_playauto_product(
+    c_sale_cd: str,
+    shop_cd: str,
+    shop_id: str,
+    shop_sale_name: Optional[str] = None,
+    sale_price: Optional[int] = None,
+    sol_cate_no: Optional[int] = None,
+    edit_slave_all: bool = True,
+    detail_desc: Optional[str] = None,
+    sale_img1: Optional[str] = None,
+    opts: Optional[List[Dict]] = None,
+    **kwargs
+) -> Dict:
+    """
+    PlayAuto 온라인 상품 수정
+
+    Args:
+        c_sale_cd: 판매자관리코드 (필수)
+        shop_cd: 쇼핑몰 코드 (필수) - 마스터 수정은 'master'
+        shop_id: 쇼핑몰 아이디 (필수) - 마스터 수정은 'master'
+        shop_sale_name: 상품명
+        sale_price: 판매가 (10원 단위)
+        sol_cate_no: 카테고리 코드
+        edit_slave_all: 하위 쇼핑몰 상품 연동 수정 여부
+        detail_desc: 상품 상세설명
+        sale_img1: 기본 이미지 URL
+        opts: 옵션 정보 리스트
+        **kwargs: 기타 선택적 파라미터
+
+    Returns:
+        API 응답 결과
+
+    Example:
+        await edit_playauto_product(
+            c_sale_cd="m20230101",
+            shop_cd="master",
+            shop_id="master",
+            sale_price=15000,
+            shop_sale_name="수정된 상품명"
+        )
+    """
+    try:
+        client = PlayautoClient()
+
+        # 요청 데이터 구성
+        data = {
+            "c_sale_cd": c_sale_cd,
+            "shop_cd": shop_cd,
+            "shop_id": shop_id,
+            "edit_slave_all": edit_slave_all
+        }
+
+        # 선택적 파라미터 추가
+        if shop_sale_name:
+            data["shop_sale_name"] = shop_sale_name
+        if sale_price is not None:
+            data["sale_price"] = sale_price
+        if sol_cate_no is not None:
+            data["sol_cate_no"] = sol_cate_no
+        if detail_desc:
+            data["detail_desc"] = detail_desc
+        if sale_img1:
+            data["sale_img1"] = sale_img1
+        if opts:
+            data["opts"] = opts
+
+        # 추가 파라미터
+        for key, value in kwargs.items():
+            if value is not None:
+                data[key] = value
+
+        logger.info(f"[플레이오토] 상품 수정 시작: c_sale_cd={c_sale_cd}, shop_cd={shop_cd}")
+
+        # API 호출 - PUT 메서드 사용
+        endpoint = "/api/products/edit/v1.2"
+        async with client as c:
+            result = await c.put(endpoint, data=data)
+
+        if result.get("status") or result.get("result") == "success":
+            logger.info(f"[플레이오토] 상품 수정 성공: {c_sale_cd}")
+            return {
+                "success": True,
+                "message": "상품 수정 완료",
+                "data": result
+            }
+        else:
+            error_msg = result.get("message", "알 수 없는 오류")
+            logger.error(f"[플레이오토] 상품 수정 실패: {error_msg}")
+            return {
+                "success": False,
+                "message": error_msg,
+                "data": result
+            }
+
+    except Exception as e:
+        logger.error(f"[플레이오토] 상품 수정 실패: {str(e)}")
+        return {
+            "success": False,
+            "message": f"상품 수정 중 오류 발생: {str(e)}"
+        }

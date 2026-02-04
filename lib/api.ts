@@ -240,6 +240,12 @@ export const productsApi = {
       body: JSON.stringify({ product_url: productUrl }),
       useCache: false,
     }),
+
+  syncToPlayauto: (id: number) =>
+    apiCall<ApiResponse<any>>(`/api/products/${id}/sync-to-playauto`, {
+      method: 'POST',
+      useCache: false,
+    }),
 };
 
 // ============================================

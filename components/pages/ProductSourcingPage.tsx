@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, ExternalLink, TrendingUp, TrendingDown, DollarSign, Package, Eye, Edit, Trash2, RefreshCw, Search } from 'lucide-react';
+import { Plus, ExternalLink, TrendingUp, TrendingDown, DollarSign, Package, Eye, Edit, Trash2, RefreshCw, Search, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import { Line } from 'react-chartjs-2';
 // import { categoryStructure } from '@/lib/categories'; // DB에서 동적으로 로드
 import type { Category } from '@/types';
@@ -170,8 +171,18 @@ export default function ProductSourcingPage() {
     }
   }, [loadProducts]);
 
-  const handleToggleStatus = useCallback(async (productId: number, currentStatus: boolean) => {
+  const handleToggleStatus = useCallback(async (productId: number, currentStatus: boolean, productName: string) => {
     try {
+      // 확인 다이얼로그
+      const action = currentStatus ? '중단' : '판매중';
+      const confirmed = window.confirm(
+        `"${productName}" 상품을 ${action}으로 변경하시겠습니까?`
+      );
+
+      if (!confirmed) {
+        return; // 사용자가 취소한 경우
+      }
+
       const newStatus = !currentStatus;
       const data = await productsApi.update(productId, { is_active: newStatus });
 
@@ -181,12 +192,14 @@ export default function ProductSourcingPage() {
           p.id === productId ? { ...p, is_active: newStatus } : p
         ));
         cache.clearProducts();
+
+        toast.success(`상품 상태가 ${action}으로 변경되었습니다.`);
       } else {
-        alert('상태 변경에 실패했습니다.');
+        toast.error('상태 변경에 실패했습니다.');
       }
     } catch (error) {
       console.error('상태 변경 실패:', error);
-      alert('상태 변경 중 오류가 발생했습니다.');
+      toast.error('상태 변경 중 오류가 발생했습니다.');
     }
   }, []);
 
@@ -233,6 +246,40 @@ export default function ProductSourcingPage() {
       alert(`소싱가 업데이트 중 오류가 발생했습니다.\n\n${error.message || '네트워크 오류'}\n\n소싱처 URL이 올바른지 확인해주세요.`);
     }
   }, [loadProducts]);
+
+  // PlayAuto 동기화
+  const handleSyncToPlayauto = useCallback(async (productId: number, productName: string, cSaleCd: string | null) => {
+    if (!cSaleCd) {
+      toast.error('PlayAuto에 등록되지 않은 상품입니다.\n먼저 "상품등록"을 진행해주세요.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `"${productName}" 상품 정보를 PlayAuto와 동기화하시겠습니까?\n\n` +
+      `마켓플레이스의 상품 정보(상품명, 가격 등)가 현재 정보로 업데이트됩니다.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      toast.info('PlayAuto 동기화 중...');
+      const data = await productsApi.syncToPlayauto(productId);
+
+      if (data.success) {
+        toast.success(
+          `PlayAuto 동기화 완료!\n\n` +
+          `상품명: ${data.product_name}\n` +
+          `판매가: ${data.selling_price?.toLocaleString()}원`
+        );
+        cache.clearProducts();
+      } else {
+        toast.error(`PlayAuto 동기화 실패\n\n${data.message || '알 수 없는 오류'}`);
+      }
+    } catch (error: any) {
+      console.error('PlayAuto 동기화 실패:', error);
+      toast.error(`PlayAuto 동기화 중 오류가 발생했습니다.\n\n${error.message || '네트워크 오류'}`);
+    }
+  }, []);
 
   // 일괄 선택/해제
   const handleSelectAll = useCallback(() => {
@@ -753,7 +800,7 @@ export default function ProductSourcingPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleToggleStatus(product.id, product.is_active);
+                            handleToggleStatus(product.id, product.is_active, product.product_name);
                           }}
                           className={`inline-block px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all hover:scale-105 cursor-pointer ${
                             product.is_active
@@ -800,6 +847,18 @@ export default function ProductSourcingPage() {
                           >
                             <Edit className="w-4 h-4" />
                           </button>
+                          {product.c_sale_cd && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSyncToPlayauto(product.id, product.product_name, product.c_sale_cd);
+                              }}
+                              className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors"
+                              title="PlayAuto 동기화"
+                            >
+                              <Upload className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
