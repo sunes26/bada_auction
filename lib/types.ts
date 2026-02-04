@@ -26,6 +26,11 @@ export interface Product {
   updated_at: string;
   notes?: string;
 
+  // PlayAuto fields
+  c_sale_cd?: string;
+  playauto_product_no?: string;
+  sol_cate_no?: number;
+
   // Computed fields from backend
   effective_sourcing_price?: number;
   margin?: number;
