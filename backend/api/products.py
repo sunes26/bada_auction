@@ -459,23 +459,14 @@ async def update_product(product_id: int, request: UpdateProductRequest):
                 changed_fields = ', '.join(playauto_changes.keys())
                 logger.info(f"[상품수정] 플레이오토 업데이트 시작: c_sale_cd={playauto_product_no}, 변경항목={changed_fields}")
 
-                # 옵션 구성 (상품명이 변경된 경우 옵션 설명도 업데이트)
-                product_name_for_opts = request.product_name if request.product_name else product.get('product_name')
-                opts = [{
-                    "opt_sort1": "상품선택",
-                    "opt_sort1_desc": product_name_for_opts[:50].replace(",", " "),
-                    "stock_cnt": 999,
-                    "status": "정상"
-                }]
-
                 # PlayAuto 상품 수정 API 호출
+                # 옵션은 수정하지 않음 (opts, opt_type 제외)
                 result = await edit_playauto_product(
                     c_sale_cd=playauto_product_no,  # playauto_product_no는 실제로 c_sale_cd
                     shop_cd="master",  # 마스터 상품 수정
                     shop_id="master",
                     edit_slave_all=True,  # 모든 연동 쇼핑몰 상품도 함께 수정
-                    opts=opts,  # 옵션 정보
-                    **playauto_changes  # 변경된 필드들만 전달
+                    **playauto_changes  # 변경된 필드들만 전달 (가격, 상품명, 카테고리, 썸네일 등)
                 )
 
                 # PlayAuto 응답 로깅
@@ -1005,15 +996,8 @@ async def sync_product_to_playauto(product_id: int):
             from playauto.product_registration import get_sol_cate_no_for_category
             sol_cate_no = get_sol_cate_no_for_category(product_dict['category'])
 
-        # 옵션 구성 (기본 옵션)
-        opts = [{
-            "opt_sort1": "상품선택",
-            "opt_sort1_desc": product_dict['product_name'][:50].replace(",", " "),
-            "stock_cnt": 999,
-            "status": "정상"
-        }]
-
         # 상품 수정 요청
+        # 옵션은 수정하지 않음 (opts, opt_type 제외)
         result = await edit_playauto_product(
             c_sale_cd=product_dict['c_sale_cd'],
             shop_cd="master",  # 마스터 상품 수정
@@ -1022,8 +1006,7 @@ async def sync_product_to_playauto(product_id: int):
             sale_price=int(product_dict['selling_price']),
             sol_cate_no=sol_cate_no,
             edit_slave_all=True,  # 하위 쇼핑몰 상품도 함께 수정
-            sale_img1=product_dict.get('thumbnail_url'),
-            opts=opts
+            sale_img1=product_dict.get('thumbnail_url')
         )
 
         if result.get('success'):

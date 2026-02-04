@@ -286,7 +286,15 @@ async def edit_playauto_product(
                 "data": result
             }
         else:
-            error_msg = result.get("message", "알 수 없는 오류")
+            # 오류 메시지 추출 (messages 배열 또는 message 필드)
+            error_msg = result.get("message")
+            if not error_msg and result.get("messages"):
+                # messages 배열이 있는 경우 첫 번째 메시지 사용
+                messages = result.get("messages", [])
+                error_msg = messages[0] if messages else "알 수 없는 오류"
+            elif not error_msg:
+                error_msg = "알 수 없는 오류"
+
             logger.error(f"[플레이오토] 상품 수정 실패: {error_msg}")
             logger.error(f"[플레이오토] 실패 응답 전체: {result}")
             return {
