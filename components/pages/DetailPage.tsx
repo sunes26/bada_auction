@@ -1022,6 +1022,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
           imageSizes={imageSizes}
           imagePositions={imagePositions}
           textStyles={textStyles}
+          templateRef={templateRef}
           onClose={() => setShowAddProductModal(false)}
           onSuccess={() => {
             setShowAddProductModal(false);
@@ -1400,6 +1401,7 @@ function AddProductFromDetailPageModal({
   imageSizes,
   imagePositions,
   textStyles,
+  templateRef,
   onClose,
   onSuccess
 }: {
@@ -1416,6 +1418,7 @@ function AddProductFromDetailPageModal({
   imageSizes: Record<string, number>;
   imagePositions: Record<string, { x: number; y: number }>;
   textStyles: Record<string, { fontSize?: string; color?: string; fontWeight?: string; textAlign?: string }>;
+  templateRef: React.RefObject<HTMLDivElement>;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -1447,7 +1450,56 @@ function AddProductFromDetailPageModal({
     try {
       const categoryString = `${category.level1} > ${category.level2} > ${category.level3} > ${category.level4}`;
 
-      // 상세페이지 데이터를 JSON으로 저장 (스타일 정보 포함)
+      // 1. 템플릿을 JPG로 렌더링 (position: absolute 등 모든 CSS 보존)
+      let detailImageUrl = '';
+      if (templateRef?.current) {
+        try {
+          const htmlToImage = (await import('html-to-image')).default;
+
+          // JPG 생성
+          const dataUrl = await htmlToImage.toJpeg(templateRef.current, {
+            quality: 0.9,
+            width: 860,
+            backgroundColor: '#ffffff',
+            filter: (node: HTMLElement) => {
+              if (node.classList) {
+                return !node.classList.contains('opacity-0') &&
+                       !node.classList.contains('group-hover:opacity-100') &&
+                       node.tagName !== 'INPUT' &&
+                       node.tagName !== 'BUTTON' &&
+                       !node.hasAttribute('data-exclude-from-download');
+              }
+              return true;
+            }
+          });
+
+          // DataURL을 Blob으로 변환
+          const response = await fetch(dataUrl);
+          const blob = await response.blob();
+
+          // Supabase에 업로드
+          const formData = new FormData();
+          formData.append('file', blob, `${productName.replace(/[^a-zA-Z0-9가-힣]/g, '_')}_detail.jpg`);
+
+          const uploadResponse = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (uploadResponse.ok) {
+            const uploadData = await uploadResponse.json();
+            if (uploadData.success && uploadData.url) {
+              detailImageUrl = uploadData.url;
+              console.log('✅ 상세페이지 JPG 업로드 성공:', detailImageUrl);
+            }
+          }
+        } catch (error) {
+          console.error('❌ 상세페이지 JPG 생성 실패:', error);
+          // 실패해도 계속 진행 (JSON 방식 폴백)
+        }
+      }
+
+      // 2. 상세페이지 데이터를 JSON으로 저장 (편집용)
       const detailPageData = JSON.stringify({
         template: selectedTemplate,
         content: generatedContent,
@@ -1455,6 +1507,7 @@ function AddProductFromDetailPageModal({
         imageSizes: imageSizes,
         imagePositions: imagePositions,
         textStyles: textStyles,
+        detailImageUrl: detailImageUrl, // JPG URL 저장
         createdAt: new Date().toISOString()
       });
 

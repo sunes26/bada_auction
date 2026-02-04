@@ -187,14 +187,18 @@ class PlayautoProductRegistration:
 
 def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -> str:
     """
-    detail_page_data JSON을 HTML로 변환 (이미지 포함)
+    detail_page_data JSON을 HTML로 변환
+
+    우선순위:
+    1. detailImageUrl이 있으면 JPG 이미지만 사용 (모든 CSS 보존)
+    2. 없으면 기존 방식 (이미지 나열)
 
     Args:
         detail_page_data: JSON 형태의 상세페이지 데이터
         product_name: 상품명 (fallback용)
 
     Returns:
-        HTML 문자열 (이미지 포함)
+        HTML 문자열
     """
     if not detail_page_data:
         return f"<div style='padding: 20px;'><h1>{product_name}</h1><p>상품 상세 정보</p></div>"
@@ -202,6 +206,14 @@ def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -
     try:
         import json
         data = json.loads(detail_page_data)
+
+        # 1. JPG 이미지가 있으면 그것만 사용 (최고 품질)
+        detail_image_url = data.get("detailImageUrl")
+        if detail_image_url:
+            logger.info(f"[플레이오토] 상세페이지 JPG 이미지 사용: {detail_image_url[:80]}...")
+            return f"""<div style='max-width: 1000px; margin: 0 auto; text-align: center;'>
+<img src='{detail_image_url}' style='width: 100%; height: auto; display: block;' alt='{product_name} 상세페이지' />
+</div>"""
 
         # 데이터 추출
         content = data.get("content", {})
