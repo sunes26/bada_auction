@@ -745,16 +745,26 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // html-to-image를 사용하여 JPG 생성 (최신 CSS 지원!)
+      // 임시로 border/outline 제거 (파란색 선 제거)
+      const originalOutline = templateRef.current.style.outline;
+      const originalBorder = templateRef.current.style.border;
+      templateRef.current.style.outline = 'none';
+      templateRef.current.style.border = 'none';
+
+      // 고화질 JPG 생성
       const dataUrl = await htmlToImage.toJpeg(templateRef.current, {
-        quality: 0.9,
-        width: 860,
+        quality: 1.0,  // 최고 품질
+        pixelRatio: 2,  // 2배 해상도 (고화질)
+        width: 860 * 2,  // 실제 크기 2배
+        height: undefined,  // 비율 유지
         backgroundColor: '#ffffff',
+        cacheBust: true,  // 캐시 방지
         filter: (node: HTMLElement) => {
-          // 다운로드에서 제외할 요소들
           if (node.classList) {
             return !node.classList.contains('opacity-0') &&
                    !node.classList.contains('group-hover:opacity-100') &&
+                   !node.classList.contains('border-2') &&
+                   !node.classList.contains('outline') &&
                    node.tagName !== 'INPUT' &&
                    node.tagName !== 'BUTTON' &&
                    !node.hasAttribute('data-exclude-from-download');
@@ -762,6 +772,10 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
           return true;
         }
       });
+
+      // border/outline 복원
+      templateRef.current.style.outline = originalOutline;
+      templateRef.current.style.border = originalBorder;
 
       // DataURL을 Blob으로 변환하여 다운로드
       const response = await fetch(dataUrl);
@@ -1454,15 +1468,27 @@ function AddProductFromDetailPageModal({
       let detailImageUrl = '';
       if (templateRef?.current) {
         try {
-          // JPG 생성 (이미 상단에서 import한 htmlToImage 사용)
+          // 임시로 border/outline 제거 (파란색 선 문제 해결)
+          const originalOutline = templateRef.current.style.outline;
+          const originalBorder = templateRef.current.style.border;
+          templateRef.current.style.outline = 'none';
+          templateRef.current.style.border = 'none';
+
+          // 고화질 JPG 생성
           const dataUrl = await htmlToImage.toJpeg(templateRef.current, {
-            quality: 0.9,
-            width: 860,
+            quality: 1.0,  // 최고 품질 (0.9 → 1.0)
+            pixelRatio: 2,  // 2배 해상도 (Retina 디스플레이 대응)
+            width: 860 * 2,  // 실제 렌더링 크기 2배
+            height: undefined,  // 비율 유지
             backgroundColor: '#ffffff',
+            cacheBust: true,  // 캐시 방지
             filter: (node: HTMLElement) => {
               if (node.classList) {
+                // 편집 UI 요소 제외
                 return !node.classList.contains('opacity-0') &&
                        !node.classList.contains('group-hover:opacity-100') &&
+                       !node.classList.contains('border-2') &&  // 선택 테두리 제외
+                       !node.classList.contains('outline') &&  // outline 제외
                        node.tagName !== 'INPUT' &&
                        node.tagName !== 'BUTTON' &&
                        !node.hasAttribute('data-exclude-from-download');
@@ -1470,6 +1496,10 @@ function AddProductFromDetailPageModal({
               return true;
             }
           });
+
+          // border/outline 복원
+          templateRef.current.style.outline = originalOutline;
+          templateRef.current.style.border = originalBorder;
 
           // DataURL을 Blob으로 변환
           const response = await fetch(dataUrl);
