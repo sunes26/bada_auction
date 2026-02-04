@@ -26,18 +26,11 @@ async def get_auto_pricing_settings():
     """자동 가격 조정 설정 조회"""
     try:
         db = get_db()
-        conn = db.get_connection()
+        setting_value = db.get_playauto_setting('auto_pricing_settings')
 
-        cursor = conn.execute("""
-            SELECT setting_value FROM settings
-            WHERE setting_key = 'auto_pricing_settings'
-        """)
-        row = cursor.fetchone()
-        conn.close()
-
-        if row:
+        if setting_value:
             import json
-            settings = json.loads(row[0])
+            settings = json.loads(setting_value)
             return {
                 "success": True,
                 "settings": settings
@@ -57,7 +50,7 @@ async def get_auto_pricing_settings():
 
     except Exception as e:
         logger.error(f"[자동가격] 설정 조회 실패: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"자동 가격 조정 설정 조회 실패: {str(e)}")
 
 
 @router.post("/settings")
@@ -66,17 +59,11 @@ async def update_auto_pricing_settings(settings: AutoPricingSettings):
     try:
         import json
         db = get_db()
-        conn = db.get_connection()
 
         settings_json = json.dumps(settings.dict())
 
-        # settings 테이블에 저장
-        cursor = conn.execute("""
-            INSERT OR REPLACE INTO settings (setting_key, setting_value)
-            VALUES ('auto_pricing_settings', ?)
-        """, (settings_json,))
-        conn.commit()
-        conn.close()
+        # playauto_settings 테이블에 저장
+        db.save_playauto_setting('auto_pricing_settings', settings_json, encrypted=False, notes='자동 가격 조정 설정')
 
         logger.info(f"[자동가격] 설정 업데이트: enabled={settings.enabled}, target_margin={settings.target_margin}%")
 
@@ -88,7 +75,7 @@ async def update_auto_pricing_settings(settings: AutoPricingSettings):
 
     except Exception as e:
         logger.error(f"[자동가격] 설정 업데이트 실패: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"자동 가격 조정 설정 업데이트 실패: {str(e)}")
 
 
 async def calculate_new_price(sourcing_price: float, target_margin: float, price_unit: int) -> int:
@@ -128,35 +115,30 @@ async def adjust_product_price(product_id: int):
         db = get_db()
 
         # 자동 가격 조정 설정 확인
-        conn = db.get_connection()
-        cursor = conn.execute("""
-            SELECT setting_value FROM settings
-            WHERE setting_key = 'auto_pricing_settings'
-        """)
-        row = cursor.fetchone()
+        setting_value = db.get_playauto_setting('auto_pricing_settings')
 
-        if not row:
+        if not setting_value:
             return {"success": False, "message": "자동 가격 조정이 설정되지 않았습니다."}
 
         import json
-        settings = json.loads(row[0])
+        settings = json.loads(setting_value)
 
         if not settings.get('enabled'):
             return {"success": False, "message": "자동 가격 조정이 비활성화되어 있습니다."}
 
         # 상품 정보 조회
-        cursor = conn.execute("""
-            SELECT id, product_name, sourcing_price, selling_price, is_active
-            FROM selling_products
-            WHERE id = ?
-        """, (product_id,))
-        product = cursor.fetchone()
+        product = db.get_selling_product(product_id)
 
         if not product:
-            conn.close()
             raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
 
-        product_id, product_name, sourcing_price, old_selling_price, is_active = product
+        product_name = product.get('product_name')
+        sourcing_price = product.get('effective_sourcing_price') or product.get('sourcing_price', 0)
+        old_selling_price = product.get('selling_price')
+        is_active = product.get('is_active')
+
+        if sourcing_price == 0:
+            return {"success": False, "message": "소싱가가 설정되지 않았습니다."}
 
         # 새 판매가 계산
         new_selling_price = await calculate_new_price(
@@ -175,14 +157,11 @@ async def adjust_product_price(product_id: int):
             logger.warning(f"[자동가격] {product_name}: 최소 마진율 미달 ({new_margin:.1f}% < {settings['min_margin']}%) - 판매 중단")
 
         # 가격 업데이트
-        cursor = conn.execute("""
-            UPDATE selling_products
-            SET selling_price = ?,
-                is_active = ?
-            WHERE id = ?
-        """, (new_selling_price, 0 if should_disable else is_active, product_id))
-        conn.commit()
-        conn.close()
+        db.update_selling_product(
+            product_id=product_id,
+            selling_price=new_selling_price,
+            is_active=False if should_disable else is_active
+        )
 
         logger.info(f"[자동가격] {product_name}: {old_selling_price:,}원 → {new_selling_price:,}원 (마진 {new_margin:.1f}%)")
 
@@ -212,7 +191,7 @@ async def adjust_product_price(product_id: int):
         raise
     except Exception as e:
         logger.error(f"[자동가격] 가격 조정 실패: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"자동 가격 조정 실패: {str(e)}")
 
 
 @router.post("/adjust-all")
@@ -224,43 +203,35 @@ async def adjust_all_products():
         db = get_db()
 
         # 자동 가격 조정 설정 확인
-        conn = db.get_connection()
-        cursor = conn.execute("""
-            SELECT setting_value FROM settings
-            WHERE setting_key = 'auto_pricing_settings'
-        """)
-        row = cursor.fetchone()
+        setting_value = db.get_playauto_setting('auto_pricing_settings')
 
-        if not row:
-            conn.close()
+        if not setting_value:
             return {"success": False, "message": "자동 가격 조정이 설정되지 않았습니다."}
 
         import json
-        settings = json.loads(row[0])
+        settings = json.loads(setting_value)
 
         if not settings.get('enabled'):
-            conn.close()
             return {"success": False, "message": "자동 가격 조정이 비활성화되어 있습니다."}
 
         # 모든 활성 상품 조회
-        cursor = conn.execute("""
-            SELECT id FROM selling_products
-            WHERE is_active = 1
-        """)
-        products = cursor.fetchall()
-        conn.close()
+        products = db.get_selling_products(is_active=True)
 
         # 각 상품 가격 조정
         adjusted_count = 0
         disabled_count = 0
 
         for product in products:
-            product_id = product[0]
-            result = await adjust_product_price(product_id)
-            if result['success']:
-                adjusted_count += 1
-                if result.get('disabled'):
-                    disabled_count += 1
+            product_id = product['id']
+            try:
+                result = await adjust_product_price(product_id)
+                if result['success']:
+                    adjusted_count += 1
+                    if result.get('disabled'):
+                        disabled_count += 1
+            except Exception as e:
+                logger.error(f"[자동가격] 상품 {product_id} 조정 실패: {str(e)}")
+                continue
 
         logger.info(f"[자동가격] 일괄 조정 완료: {adjusted_count}개 조정, {disabled_count}개 비활성화")
 
@@ -273,4 +244,4 @@ async def adjust_all_products():
 
     except Exception as e:
         logger.error(f"[자동가격] 일괄 조정 실패: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"자동 가격 조정 일괄 처리 실패: {str(e)}")
