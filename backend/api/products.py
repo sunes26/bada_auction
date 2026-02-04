@@ -404,11 +404,21 @@ async def update_product(product_id: int, request: UpdateProductRequest):
         if not product:
             raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
 
-        # 판매가 변경 확인 (플레이오토 API 호출용)
-        old_selling_price = product.get('selling_price')
-        new_selling_price = request.selling_price
-        price_changed = new_selling_price is not None and old_selling_price != new_selling_price
-        playauto_product_no = product.get('playauto_product_no')
+        # PlayAuto 동기화가 필요한 변경사항 추적
+        playauto_product_no = product.get('playauto_product_no')  # c_sale_cd
+        playauto_changes = {}
+
+        # 상품명 변경 확인
+        if request.product_name and request.product_name != product.get('product_name'):
+            playauto_changes['shop_sale_name'] = request.product_name
+
+        # 판매가 변경 확인
+        if request.selling_price is not None and request.selling_price != product.get('selling_price'):
+            playauto_changes['sale_price'] = int(request.selling_price)
+
+        # 썸네일 변경 확인
+        if request.thumbnail_url and request.thumbnail_url != product.get('thumbnail_url'):
+            playauto_changes['sale_img1'] = request.thumbnail_url
 
         # 카테고리 변경 시 자동 매핑
         sol_cate_no = None
@@ -416,6 +426,9 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             sol_cate_no = get_playauto_category_code(request.category)
             if sol_cate_no:
                 logger.info(f"[상품수정] 카테고리 자동 매핑: {request.category} -> {sol_cate_no}")
+                # 카테고리가 변경된 경우 PlayAuto에도 반영
+                if sol_cate_no != product.get('sol_cate_no'):
+                    playauto_changes['sol_cate_no'] = sol_cate_no
             else:
                 logger.warning(f"[상품수정] 카테고리 매핑 없음: {request.category}")
 
@@ -437,25 +450,43 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             notes=request.notes
         )
 
-        # 플레이오토 API 업데이트 (판매가 변경 + 플레이오토 상품인 경우)
+        # 플레이오토 API 업데이트 (변경사항 + 플레이오토 상품인 경우)
         playauto_updated = False
-        if price_changed and playauto_product_no:
+        if playauto_changes and playauto_product_no:
             try:
-                from playauto.products import PlayautoProductAPI
-                playauto_api = PlayautoProductAPI()
+                from playauto.products import edit_playauto_product
 
-                logger.info(f"[상품수정] 플레이오토 가격 업데이트 시작: ol_shop_no={playauto_product_no}, {old_selling_price:,}원 → {new_selling_price:,}원")
+                changed_fields = ', '.join(playauto_changes.keys())
+                logger.info(f"[상품수정] 플레이오토 업데이트 시작: c_sale_cd={playauto_product_no}, 변경항목={changed_fields}")
 
-                await playauto_api.update_online_product_price(
-                    ol_shop_no=playauto_product_no,
-                    sale_price=int(new_selling_price)
+                # 옵션 구성 (상품명이 변경된 경우 옵션 설명도 업데이트)
+                product_name_for_opts = request.product_name if request.product_name else product.get('product_name')
+                opts = [{
+                    "opt_sort1": "상품선택",
+                    "opt_sort1_desc": product_name_for_opts[:50].replace(",", " "),
+                    "stock_cnt": 999,
+                    "status": "정상"
+                }]
+
+                # PlayAuto 상품 수정 API 호출
+                result = await edit_playauto_product(
+                    c_sale_cd=playauto_product_no,  # playauto_product_no는 실제로 c_sale_cd
+                    shop_cd="master",  # 마스터 상품 수정
+                    shop_id="master",
+                    edit_slave_all=True,  # 모든 연동 쇼핑몰 상품도 함께 수정
+                    opts=opts,  # 옵션 정보
+                    **playauto_changes  # 변경된 필드들만 전달
                 )
 
-                playauto_updated = True
-                logger.info(f"[상품수정] 플레이오토 가격 업데이트 성공")
+                if result.get('success'):
+                    playauto_updated = True
+                    logger.info(f"[상품수정] 플레이오토 업데이트 성공: {playauto_product_no}")
+                else:
+                    error_msg = result.get('message', '알 수 없는 오류')
+                    logger.error(f"[상품수정] 플레이오토 업데이트 실패: {error_msg}")
 
             except Exception as e:
-                logger.error(f"[상품수정] 플레이오토 가격 업데이트 실패: {str(e)}")
+                logger.error(f"[상품수정] 플레이오토 업데이트 실패: {str(e)}")
                 # 플레이오토 업데이트 실패해도 로컬 DB는 업데이트되었으므로 계속 진행
 
         # 캐시 무효화
@@ -465,7 +496,7 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             "success": True,
             "message": "상품이 수정되었습니다.",
             "playauto_updated": playauto_updated,
-            "price_changed": price_changed
+            "playauto_changes": list(playauto_changes.keys()) if playauto_changes else []
         }
 
     except HTTPException:
