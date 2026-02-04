@@ -219,10 +219,33 @@ def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -
         for key in main_image_keys:
             if key in images and images[key]:
                 url = images[key]
-                # 로컬 경로(/static, /uploads 등)는 제외 - 플레이오토가 접근 불가
-                if isinstance(url, str) and url.startswith("/"):
-                    logger.warning(f"[플레이오토] 로컬 경로 이미지 제외: {url}")
+
+                # 로컬 경로를 Supabase URL로 변환
+                if isinstance(url, str) and url.startswith("/supabase-images/"):
+                    # /supabase-images/1_흰밥/image.jpg -> cat-1/image.jpg
+                    import re
+                    import urllib.parse
+
+                    # 카테고리 ID 추출 (1_흰밥 -> 1)
+                    match = re.match(r'/supabase-images/(\d+)_[^/]+/(.+)', url)
+                    if match:
+                        cat_id = match.group(1)
+                        filename = match.group(2)
+                        # URL 디코딩 (한글 파일명 처리)
+                        filename = urllib.parse.unquote(filename)
+                        # Supabase Storage URL 생성
+                        url = f"https://spkeunlwkrqkdwunkufy.supabase.co/storage/v1/object/public/product-images/cat-{cat_id}/{urllib.parse.quote(filename)}"
+                        logger.info(f"[플레이오토] 로컬 경로 → Supabase URL 변환: cat-{cat_id}/{filename[:50]}")
+                    else:
+                        logger.warning(f"[플레이오토] 로컬 경로 패턴 불일치, 제외: {url}")
+                        continue
+
+                # 다른 로컬 경로(/static, /uploads 등)는 제외
+                elif isinstance(url, str) and url.startswith("/"):
+                    logger.warning(f"[플레이오토] 접근 불가 로컬 경로 제외: {url}")
                     continue
+
+                # 외부 URL 처리
                 if isinstance(url, str) and (url.startswith("http") or url.startswith("//")):
                     if url.startswith("//"):
                         url = f"https:{url}"
@@ -246,9 +269,24 @@ def convert_detail_page_json_to_html(detail_page_data: str, product_name: str) -
         sub_images = []
         for key, url in images.items():
             if key not in main_image_keys and isinstance(url, str):
-                # 로컬 경로 제외
-                if url.startswith("/"):
+                # 로컬 경로를 Supabase URL로 변환
+                if url.startswith("/supabase-images/"):
+                    import re
+                    import urllib.parse
+
+                    match = re.match(r'/supabase-images/(\d+)_[^/]+/(.+)', url)
+                    if match:
+                        cat_id = match.group(1)
+                        filename = match.group(2)
+                        filename = urllib.parse.unquote(filename)
+                        url = f"https://spkeunlwkrqkdwunkufy.supabase.co/storage/v1/object/public/product-images/cat-{cat_id}/{urllib.parse.quote(filename)}"
+                    else:
+                        continue
+                # 다른 로컬 경로 제외
+                elif url.startswith("/"):
                     continue
+
+                # 외부 URL 추가
                 if url.startswith("http") or url.startswith("//"):
                     if url.startswith("//"):
                         url = f"https:{url}"
@@ -311,8 +349,26 @@ def extract_images_from_detail_page(detail_page_data: str) -> List[str]:
                 break
             if key in images:
                 url = images[key]
-                # 로컬 경로 제외, 외부 URL만 사용
-                if isinstance(url, str) and not url.startswith("/") and (url.startswith("http") or url.startswith("//")):
+
+                # 로컬 경로를 Supabase URL로 변환
+                if isinstance(url, str) and url.startswith("/supabase-images/"):
+                    import re
+                    import urllib.parse
+
+                    match = re.match(r'/supabase-images/(\d+)_[^/]+/(.+)', url)
+                    if match:
+                        cat_id = match.group(1)
+                        filename = match.group(2)
+                        filename = urllib.parse.unquote(filename)
+                        url = f"https://spkeunlwkrqkdwunkufy.supabase.co/storage/v1/object/public/product-images/cat-{cat_id}/{urllib.parse.quote(filename)}"
+                    else:
+                        continue
+                # 다른 로컬 경로 제외
+                elif isinstance(url, str) and url.startswith("/"):
+                    continue
+
+                # 외부 URL 추가
+                if isinstance(url, str) and (url.startswith("http") or url.startswith("//")):
                     if url.startswith("//"):
                         url = f"https:{url}"
                     image_urls.append(url)
@@ -322,8 +378,25 @@ def extract_images_from_detail_page(detail_page_data: str) -> List[str]:
             if len(image_urls) >= 10:
                 break
             if key not in priority_keys and isinstance(url, str):
-                # 로컬 경로 제외, 외부 URL만 사용
-                if not url.startswith("/") and (url.startswith("http") or url.startswith("//")):
+                # 로컬 경로를 Supabase URL로 변환
+                if url.startswith("/supabase-images/"):
+                    import re
+                    import urllib.parse
+
+                    match = re.match(r'/supabase-images/(\d+)_[^/]+/(.+)', url)
+                    if match:
+                        cat_id = match.group(1)
+                        filename = match.group(2)
+                        filename = urllib.parse.unquote(filename)
+                        url = f"https://spkeunlwkrqkdwunkufy.supabase.co/storage/v1/object/public/product-images/cat-{cat_id}/{urllib.parse.quote(filename)}"
+                    else:
+                        continue
+                # 다른 로컬 경로 제외
+                elif url.startswith("/"):
+                    continue
+
+                # 외부 URL 추가
+                if url.startswith("http") or url.startswith("//"):
                     if url.startswith("//"):
                         url = f"https:{url}"
                     image_urls.append(url)
