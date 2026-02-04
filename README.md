@@ -653,6 +653,69 @@ python main.py  # 자동으로 새 DB 생성
 
 ## 📈 업데이트 히스토리
 
+### 2026-02-04: 상세페이지 JPG 생성 최적화 🎨
+
+**고화질 JPG 렌더링 시스템 개선**:
+- ✅ **화질 최적화**:
+  - JPG quality: 0.9 → 1.0 (최고 품질)
+  - pixelRatio: 2 (Retina 디스플레이 지원, 860px → 1720px)
+  - 인라인 스타일로 너비 강제 고정 (Tailwind CSS 인식 문제 해결)
+- ✅ **파란색 선 제거**:
+  - 편집 UI 요소 (border-2, outline) 필터링
+  - JPG 생성 전 임시로 border/outline 스타일 제거
+  - 렌더링 후 원래 스타일 복원
+- ✅ **이미지 전송 최적화**:
+  - sale_img2~11 제거 (상세 이미지 미전송)
+  - sale_img1만 전송 (썸네일)
+  - 상세 이미지는 JPG에 통합되어 detail_desc에 포함됨
+- ✅ **스마트스토어 호환성**:
+  - 옵션값(opt_sort1_desc)에서 콤마 제거
+  - "펄 25% 라이트, 340g, 6개" → "펄 25% 라이트 340g 6개"
+  - "옵션값 항목에 콤마(,)는 사용하실 수 없습니다" 에러 해결
+
+**상세페이지 JPG 생성 설정**:
+```typescript
+await htmlToImage.toJpeg(templateRef.current, {
+  quality: 1.0,           // 최고 품질
+  pixelRatio: 2,          // 2배 해상도 (1720px)
+  backgroundColor: '#ffffff',
+  cacheBust: true,
+  filter: (node) => {
+    // 편집 UI 요소 제외
+    return !node.classList.contains('border-2') &&
+           !node.classList.contains('outline') &&
+           node.tagName !== 'INPUT' &&
+           node.tagName !== 'BUTTON';
+  }
+});
+```
+
+**PlayAuto API 전송 데이터 간소화**:
+```json
+{
+  "sale_img1": "썸네일 URL",
+  "detail_desc": "<img src='고화질_JPG_URL' />"
+}
+```
+- 이전: sale_img1~11 (최대 11개 이미지)
+- 현재: sale_img1 (썸네일 1개) + detail_desc (JPG 통합)
+
+**해결된 문제**:
+- ✅ 저화질 JPG 이미지 → 최고 품질 (1.0) + 2배 해상도
+- ✅ 좁은 너비 (빈 공간) → 인라인 스타일로 860px 강제 고정
+- ✅ 파란색 편집 선 → 필터링 + 임시 스타일 제거
+- ✅ 중복 이미지 전송 → 썸네일만 전송, 나머지는 JPG에 통합
+- ✅ 스마트스토어 콤마 에러 → 옵션값에서 콤마 자동 제거
+
+**커밋 해시**:
+- `7d6bc95`: JPG 화질 개선 및 파란색 선 제거
+- `47ab3a6`: templateRef div 너비 860px 고정
+- `79418ac`: 인라인 스타일로 너비 강제 설정 (width 옵션 제거)
+- `02e1668`: sale_img2-11 제거 (썸네일만 전송)
+- `1f08320`: 스마트스토어 옵션값 콤마 제거
+
+---
+
 ### 2026-02-03: PlayAuto 상품 등록 시스템 개선 🚀
 
 **PlayAuto 채널별 설정 분리 구현**:
