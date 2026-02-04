@@ -17,6 +17,7 @@ from api.category_mappings import router as category_mappings_router
 from api.category_playauto_mappings import router as category_playauto_mappings_router
 from api.dashboard import router as dashboard_router
 from api.websocket import router as websocket_router
+from api.auto_pricing import router as auto_pricing_router
 
 # Admin router import with error handling
 try:
@@ -447,6 +448,10 @@ print(f"[DEBUG] PlayAuto category mappings router registered. Total app routes: 
 # WebSocket router
 app.include_router(websocket_router)
 print(f"[OK] WebSocket router registered")
+
+# Auto Pricing router
+app.include_router(auto_pricing_router)
+print(f"[OK] Auto Pricing router registered")
 
 # Admin router (with error handling)
 if admin_router is not None:

@@ -127,7 +127,7 @@ interface SourcingAccount {
 }
 
 // 탭 타입 정의
-type TabType = 'dashboard' | 'orders' | 'create' | 'playauto' | 'tracking' | 'scheduler' | 'accounts';
+type TabType = 'dashboard' | 'orders' | 'create' | 'playauto' | 'tracking' | 'scheduler' | 'accounts' | 'auto-pricing';
 
 // 주문 필터 타입
 type OrderSourceFilter = 'all' | 'playauto' | 'manual';
@@ -150,6 +150,7 @@ export default function UnifiedOrderManagementPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [orderSourceFilter, setOrderSourceFilter] = useState<OrderSourceFilter>('all');
+  const [searchQuery, setSearchQuery] = useState<string>(''); // 검색어 상태
   const [orderFilters, setOrderFilters] = useState({
     start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end_date: new Date().toISOString().split('T')[0],
@@ -202,6 +203,15 @@ export default function UnifiedOrderManagementPage() {
     message: string;
   } | null>(null);
   const [showApiSecret, setShowApiSecret] = useState(false);
+
+  // 자동 가격 조정 설정
+  const [autoPricingSettings, setAutoPricingSettings] = useState({
+    enabled: false,
+    target_margin: 30.0,
+    min_margin: 15.0,
+    price_unit: 100,
+    auto_disable_on_low_margin: true
+  });
 
   // 송장 관리 탭 상태
   const [trackingHistory, setTrackingHistory] = useState<SyncLog[]>([]);
@@ -501,6 +511,65 @@ export default function UnifiedOrderManagementPage() {
     }
   };
 
+  // 자동 가격 조정 설정 관련
+  const loadAutoPricingSettings = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auto-pricing/settings`);
+      if (!res.ok) throw new Error('자동 가격 조정 설정 조회 실패');
+      const data = await res.json();
+      if (data.success && data.settings) {
+        setAutoPricingSettings(data.settings);
+      }
+    } catch (error) {
+      console.error('자동 가격 조정 설정 로드 실패:', error);
+    }
+  };
+
+  const saveAutoPricingSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setActionLoading({ ...actionLoading, 'save-auto-pricing': true });
+      const res = await fetch(`${API_BASE_URL}/api/auto-pricing/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(autoPricingSettings)
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('자동 가격 조정 설정이 저장되었습니다');
+        await loadAutoPricingSettings();
+      } else {
+        throw new Error(data.message || '설정 저장 실패');
+      }
+    } catch (error) {
+      console.error('설정 저장 실패:', error);
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      toast.error(`설정 저장 실패: ${errorMessage}`);
+    } finally {
+      setActionLoading({ ...actionLoading, 'save-auto-pricing': false });
+    }
+  };
+
+  const adjustAllPrices = async () => {
+    try {
+      setActionLoading({ ...actionLoading, 'adjust-all-prices': true });
+      const res = await fetch(`${API_BASE_URL}/api/auto-pricing/adjust-all`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`${data.adjusted_count}개 상품의 가격이 조정되었습니다.\n비활성화: ${data.disabled_count}개`);
+      } else {
+        toast.error(data.message || '가격 조정에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('가격 조정 실패:', error);
+      toast.error('가격 조정 중 오류가 발생했습니다');
+    } finally {
+      setActionLoading({ ...actionLoading, 'adjust-all-prices': false });
+    }
+  };
+
   const testConnection = async () => {
     try {
       setActionLoading({ ...actionLoading, 'test-connection': true });
@@ -642,6 +711,8 @@ export default function UnifiedOrderManagementPage() {
       loadTrackingHistory();
     } else if (activeTab === 'accounts') {
       fetchAccounts();
+    } else if (activeTab === 'auto-pricing') {
+      loadAutoPricingSettings();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -662,10 +733,23 @@ export default function UnifiedOrderManagementPage() {
     // 날짜 기준으로 정렬 (최신순)
     combinedOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+    // 검색어 필터링
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      combinedOrders = combinedOrders.filter(order => {
+        return (
+          order.order_number?.toLowerCase().includes(query) ||
+          order.customer_name?.toLowerCase().includes(query) ||
+          order.customer_phone?.includes(query) ||
+          order.market?.toLowerCase().includes(query)
+        );
+      });
+    }
+
     setOrders(combinedOrders);
     setFilteredOrders(combinedOrders);
-    setPagination(prev => ({ ...prev, total: combinedOrders.length }));
-  }, [orderSourceFilter, rawManualOrders, rawPlayautoOrders]);
+    setPagination(prev => ({ ...prev, total: combinedOrders.length, page: 1 })); // 검색 시 1페이지로
+  }, [orderSourceFilter, rawManualOrders, rawPlayautoOrders, searchQuery]);
 
   // 날짜/마켓/상태 필터 변경 시에만 재조회
   useEffect(() => {
@@ -788,6 +872,7 @@ export default function UnifiedOrderManagementPage() {
             { key: 'orders', label: '주문 목록', icon: <Package className="w-4 h-4" /> },
             { key: 'create', label: '주문 생성', icon: <Plus className="w-4 h-4" /> },
             { key: 'playauto', label: '플레이오토 설정', icon: <Settings className="w-4 h-4" /> },
+            { key: 'auto-pricing', label: '자동 가격 조정', icon: <TrendingUp className="w-4 h-4" /> },
             { key: 'tracking', label: '송장 관리', icon: <Truck className="w-4 h-4" /> },
             { key: 'scheduler', label: '송장 스케줄러', icon: <Clock className="w-4 h-4" /> },
             { key: 'accounts', label: '소싱처 계정', icon: <Settings className="w-4 h-4" /> }
@@ -996,6 +1081,48 @@ export default function UnifiedOrderManagementPage() {
               <Filter className="w-5 h-5" />
               주문 필터
             </h3>
+
+            {/* 검색창 */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">🔍 빠른 검색</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="주문번호, 고객명, 전화번호, 마켓으로 검색..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-3 pl-11 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                />
+                <svg
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {searchQuery && (
+                <p className="mt-2 text-sm text-gray-600">
+                  "{searchQuery}" 검색 결과: <span className="font-bold text-purple-600">{filteredOrders.length}개</span>
+                </p>
+              )}
+            </div>
 
             {/* 주문 소스 필터 */}
             <div className="mb-6">
@@ -1928,6 +2055,271 @@ export default function UnifiedOrderManagementPage() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 자동 가격 조정 탭 */}
+      {activeTab === 'auto-pricing' && (
+        <div className="space-y-6">
+          {/* 설정 패널 */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/10 p-8 border border-white/20">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800">자동 가격 조정 설정</h3>
+                <p className="text-gray-600 mt-2">소싱가 변동 시 자동으로 판매가를 조정합니다</p>
+              </div>
+              <div className={`px-4 py-2 rounded-full font-semibold ${
+                autoPricingSettings.enabled
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}>
+                {autoPricingSettings.enabled ? '활성화됨' : '비활성화됨'}
+              </div>
+            </div>
+
+            {/* 설정 폼 */}
+            <form onSubmit={saveAutoPricingSettings} className="space-y-6">
+              {/* 활성화 토글 */}
+              <div className="flex items-center justify-between p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-800">자동 가격 조정 활성화</h4>
+                  <p className="text-sm text-gray-600 mt-1">소싱가 변동 감지 시 자동으로 판매가 조정</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoPricingSettings.enabled}
+                    onChange={(e) => setAutoPricingSettings({ ...autoPricingSettings, enabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+              </div>
+
+              {/* 목표 마진율 */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    목표 마진율 (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={autoPricingSettings.target_margin}
+                    onChange={(e) => setAutoPricingSettings({
+                      ...autoPricingSettings,
+                      target_margin: parseFloat(e.target.value) || 0
+                    })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="30.0"
+                  />
+                  <p className="mt-2 text-sm text-gray-600">
+                    예: 30% 입력 시, 소싱가 10,000원 → 판매가 14,300원
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    최소 마진율 (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={autoPricingSettings.min_margin}
+                    onChange={(e) => setAutoPricingSettings({
+                      ...autoPricingSettings,
+                      min_margin: parseFloat(e.target.value) || 0
+                    })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="15.0"
+                  />
+                  <p className="mt-2 text-sm text-gray-600">
+                    이 마진율 이하로 떨어지면 자동 비활성화
+                  </p>
+                </div>
+              </div>
+
+              {/* 가격 단위 */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    가격 올림 단위 (원)
+                  </label>
+                  <select
+                    value={autoPricingSettings.price_unit}
+                    onChange={(e) => setAutoPricingSettings({
+                      ...autoPricingSettings,
+                      price_unit: parseInt(e.target.value)
+                    })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value={100}>100원 단위</option>
+                    <option value={500}>500원 단위</option>
+                    <option value={1000}>1,000원 단위</option>
+                    <option value={5000}>5,000원 단위</option>
+                    <option value={10000}>10,000원 단위</option>
+                  </select>
+                  <p className="mt-2 text-sm text-gray-600">
+                    판매가를 깔끔하게 올림 처리 (예: 14,380원 → 14,400원)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    최소 마진 미달 시 자동 비활성화
+                  </label>
+                  <label className="relative inline-flex items-center cursor-pointer mt-3">
+                    <input
+                      type="checkbox"
+                      checked={autoPricingSettings.auto_disable_on_low_margin}
+                      onChange={(e) => setAutoPricingSettings({
+                        ...autoPricingSettings,
+                        auto_disable_on_low_margin: e.target.checked
+                      })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+                    <span className="ml-3 text-sm font-medium text-gray-700">
+                      {autoPricingSettings.auto_disable_on_low_margin ? '활성화' : '비활성화'}
+                    </span>
+                  </label>
+                  <p className="mt-2 text-sm text-gray-600">
+                    마진이 최소 마진율 이하면 상품 판매 중단
+                  </p>
+                </div>
+              </div>
+
+              {/* 저장 버튼 */}
+              <button
+                type="submit"
+                disabled={actionLoading['save-auto-pricing']}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-4 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading['save-auto-pricing'] ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <span>저장 중...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <Settings className="w-5 h-5" />
+                    <span>설정 저장</span>
+                  </div>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* 수동 실행 패널 */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/10 p-8 border border-white/20">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">수동 가격 조정</h3>
+            <p className="text-gray-600 mb-6">
+              모든 활성 상품의 가격을 현재 설정에 맞춰 즉시 조정합니다.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800">목표 마진율</h4>
+                    <p className="text-2xl font-bold text-blue-600">{autoPricingSettings.target_margin}%</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  소싱가에 이 마진율을 적용하여 판매가를 계산합니다
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl border border-red-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800">최소 마진율</h4>
+                    <p className="text-2xl font-bold text-red-600">{autoPricingSettings.min_margin}%</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  이 마진율 이하로 떨어지면 판매를 중단합니다
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={adjustAllPrices}
+              disabled={!autoPricingSettings.enabled || actionLoading['adjust-all-prices']}
+              className="w-full mt-6 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-4 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {actionLoading['adjust-all-prices'] ? (
+                <div className="flex items-center justify-center gap-2">
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  <span>가격 조정 중...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <Play className="w-5 h-5" />
+                  <span>모든 상품 가격 조정 실행</span>
+                </div>
+              )}
+            </button>
+
+            {!autoPricingSettings.enabled && (
+              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  <p className="text-sm text-yellow-800">
+                    자동 가격 조정을 활성화해야 수동 조정이 가능합니다.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 가격 계산 예시 */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/10 p-8 border border-white/20">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">가격 계산 예시</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">소싱가</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">목표 마진율</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">계산된 가격</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">조정된 판매가</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">실제 마진율</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[10000, 25000, 50000, 100000].map((sourcingPrice) => {
+                    const targetPrice = sourcingPrice / (1 - autoPricingSettings.target_margin / 100);
+                    const adjustedPrice = Math.round(targetPrice / autoPricingSettings.price_unit) * autoPricingSettings.price_unit;
+                    const actualMargin = ((adjustedPrice - sourcingPrice) / adjustedPrice) * 100;
+
+                    return (
+                      <tr key={sourcingPrice} className="border-b border-gray-200">
+                        <td className="px-4 py-3 text-sm text-gray-800">{sourcingPrice.toLocaleString()}원</td>
+                        <td className="px-4 py-3 text-sm text-gray-800">{autoPricingSettings.target_margin}%</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{Math.round(targetPrice).toLocaleString()}원</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-green-600">{adjustedPrice.toLocaleString()}원</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-blue-600">{actualMargin.toFixed(1)}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-4 text-sm text-gray-600">
+              * 계산된 가격을 {autoPricingSettings.price_unit.toLocaleString()}원 단위로 올림하여 조정된 판매가가 결정됩니다.
+            </p>
           </div>
         </div>
       )}
