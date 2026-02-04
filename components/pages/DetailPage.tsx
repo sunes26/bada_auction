@@ -1418,7 +1418,7 @@ function AddProductFromDetailPageModal({
   imageSizes: Record<string, number>;
   imagePositions: Record<string, { x: number; y: number }>;
   textStyles: Record<string, { fontSize?: string; color?: string; fontWeight?: string; textAlign?: string }>;
-  templateRef: React.RefObject<HTMLDivElement>;
+  templateRef?: React.RefObject<HTMLDivElement | null>;
   onClose: () => void;
   onSuccess: () => void;
 }) {
