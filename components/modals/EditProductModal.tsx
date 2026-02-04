@@ -16,6 +16,7 @@ interface Product {
   sourcing_source?: string;
   category?: string;
   notes?: string;
+  c_sale_cd?: string;
 }
 
 export default function EditProductModal({ product, onClose, onSuccess }: {
@@ -44,6 +45,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
     sourcing_source: product.sourcing_source || '',
     thumbnail_url: (product as any).thumbnail_url || '',
     notes: product.notes || '',
+    c_sale_cd: product.c_sale_cd || '',
   });
   const [category, setCategory] = useState<Category>(parseCategory(product.category));
   const [loading, setLoading] = useState(false);
@@ -133,6 +135,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
         thumbnail_url: formData.thumbnail_url || undefined,
         category: categoryString,
         notes: formData.notes || undefined,
+        c_sale_cd: formData.c_sale_cd || undefined,
       });
 
       if (data.success) {
@@ -436,6 +439,37 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                 선택된 카테고리: {category.level1} &gt; {category.level2} &gt; {category.level3} &gt; {category.level4}
               </p>
             )}
+          </div>
+
+          {/* PlayAuto 판매자 관리코드 */}
+          <div className="bg-purple-50 border-2 border-purple-300 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="text-lg font-bold text-purple-800">PlayAuto 연동 정보</h3>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-purple-800 mb-2">
+                판매자 관리코드 (c_sale_cd)
+              </label>
+              <input
+                type="text"
+                value={formData.c_sale_cd}
+                onChange={(e) => setFormData({ ...formData, c_sale_cd: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                placeholder="예: m20260204a54899b72"
+              />
+              <p className="text-xs text-purple-600 mt-2">
+                💡 PlayAuto 관리자 페이지에서 확인한 판매자 관리코드를 입력하세요.
+                {!formData.c_sale_cd && <span className="text-red-600 font-semibold"> (비어있으면 PlayAuto와 연동되지 않습니다)</span>}
+              </p>
+              {formData.c_sale_cd && (
+                <p className="text-xs text-green-600 mt-1 font-semibold">
+                  ✅ 상품 수정 시 PlayAuto의 마켓플레이스 상품도 함께 업데이트됩니다.
+                </p>
+              )}
+            </div>
           </div>
 
           <div>

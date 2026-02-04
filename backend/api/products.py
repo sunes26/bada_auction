@@ -46,6 +46,7 @@ class UpdateProductRequest(BaseModel):
     thumbnail_url: Optional[str] = None
     is_active: Optional[bool] = None
     notes: Optional[str] = None
+    c_sale_cd: Optional[str] = None
 
 
 # API 엔드포인트
@@ -432,6 +433,13 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             else:
                 logger.warning(f"[상품수정] 카테고리 매핑 없음: {request.category}")
 
+        # c_sale_cd 처리 (playauto_product_no와 동일한 값)
+        # c_sale_cd가 변경되면 playauto_product_no도 함께 업데이트
+        playauto_product_no_update = None
+        if request.c_sale_cd is not None:
+            playauto_product_no_update = request.c_sale_cd if request.c_sale_cd else None
+            logger.info(f"[상품수정] c_sale_cd 변경: {product.get('c_sale_cd')} -> {request.c_sale_cd}")
+
         # 로컬 DB 수정
         db.update_selling_product(
             product_id=product_id,
@@ -447,22 +455,27 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             thumbnail_url=request.thumbnail_url,
             is_active=request.is_active,
             sol_cate_no=sol_cate_no,
-            notes=request.notes
+            notes=request.notes,
+            c_sale_cd=request.c_sale_cd if request.c_sale_cd is not None else product.get('c_sale_cd'),
+            playauto_product_no=playauto_product_no_update if playauto_product_no_update is not None else product.get('playauto_product_no')
         )
 
         # 플레이오토 API 업데이트 (변경사항 + 플레이오토 상품인 경우)
+        # c_sale_cd가 변경된 경우 새로운 값을 사용
+        current_playauto_product_no = playauto_product_no_update if playauto_product_no_update is not None else playauto_product_no
+
         playauto_updated = False
-        if playauto_changes and playauto_product_no:
+        if playauto_changes and current_playauto_product_no:
             try:
                 from playauto.products import edit_playauto_product
 
                 changed_fields = ', '.join(playauto_changes.keys())
-                logger.info(f"[상품수정] 플레이오토 업데이트 시작: c_sale_cd={playauto_product_no}, 변경항목={changed_fields}")
+                logger.info(f"[상품수정] 플레이오토 업데이트 시작: c_sale_cd={current_playauto_product_no}, 변경항목={changed_fields}")
 
                 # PlayAuto 상품 수정 API 호출
                 # 옵션은 수정하지 않음 (opts, opt_type 제외)
                 result = await edit_playauto_product(
-                    c_sale_cd=playauto_product_no,  # playauto_product_no는 실제로 c_sale_cd
+                    c_sale_cd=current_playauto_product_no,  # c_sale_cd 사용 (변경된 값 포함)
                     shop_cd="master",  # 마스터 상품 수정
                     shop_id="master",
                     edit_slave_all=True,  # 모든 연동 쇼핑몰 상품도 함께 수정
@@ -474,7 +487,7 @@ async def update_product(product_id: int, request: UpdateProductRequest):
 
                 if result.get('success'):
                     playauto_updated = True
-                    logger.info(f"[상품수정] 플레이오토 업데이트 성공: {playauto_product_no}")
+                    logger.info(f"[상품수정] 플레이오토 업데이트 성공: {current_playauto_product_no}")
                     logger.info(f"[상품수정] PlayAuto data 필드: {result.get('data')}")
                 else:
                     error_msg = result.get('message', '알 수 없는 오류')

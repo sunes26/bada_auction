@@ -206,6 +206,7 @@ export interface CreateProductRequest {
 
 export interface UpdateProductRequest extends Partial<CreateProductRequest> {
   is_active?: boolean;
+  c_sale_cd?: string;
 }
 
 export interface CreateOrderRequest {
