@@ -986,7 +986,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
             {/* 템플릿 영역 */}
             <div className="flex-1 flex justify-center p-6 bg-gray-50 min-h-screen">
               <div className="bg-white w-[860px] shadow-2xl rounded-2xl overflow-hidden border">
-                <div ref={templateRef}>
+                <div ref={templateRef} className="w-[860px]">
                   {renderTemplate()}
                 </div>
               </div>
