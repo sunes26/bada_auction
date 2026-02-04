@@ -248,7 +248,7 @@ export default function ProductSourcingPage() {
   }, [loadProducts]);
 
   // PlayAuto 동기화
-  const handleSyncToPlayauto = useCallback(async (productId: number, productName: string, cSaleCd: string | null) => {
+  const handleSyncToPlayauto = useCallback(async (productId: number, productName: string, cSaleCd: string | null | undefined) => {
     if (!cSaleCd) {
       toast.error('PlayAuto에 등록되지 않은 상품입니다.\n먼저 "상품등록"을 진행해주세요.');
       return;
