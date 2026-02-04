@@ -1038,3 +1038,52 @@ async def sync_product_to_playauto(product_id: int):
     except Exception as e:
         logger.error(f"[상품동기화] 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=f"상품 동기화 실패: {str(e)}")
+
+
+@router.post("/{product_id}/reset-playauto")
+async def reset_playauto_info(product_id: int):
+    """
+    상품의 PlayAuto 등록 정보를 초기화
+    PlayAuto에 존재하지 않는 상품의 정보를 DB에서 제거하여 다시 등록 가능하게 함
+
+    Args:
+        product_id: 초기화할 상품 ID
+
+    Returns:
+        초기화 결과
+    """
+    try:
+        db = get_db()
+
+        # 상품 존재 확인
+        product = db.get_selling_product(product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
+
+        logger.info(f"[PlayAuto초기화] 상품 {product_id}번 초기화 시작")
+        logger.info(f"[PlayAuto초기화] 현재 c_sale_cd: {product.get('c_sale_cd')}")
+
+        # PlayAuto 정보 초기화
+        db.update_selling_product(
+            product_id=product_id,
+            playauto_product_no=None,
+            c_sale_cd=None,
+            ol_shop_no=None
+        )
+
+        # 캐시 무효화
+        clear_all_cache()
+
+        logger.info(f"[PlayAuto초기화] 상품 {product_id}번 초기화 완료")
+
+        return {
+            "success": True,
+            "message": "PlayAuto 등록 정보가 초기화되었습니다. 이제 '상품등록' 버튼을 눌러 다시 등록하세요.",
+            "product_name": product.get('product_name')
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[PlayAuto초기화] 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"PlayAuto 정보 초기화 실패: {str(e)}")

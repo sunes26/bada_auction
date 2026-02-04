@@ -246,6 +246,12 @@ export const productsApi = {
       method: 'POST',
       useCache: false,
     }),
+
+  resetPlayautoInfo: (id: number) =>
+    apiCall<ApiResponse<{ product_name: string }>>(`/api/products/${id}/reset-playauto`, {
+      method: 'POST',
+      useCache: false,
+    }),
 };
 
 // ============================================
