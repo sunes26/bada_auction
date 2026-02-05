@@ -4,13 +4,13 @@
  * 이 컴포넌트는 플레이오토 연동 주문과 수동 입력 주문을 통합하여 관리합니다.
  *
  * 주요 기능:
- * - 6개 탭: 대시보드, 주문 목록(통합), 주문 생성, 플레이오토 설정, 송장 관리, 소싱처 계정
+ * - 6개 탭: 대시보드, 주문 목록, 플레이오토 설정, 자동 가격 조정, 송장 관리, 소싱처 계정
  * - 플레이오토 API 연동 (주문 동기화, 송장 업로드)
- * - 수동 주문 생성 및 관리
- * - RPA 관련 기능은 제외됨
+ * - 자동 가격 조정 시스템
+ * - 송장 관리 및 추적
  *
  * @author onbaek-ai
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 'use client';
@@ -164,26 +164,6 @@ export default function UnifiedOrderManagementPage() {
     total: 0
   });
 
-  // 주문 생성 탭 상태
-  const [orderForm, setOrderForm] = useState({
-    order_number: '',
-    market: 'coupang',
-    customer_name: '',
-    customer_phone: '',
-    customer_address: '',
-    customer_zipcode: '',
-    total_amount: 0,
-    notes: ''
-  });
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [itemForm, setItemForm] = useState({
-    product_name: '',
-    product_url: '',
-    source: 'ssg',
-    quantity: 1,
-    sourcing_price: 0,
-    selling_price: 0
-  });
 
   // 플레이오토 설정 탭 상태
   const [settings, setSettings] = useState<PlayautoSettings>({
@@ -389,88 +369,6 @@ export default function UnifiedOrderManagementPage() {
     }
   }, [fetchOrders]);
 
-  // 주문 생성
-  const createOrder = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      // 공통 API 클라이언트 사용
-      const data = await fetch(`${API_BASE_URL}/api/orders/create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderForm)
-      }).then(r => r.json());
-
-      if (data.success) {
-        toast.success(`주문이 생성되었습니다. ID: ${data.order_id}`);
-        setSelectedOrderId(data.order_id);
-        setOrderForm({
-          order_number: '',
-          market: 'coupang',
-          customer_name: '',
-          customer_phone: '',
-          customer_address: '',
-          customer_zipcode: '',
-          total_amount: 0,
-          notes: ''
-        });
-        cache.clearOrders();
-      }
-    } catch (error) {
-      console.error('주문 생성 실패:', error);
-      toast.error('주문 생성에 실패했습니다.');
-    }
-  }, [orderForm]);
-
-  const addOrderItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedOrderId) {
-      toast.warning('먼저 주문을 생성하세요.');
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/orders/order/${selectedOrderId}/add-item`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(itemForm)
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('주문 상품이 추가되었습니다.');
-        setItemForm({
-          product_name: '',
-          product_url: '',
-          source: 'ssg',
-          quantity: 1,
-          sourcing_price: 0,
-          selling_price: 0
-        });
-      }
-    } catch (error) {
-      console.error('상품 추가 실패:', error);
-      toast.error('상품 추가에 실패했습니다.');
-    }
-  };
-
-  /**
-   * URL에서 소싱처 자동 감지
-   * @param url - 상품 URL
-   * @returns 감지된 소싱처 (ssg, traders, 11st, gmarket, smartstore)
-   */
-  const detectSourceFromUrl = (url: string): string => {
-    if (url.includes('ssg.com') || url.includes('emart.ssg.com') || url.includes('traders.ssg.com')) {
-      return 'ssg';
-    } else if (url.includes('homeplus.co.kr')) {
-      return 'traders';
-    } else if (url.includes('11st.co.kr')) {
-      return '11st';
-    } else if (url.includes('gmarket.co.kr')) {
-      return 'gmarket';
-    } else if (url.includes('smartstore.naver.com')) {
-      return 'smartstore';
-    }
-    return 'ssg'; // 기본값
-  };
 
   // 플레이오토 설정 관련
   const loadSettings = async () => {
@@ -876,11 +774,9 @@ export default function UnifiedOrderManagementPage() {
           {[
             { key: 'dashboard', label: '대시보드', icon: <BarChart3 className="w-4 h-4" /> },
             { key: 'orders', label: '주문 목록', icon: <Package className="w-4 h-4" /> },
-            { key: 'create', label: '주문 생성', icon: <Plus className="w-4 h-4" /> },
             { key: 'playauto', label: '플레이오토 설정', icon: <Settings className="w-4 h-4" /> },
             { key: 'auto-pricing', label: '자동 가격 조정', icon: <TrendingUp className="w-4 h-4" /> },
             { key: 'tracking', label: '송장 관리', icon: <Truck className="w-4 h-4" /> },
-            { key: 'scheduler', label: '송장 스케줄러', icon: <Clock className="w-4 h-4" /> },
             { key: 'accounts', label: '소싱처 계정', icon: <Settings className="w-4 h-4" /> }
           ].map((tab) => (
             <button
@@ -1334,239 +1230,6 @@ export default function UnifiedOrderManagementPage() {
         </div>
       )}
 
-      {/* 주문 생성 탭 */}
-      {activeTab === 'create' && (
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/10 p-8 border border-white/20">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6">주문 생성</h3>
-
-          {/* 주문 생성 폼 */}
-          <form onSubmit={createOrder} className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">주문번호</label>
-                <input
-                  type="text"
-                  value={orderForm.order_number}
-                  onChange={(e) => setOrderForm({ ...orderForm, order_number: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="COUPANG-20260109-001"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">마켓</label>
-                <select
-                  value={orderForm.market}
-                  onChange={(e) => setOrderForm({ ...orderForm, market: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  <option value="coupang">쿠팡</option>
-                  <option value="naver">네이버 스마트스토어</option>
-                  <option value="11st">11번가</option>
-                  <option value="gmarket">G마켓</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">고객명</label>
-                <input
-                  type="text"
-                  value={orderForm.customer_name}
-                  onChange={(e) => setOrderForm({ ...orderForm, customer_name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="홍길동"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">전화번호</label>
-                <input
-                  type="text"
-                  value={orderForm.customer_phone}
-                  onChange={(e) => setOrderForm({ ...orderForm, customer_phone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="010-1234-5678"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">배송 주소</label>
-              <input
-                type="text"
-                value={orderForm.customer_address}
-                onChange={(e) => setOrderForm({ ...orderForm, customer_address: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="서울시 강남구 테헤란로 123, 101동 101호"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">우편번호</label>
-                <input
-                  type="text"
-                  value={orderForm.customer_zipcode}
-                  onChange={(e) => setOrderForm({ ...orderForm, customer_zipcode: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="06000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">주문 금액</label>
-                <input
-                  type="number"
-                  value={orderForm.total_amount}
-                  onChange={(e) => setOrderForm({ ...orderForm, total_amount: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="15900"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">메모</label>
-              <textarea
-                value={orderForm.notes}
-                onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                rows={3}
-                placeholder="배송 요청사항 등"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
-            >
-              <Plus className="w-5 h-5 inline mr-2" />
-              주문 생성
-            </button>
-          </form>
-
-          {/* 주문 상품 추가 폼 */}
-          {selectedOrderId && (
-            <div className="mt-12 border-t border-gray-200 pt-8">
-              <h4 className="text-xl font-bold text-gray-800 mb-6">주문 상품 추가 (주문 ID: {selectedOrderId})</h4>
-              <form onSubmit={addOrderItem} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">상품명</label>
-                  <input
-                    type="text"
-                    value={itemForm.product_name}
-                    onChange={(e) => setItemForm({ ...itemForm, product_name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="[물바다] 햇반 흰밥 210g x 10개"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">상품 URL (소싱처)</label>
-                  <input
-                    type="url"
-                    value={itemForm.product_url}
-                    onChange={(e) => {
-                      const url = e.target.value;
-                      const detectedSource = detectSourceFromUrl(url);
-                      setItemForm({
-                        ...itemForm,
-                        product_url: url,
-                        source: detectedSource
-                      });
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="https://emart.ssg.com/item/itemView.ssg?itemId=..."
-                    required
-                  />
-                  {itemForm.product_url && (
-                    <p className="mt-1 text-sm text-gray-500">
-                      자동 감지된 소싱처: <strong className="text-purple-600">{itemForm.source.toUpperCase()}</strong>
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">소싱처</label>
-                    <select
-                      value={itemForm.source}
-                      onChange={(e) => setItemForm({ ...itemForm, source: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
-                    >
-                      <option value="ssg">SSG</option>
-                      <option value="traders">홈플러스/Traders</option>
-                      <option value="11st">11번가</option>
-                      <option value="gmarket">G마켓</option>
-                      <option value="smartstore">스마트스토어</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">수량</label>
-                    <input
-                      type="number"
-                      value={itemForm.quantity}
-                      onChange={(e) => setItemForm({ ...itemForm, quantity: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      min="1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">소싱가</label>
-                    <input
-                      type="number"
-                      value={itemForm.sourcing_price}
-                      onChange={(e) => {
-                        const sourcing = Number(e.target.value);
-                        setItemForm({
-                          ...itemForm,
-                          sourcing_price: sourcing,
-                          selling_price: Math.round(sourcing * 1.5)
-                        });
-                      }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="10900"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    판매가 (50% 마진 자동 계산)
-                  </label>
-                  <input
-                    type="number"
-                    value={itemForm.selling_price}
-                    onChange={(e) => setItemForm({ ...itemForm, selling_price: Number(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
-                    placeholder="16350"
-                    required
-                  />
-                  <p className="mt-2 text-sm text-gray-600">
-                    예상 이익: <strong className="text-green-600">
-                      {((itemForm.selling_price - itemForm.sourcing_price) * itemForm.quantity).toLocaleString()}원
-                    </strong>
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
-                >
-                  <Plus className="w-5 h-5 inline mr-2" />
-                  상품 추가
-                </button>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* 플레이오토 설정 탭 */}
       {activeTab === 'playauto' && (
@@ -1950,10 +1613,6 @@ export default function UnifiedOrderManagementPage() {
         </div>
       )}
 
-      {/* 송장 스케줄러 탭 */}
-      {activeTab === 'scheduler' && (
-        <TrackingSchedulerPage />
-      )}
 
       {/* 소싱처 계정 탭 */}
       {activeTab === 'accounts' && (
