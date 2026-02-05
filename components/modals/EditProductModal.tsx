@@ -199,9 +199,21 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
       };
 
       img.onload = () => {
+        const minSize = 600; // PlayAuto 최소 요구사항
+        let targetWidth = img.width;
+        let targetHeight = img.height;
+
+        // 이미지가 600x600보다 작으면 리사이징
+        if (img.width < minSize || img.height < minSize) {
+          const scale = Math.max(minSize / img.width, minSize / img.height);
+          targetWidth = Math.ceil(img.width * scale);
+          targetHeight = Math.ceil(img.height * scale);
+          console.log(`[이미지 리사이징] ${img.width}x${img.height} → ${targetWidth}x${targetHeight} (PlayAuto 최소 크기 충족)`);
+        }
+
         const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
@@ -213,8 +225,8 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 이미지 그리기
-        ctx.drawImage(img, 0, 0);
+        // 이미지 그리기 (리사이징 적용)
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
         // 투명도 체크
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -282,23 +294,12 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
 
     setUploadingImage(true);
     try {
-      let fileToUpload: File | Blob = file;
-      let filename = file.name;
-
-      // JPG, JPEG, PNG가 아니면 변환
-      const fileExtension = file.name.split('.').pop()?.toLowerCase();
-      const isJpgOrPng = ['jpg', 'jpeg', 'png'].includes(fileExtension || '');
-
-      if (!isJpgOrPng) {
-        console.log(`[이미지 변환] ${file.type} → JPG/PNG 변환 중...`);
-        const converted = await convertImageToJpgOrPng(file);
-        fileToUpload = converted.blob;
-        filename = converted.filename;
-        console.log(`[이미지 변환] 완료: ${converted.format.toUpperCase()} 형식, ${(converted.blob.size / 1024).toFixed(2)}KB`);
-      }
+      // 모든 이미지를 변환 함수로 처리 (크기 체크 + 포맷 변환)
+      console.log(`[이미지 처리] 원본: ${file.name} (${file.type})`);
+      const converted = await convertImageToJpgOrPng(file);
 
       const formDataUpload = new FormData();
-      formDataUpload.append('file', fileToUpload, filename);
+      formDataUpload.append('file', converted.blob, converted.filename);
 
       const response = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
         method: 'POST',
@@ -309,11 +310,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
 
       if (data.success && data.url) {
         setFormData(prev => ({ ...prev, thumbnail_url: data.url }));
-        if (!isJpgOrPng) {
-          alert(`✅ 이미지가 ${filename.endsWith('.png') ? 'PNG' : 'JPG'}로 변환되어 업로드되었습니다!`);
-        } else {
-          alert('✅ 이미지가 업로드되었습니다!');
-        }
+        alert(`✅ 이미지가 업로드되었습니다! (${converted.format.toUpperCase()} 형식)`);
       } else {
         alert('❌ 이미지 업로드 실패: ' + (data.message || '알 수 없는 오류'));
       }
@@ -718,7 +715,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                 💡 모든 이미지 형식 지원 (WebP, AVIF, BMP 등 자동 변환) | 최대 10MB
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                ✨ JPG/PNG가 아닌 이미지는 자동으로 최적 포맷으로 변환됩니다
+                ✨ JPG/PNG 자동 변환 | 600x600 미만 이미지는 자동 확대 (PlayAuto 요구사항)
               </p>
             </div>
           </div>
