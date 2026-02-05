@@ -869,13 +869,21 @@ async def register_products_to_playauto(request: dict):
                     # 플레이오토 상품 번호 및 쇼핑몰 번호 저장
                     site_list_result = result.get("site_list", [])
 
+                    # 디버깅: site_list 전체 구조 로깅
+                    logger.info(f"[상품등록] site_list 응답: {site_list_result}")
+
                     # ol_shop_no는 첫 번째 등록 성공한 쇼핑몰 번호를 저장
                     ol_shop_no = None
                     if site_list_result:
                         for site in site_list_result:
+                            logger.info(f"[상품등록] site 확인: result={site.get('result')}, ol_shop_no={site.get('ol_shop_no')}")
                             if site.get("result") == "성공" and site.get("ol_shop_no"):
                                 ol_shop_no = site.get("ol_shop_no")
+                                logger.info(f"[상품등록] ol_shop_no 발견: {ol_shop_no}")
                                 break
+
+                    if not ol_shop_no:
+                        logger.warning(f"[상품등록] ol_shop_no를 찾지 못했습니다. site_list: {site_list_result}")
 
                     # 등록 성공 시 is_active = True로 변경하고 PlayAuto ID 저장
                     update_params = {"product_id": product_id, "is_active": True}
@@ -1191,12 +1199,44 @@ async def sync_product_marketplace_codes(product_id: int):
             raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
 
         ol_shop_no = product.get("ol_shop_no")
+
+        # ol_shop_no가 없으면 c_sale_cd로 조회 시도
         if not ol_shop_no:
-            logger.warning(f"[마켓코드동기화] 상품 {product_id}번: ol_shop_no 없음 (PlayAuto 미등록)")
-            raise HTTPException(
-                status_code=400,
-                detail="PlayAuto에 등록되지 않은 상품입니다. 먼저 상품을 등록하세요."
-            )
+            c_sale_cd_gmk = product.get("c_sale_cd_gmk")
+            c_sale_cd_smart = product.get("c_sale_cd_smart")
+
+            logger.warning(f"[마켓코드동기화] 상품 {product_id}번: ol_shop_no 없음, c_sale_cd로 조회 시도")
+
+            # c_sale_cd가 있으면 PlayAuto API에서 조회
+            if c_sale_cd_gmk or c_sale_cd_smart:
+                try:
+                    from playauto.products import PlayautoProductAPI
+                    api = PlayautoProductAPI()
+
+                    # c_sale_cd로 상품 조회 (우선순위: gmk > smart)
+                    c_sale_cd = c_sale_cd_gmk or c_sale_cd_smart
+
+                    # PlayAuto API에서 c_sale_cd로 상품 검색
+                    # TODO: PlayAuto에 c_sale_cd로 검색하는 API가 있는지 확인 필요
+                    # 임시로 에러 메시지에 안내 추가
+                    logger.error(f"[마켓코드동기화] 상품 {product_id}번: ol_shop_no가 DB에 없습니다. 상품 재등록 필요")
+
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"ol_shop_no가 DB에 저장되지 않았습니다.\n\n해결 방법:\n1. PlayAuto에서 상품을 삭제하고 다시 등록\n2. 또는 관리자에게 문의하여 수동으로 ol_shop_no 입력\n\n(c_sale_cd: {c_sale_cd})"
+                    )
+
+                except Exception as e:
+                    logger.error(f"[마켓코드동기화] c_sale_cd 조회 실패: {e}")
+                    raise HTTPException(
+                        status_code=400,
+                        detail="ol_shop_no가 없어 마켓 코드를 수집할 수 없습니다. 상품을 재등록하세요."
+                    )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="PlayAuto에 등록되지 않은 상품입니다. 먼저 상품을 등록하세요."
+                )
 
         # PlayAuto API 호출
         from playauto.products import PlayautoProductAPI
