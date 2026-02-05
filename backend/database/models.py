@@ -342,10 +342,33 @@ class MySellingProduct(Base):
     # Relationships
     monitored_product = relationship("MonitoredProduct", back_populates="selling_products")
     margin_change_logs = relationship("MarginChangeLog", back_populates="selling_product", cascade="all, delete-orphan")
+    marketplace_codes = relationship("ProductMarketplaceCode", back_populates="product", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index('idx_my_selling_products_active', 'is_active', 'created_at'),
         Index('idx_my_selling_products_monitored', 'monitored_product_id'),
+    )
+
+
+class ProductMarketplaceCode(Base):
+    __tablename__ = 'product_marketplace_codes'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    product_id = Column(BigInteger, ForeignKey('my_selling_products.id', ondelete='CASCADE'), nullable=False)
+    shop_cd = Column(Text, nullable=False)
+    shop_sale_no = Column(Text)
+    transmitted_at = Column(DateTime)
+    last_checked_at = Column(DateTime)
+    created_at = Column(DateTime, default=func.current_timestamp())
+    updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Relationships
+    product = relationship("MySellingProduct", back_populates="marketplace_codes")
+
+    __table_args__ = (
+        UniqueConstraint('product_id', 'shop_cd', name='uq_product_marketplace'),
+        Index('idx_product_marketplace_codes_product', 'product_id'),
+        Index('idx_product_marketplace_codes_shop', 'shop_cd', 'shop_sale_no'),
     )
 
 

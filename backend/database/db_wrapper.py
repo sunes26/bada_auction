@@ -14,7 +14,7 @@ from .models import (
     Order, OrderItem, AutoOrderLog, SourcingAccount,
     PlayautoSetting, PlayautoSyncLog, MarketOrderRaw,
     WebhookSetting, WebhookLog, MySellingProduct, MarginChangeLog,
-    InventoryAutoLog, Category
+    InventoryAutoLog, Category, ProductMarketplaceCode
 )
 
 
@@ -975,6 +975,135 @@ class DatabaseWrapper:
             traceback.print_exc()
             return False
 
+    # ========================================
+    # 상품별 마켓 코드 관리
+    # ========================================
+
+    def upsert_marketplace_code(
+        self,
+        product_id: int,
+        shop_cd: str,
+        shop_sale_no: Optional[str] = None,
+        transmitted_at: Optional[datetime] = None
+    ) -> int:
+        """마켓별 상품번호 저장/업데이트"""
+        from .models import ProductMarketplaceCode
+
+        with self.db_manager.get_session() as session:
+            # 기존 레코드 확인
+            existing = session.query(ProductMarketplaceCode).filter_by(
+                product_id=product_id,
+                shop_cd=shop_cd
+            ).first()
+
+            now = datetime.now()
+
+            if existing:
+                # 업데이트
+                existing.shop_sale_no = shop_sale_no
+                if transmitted_at:
+                    existing.transmitted_at = transmitted_at
+                existing.last_checked_at = now
+                existing.updated_at = now
+                session.commit()
+                return existing.id
+            else:
+                # 신규 생성
+                new_code = ProductMarketplaceCode(
+                    product_id=product_id,
+                    shop_cd=shop_cd,
+                    shop_sale_no=shop_sale_no,
+                    transmitted_at=transmitted_at,
+                    last_checked_at=now,
+                    created_at=now,
+                    updated_at=now
+                )
+                session.add(new_code)
+                session.commit()
+                return new_code.id
+
+    def get_marketplace_codes_by_product(self, product_id: int) -> List[Dict]:
+        """상품의 모든 마켓 코드 조회"""
+        from .models import ProductMarketplaceCode
+
+        with self.db_manager.get_session() as session:
+            codes = session.query(ProductMarketplaceCode).filter_by(
+                product_id=product_id
+            ).order_by(ProductMarketplaceCode.updated_at.desc()).all()
+
+            return [self._model_to_dict(code) for code in codes]
+
+    def get_product_by_marketplace_code(self, shop_cd: str, shop_sale_no: str) -> Optional[Dict]:
+        """마켓 코드로 상품 조회 (주문 매칭용)"""
+        from .models import MySellingProduct, ProductMarketplaceCode
+
+        with self.db_manager.get_session() as session:
+            result = session.query(MySellingProduct).join(
+                ProductMarketplaceCode
+            ).filter(
+                ProductMarketplaceCode.shop_cd == shop_cd,
+                ProductMarketplaceCode.shop_sale_no == shop_sale_no
+            ).first()
+
+            if result:
+                product_dict = self._model_to_dict(result)
+                # 마켓 코드 정보도 추가
+                product_dict['shop_cd'] = shop_cd
+                product_dict['shop_sale_no'] = shop_sale_no
+                return product_dict
+            return None
+
+    def get_products_without_marketplace_codes(self, limit: int = 100) -> List[Dict]:
+        """마켓 코드가 없는 상품 조회 (동기화 대상)"""
+        from .models import MySellingProduct, ProductMarketplaceCode
+        from sqlalchemy import and_, exists
+
+        with self.db_manager.get_session() as session:
+            # 마켓 코드가 없는 상품 쿼리
+            subquery = session.query(ProductMarketplaceCode.product_id).filter(
+                ProductMarketplaceCode.shop_sale_no.isnot(None)
+            ).distinct().subquery()
+
+            products = session.query(MySellingProduct).filter(
+                and_(
+                    MySellingProduct.ol_shop_no.isnot(None),
+                    MySellingProduct.is_active == True,
+                    ~MySellingProduct.id.in_(subquery)
+                )
+            ).limit(limit).all()
+
+            return [self._model_to_dict(p) for p in products]
+
+    def get_products_for_marketplace_sync(self, hours: int = 24, limit: int = 100) -> List[Dict]:
+        """마켓 코드 동기화가 필요한 상품 조회 (주기적 업데이트)"""
+        from .models import MySellingProduct, ProductMarketplaceCode
+        from sqlalchemy import and_, or_, exists
+        from datetime import timedelta
+
+        with self.db_manager.get_session() as session:
+            cutoff_time = datetime.now() - timedelta(hours=hours)
+
+            # 마켓 코드가 없거나 오래된 상품
+            subquery = session.query(ProductMarketplaceCode.product_id).filter(
+                or_(
+                    ProductMarketplaceCode.last_checked_at.is_(None),
+                    ProductMarketplaceCode.last_checked_at < cutoff_time
+                )
+            ).distinct().subquery()
+
+            products = session.query(MySellingProduct).filter(
+                and_(
+                    MySellingProduct.ol_shop_no.isnot(None),
+                    MySellingProduct.is_active == True,
+                    or_(
+                        ~exists().where(ProductMarketplaceCode.product_id == MySellingProduct.id),
+                        MySellingProduct.id.in_(subquery)
+                    )
+                )
+            ).order_by(MySellingProduct.updated_at.desc()).limit(limit).all()
+
+            return [self._model_to_dict(p) for p in products]
+
     def _match_order_to_product(self, order_data: Dict, playauto_order_id: str):
         """
         주문을 마켓 코드 기반으로 상품과 매칭
@@ -992,7 +1121,7 @@ class DatabaseWrapper:
                 return
 
             # 마켓 코드로 상품 조회
-            product = self.db_manager.get_product_by_marketplace_code(shop_cd, shop_sale_no)
+            product = self.get_product_by_marketplace_code(shop_cd, shop_sale_no)
 
             if product:
                 print(f"[OK] 주문 {playauto_order_id} 매칭 성공: 상품 ID {product['id']} ({product['product_name']})")
