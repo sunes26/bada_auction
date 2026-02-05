@@ -467,6 +467,114 @@ class PlayautoOrdersAPI:
 
         return response
 
+    async def send_instruction(
+        self,
+        bundle_codes: Optional[List[str]] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        auto_bundle: bool = False,
+        dupl_doubt_except_yn: str = "N"
+    ) -> Dict:
+        """
+        출고 지시 (신규주문 → 출고대기)
+        PUT /api/order/instruction
+
+        Args:
+            bundle_codes: 주문묶음번호 리스트 (선택)
+            start_date: 조회 시작일 (YYYY-MM-DD) - bundle_codes 미입력시 필수
+            end_date: 조회 종료일 (YYYY-MM-DD) - bundle_codes 미입력시 필수
+            auto_bundle: 주문 묶음 여부 (true: 자동 묶음 처리)
+            dupl_doubt_except_yn: 중복의심주문 제외 여부 ('Y' or 'N')
+
+        Returns:
+            {"results": "성공"} 또는 에러 응답
+
+        Raises:
+            PlayautoAPIError: API 요청 실패
+        """
+        # Request Body 구성
+        body = {
+            "auto_bundle": auto_bundle,
+            "dupl_doubt_except_yn": dupl_doubt_except_yn
+        }
+
+        # 묶음번호 입력시
+        if bundle_codes:
+            body["bundle_codes"] = bundle_codes
+        # 날짜 범위 입력시
+        else:
+            if not start_date or not end_date:
+                raise PlayautoAPIError("bundle_codes 또는 start_date/end_date가 필수입니다")
+            body["sdate"] = start_date
+            body["edate"] = end_date
+
+        print(f"[DEBUG] 출고 지시 API 호출: PUT /api/order/instruction")
+        print(f"[DEBUG] Request Body: {body}")
+
+        # PUT 요청
+        if not self.client:
+            async with PlayautoClient() as client:
+                response = await client.put("/api/order/instruction", data=body)
+        else:
+            response = await self.client.put("/api/order/instruction", data=body)
+
+        print(f"[DEBUG] 출고 지시 응답: {response}")
+        return response
+
+    async def update_invoice(
+        self,
+        orders: List[Dict[str, str]],
+        overwrite: bool = False,
+        change_complete: bool = True,
+        dupl_doubt_except_yn: str = "N"
+    ) -> Dict:
+        """
+        배송정보 업데이트 (송장번호 입력 → 출고완료)
+        PUT /api/order/setInvoice
+
+        Args:
+            orders: 변경할 주문 데이터 리스트
+                    [{"bundle_no": "묶음번호", "carr_no": "택배사코드", "invoice_no": "송장번호"}]
+            overwrite: 이미 송장번호가 입력되어있는 주문일경우 덮어쓸지 여부
+            change_complete: 출고완료로 변경할지 여부
+                           - true: 출고완료 상태로 변경
+                           - false: 운송장출력 상태로 변경
+            dupl_doubt_except_yn: 중복의심주문 제외 여부 ('Y' or 'N')
+
+        Returns:
+            [{"bundle_no": "묶음번호", "result": "성공", "message": ""}] 배열
+
+        Raises:
+            PlayautoAPIError: API 요청 실패
+
+        택배사 코드:
+            4: CJ대한통운
+            5: 한진택배
+            8: 롯데택배
+            1: 우체국택배
+            6: 로젠택배
+        """
+        # Request Body 구성
+        body = {
+            "orders": orders,
+            "overwrite": overwrite,
+            "change_complete": change_complete,
+            "dupl_doubt_except_yn": dupl_doubt_except_yn
+        }
+
+        print(f"[DEBUG] 송장 업데이트 API 호출: PUT /api/order/setInvoice")
+        print(f"[DEBUG] Request Body: {body}")
+
+        # PUT 요청
+        if not self.client:
+            async with PlayautoClient() as client:
+                response = await client.put("/api/order/setInvoice", data=body)
+        else:
+            response = await self.client.put("/api/order/setInvoice", data=body)
+
+        print(f"[DEBUG] 송장 업데이트 응답: {response}")
+        return response
+
 
 async def fetch_and_sync_orders(
     start_date: Optional[str] = None,

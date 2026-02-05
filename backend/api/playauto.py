@@ -659,6 +659,99 @@ async def hold_orders(bundle_codes: list, hold_reason: str, status: str = "주�
         raise HTTPException(status_code=500, detail=f"주문 보류 처리 중 오류: {str(e)}")
 
 
+@router.put("/orders/instruction")
+async def send_order_instruction(
+    bundle_codes: Optional[list] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    auto_bundle: bool = False,
+    dupl_doubt_except_yn: str = "N"
+):
+    """
+    출고 지시 (신규주문 → 출고대기)
+
+    Args:
+        bundle_codes: 주문묶음번호 리스트 (선택)
+        start_date: 조회 시작일 (YYYY-MM-DD) - bundle_codes 미입력시 필수
+        end_date: 조회 종료일 (YYYY-MM-DD) - bundle_codes 미입력시 필수
+        auto_bundle: 주문 묶음 여부 (true: 자동 묶음 처리)
+        dupl_doubt_except_yn: 중복의심주문 제외 여부 ('Y' or 'N')
+
+    Returns:
+        {"results": "성공"} 또는 에러 응답
+    """
+    try:
+        orders_api = PlayautoOrdersAPI()
+        result = await orders_api.send_instruction(
+            bundle_codes=bundle_codes,
+            start_date=start_date,
+            end_date=end_date,
+            auto_bundle=auto_bundle,
+            dupl_doubt_except_yn=dupl_doubt_except_yn
+        )
+
+        return {
+            "success": True,
+            "message": "출고 지시가 완료되었습니다",
+            "result": result
+        }
+
+    except PlayautoAPIError as e:
+        raise HTTPException(status_code=500, detail=f"출고 지시 실패: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"출고 지시 중 오류: {str(e)}")
+
+
+@router.put("/orders/invoice")
+async def update_order_invoice(
+    orders: list,
+    overwrite: bool = False,
+    change_complete: bool = True,
+    dupl_doubt_except_yn: str = "N"
+):
+    """
+    배송정보 업데이트 (송장번호 입력 → 출고완료)
+
+    Args:
+        orders: 변경할 주문 데이터 리스트
+                [{"bundle_no": "묶음번호", "carr_no": "택배사코드", "invoice_no": "송장번호"}]
+        overwrite: 이미 송장번호가 입력되어있는 주문일경우 덮어쓸지 여부
+        change_complete: 출고완료로 변경할지 여부
+                       - true: 출고완료 상태로 변경 (기본값)
+                       - false: 운송장출력 상태로 변경
+        dupl_doubt_except_yn: 중복의심주문 제외 여부 ('Y' or 'N')
+
+    Returns:
+        [{"bundle_no": "묶음번호", "result": "성공", "message": ""}] 배열
+
+    택배사 코드:
+        4: CJ대한통운
+        5: 한진택배
+        8: 롯데택배
+        1: 우체국택배
+        6: 로젠택배
+    """
+    try:
+        orders_api = PlayautoOrdersAPI()
+        result = await orders_api.update_invoice(
+            orders=orders,
+            overwrite=overwrite,
+            change_complete=change_complete,
+            dupl_doubt_except_yn=dupl_doubt_except_yn
+        )
+
+        return {
+            "success": True,
+            "message": "송장번호가 업데이트되었습니다",
+            "results": result
+        }
+
+    except PlayautoAPIError as e:
+        raise HTTPException(status_code=500, detail=f"송장 업데이트 실패: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"송장 업데이트 중 오류: {str(e)}")
+
+
 # ========================================
 # 택배사 코드 조회 엔드포인트
 # ========================================
