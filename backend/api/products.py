@@ -1192,6 +1192,7 @@ async def sync_product_marketplace_codes(product_id: int):
 
         ol_shop_no = product.get("ol_shop_no")
         if not ol_shop_no:
+            logger.warning(f"[마켓코드동기화] 상품 {product_id}번: ol_shop_no 없음 (PlayAuto 미등록)")
             raise HTTPException(
                 status_code=400,
                 detail="PlayAuto에 등록되지 않은 상품입니다. 먼저 상품을 등록하세요."

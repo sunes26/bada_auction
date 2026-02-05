@@ -164,11 +164,18 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
 
       const data = await response.json();
 
+      // 상태 코드 확인
+      if (!response.ok) {
+        // 400 에러 등의 경우 백엔드 에러 메시지 표시
+        alert('❌ ' + (data.detail || data.message || '마켓 코드 수집 실패'));
+        return;
+      }
+
       if (data.success) {
         alert(`✅ ${data.synced_count}개 마켓 코드 수집 완료`);
         await loadMarketplaceCodes(); // 재조회
       } else {
-        alert('수집 실패: ' + data.message);
+        alert('수집 실패: ' + (data.message || '알 수 없는 오류'));
       }
     } catch (error) {
       console.error('마켓 코드 동기화 실패:', error);
