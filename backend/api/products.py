@@ -872,17 +872,38 @@ async def register_products_to_playauto(request: dict):
                     # 디버깅: site_list 전체 구조 로깅
                     logger.info(f"[상품등록] site_list 응답: {site_list_result}")
 
-                    # ol_shop_no는 첫 번째 등록 성공한 쇼핑몰 번호를 저장
-                    ol_shop_no = None
+                    # ol_shop_no를 GMK와 SmartStore로 분리하여 저장
+                    ol_shop_no_gmk = None
+                    ol_shop_no_smart = None
+                    ol_shop_no_fallback = None  # 하위 호환성
+
                     if site_list_result:
                         for site in site_list_result:
-                            logger.info(f"[상품등록] site 확인: result={site.get('result')}, ol_shop_no={site.get('ol_shop_no')}")
-                            if site.get("result") == "성공" and site.get("ol_shop_no"):
-                                ol_shop_no = site.get("ol_shop_no")
-                                logger.info(f"[상품등록] ol_shop_no 발견: {ol_shop_no}")
-                                break
+                            logger.info(f"[상품등록] site 확인: shop_cd={site.get('shop_cd')}, result={site.get('result')}, ol_shop_no={site.get('ol_shop_no')}")
 
-                    if not ol_shop_no:
+                            if site.get("result") == "성공" and site.get("ol_shop_no"):
+                                shop_cd = site.get("shop_cd", "")
+                                ol_no = site.get("ol_shop_no")
+
+                                # 첫 번째 성공한 ol_shop_no를 fallback으로 저장 (하위 호환성)
+                                if not ol_shop_no_fallback:
+                                    ol_shop_no_fallback = ol_no
+
+                                # 채널별로 분류하여 저장
+                                # GMK 채널: Z000(마스터), A001(옥션), A002(지마켓)
+                                # SmartStore 채널: A027(스마트스토어) 등
+                                if shop_cd in ["Z000", "A001", "A002"] and c_sale_cd_gmk:
+                                    # GMK 등록에서 나온 ol_shop_no
+                                    if not ol_shop_no_gmk or shop_cd == "Z000":  # Z000(마스터) 우선
+                                        ol_shop_no_gmk = ol_no
+                                        logger.info(f"[상품등록] GMK ol_shop_no 발견: {ol_no} (shop_cd: {shop_cd})")
+                                elif c_sale_cd_smart:
+                                    # SmartStore 등록에서 나온 ol_shop_no
+                                    if not ol_shop_no_smart or shop_cd == "Z000":  # Z000(마스터) 우선
+                                        ol_shop_no_smart = ol_no
+                                        logger.info(f"[상품등록] SmartStore ol_shop_no 발견: {ol_no} (shop_cd: {shop_cd})")
+
+                    if not ol_shop_no_gmk and not ol_shop_no_smart:
                         logger.warning(f"[상품등록] ol_shop_no를 찾지 못했습니다. site_list: {site_list_result}")
 
                     # 등록 성공 시 is_active = True로 변경하고 PlayAuto ID 저장
@@ -898,9 +919,19 @@ async def register_products_to_playauto(request: dict):
                         if not c_sale_cd_gmk:  # gmk가 없으면 smart를 playauto_product_no에 저장
                             update_params["playauto_product_no"] = c_sale_cd_smart
                         logger.info(f"[상품등록] 스마트스토어 c_sale_cd 저장: {c_sale_cd_smart}")
-                    if ol_shop_no:
-                        update_params["ol_shop_no"] = ol_shop_no
-                        logger.info(f"[상품등록] 온라인 쇼핑몰 번호 저장: {ol_shop_no}")
+
+                    # 채널별 ol_shop_no 저장
+                    if ol_shop_no_gmk:
+                        update_params["ol_shop_no_gmk"] = ol_shop_no_gmk
+                        logger.info(f"[상품등록] GMK 온라인 쇼핑몰 번호 저장: {ol_shop_no_gmk}")
+                    if ol_shop_no_smart:
+                        update_params["ol_shop_no_smart"] = ol_shop_no_smart
+                        logger.info(f"[상품등록] SmartStore 온라인 쇼핑몰 번호 저장: {ol_shop_no_smart}")
+
+                    # 하위 호환성: ol_shop_no 필드에도 저장 (우선순위: gmk > smart)
+                    if ol_shop_no_fallback:
+                        update_params["ol_shop_no"] = ol_shop_no_fallback
+                        logger.info(f"[상품등록] 온라인 쇼핑몰 번호 저장 (하위호환): {ol_shop_no_fallback}")
 
                     db.update_selling_product(**update_params)
 
@@ -1198,40 +1229,23 @@ async def sync_product_marketplace_codes(product_id: int):
         if not product:
             raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
 
-        ol_shop_no = product.get("ol_shop_no")
+        # 채널별 ol_shop_no 확인 (신규 분리 필드 우선)
+        ol_shop_no_gmk = product.get("ol_shop_no_gmk")
+        ol_shop_no_smart = product.get("ol_shop_no_smart")
+        ol_shop_no_legacy = product.get("ol_shop_no")  # 하위 호환성
 
-        # ol_shop_no가 없으면 c_sale_cd로 조회 시도
-        if not ol_shop_no:
+        # ol_shop_no가 없으면 에러
+        if not ol_shop_no_gmk and not ol_shop_no_smart and not ol_shop_no_legacy:
             c_sale_cd_gmk = product.get("c_sale_cd_gmk")
             c_sale_cd_smart = product.get("c_sale_cd_smart")
 
-            logger.warning(f"[마켓코드동기화] 상품 {product_id}번: ol_shop_no 없음, c_sale_cd로 조회 시도")
+            logger.error(f"[마켓코드동기화] 상품 {product_id}번: ol_shop_no가 DB에 없습니다. 상품 재등록 필요")
 
-            # c_sale_cd가 있으면 PlayAuto API에서 조회
             if c_sale_cd_gmk or c_sale_cd_smart:
-                try:
-                    from playauto.products import PlayautoProductAPI
-                    api = PlayautoProductAPI()
-
-                    # c_sale_cd로 상품 조회 (우선순위: gmk > smart)
-                    c_sale_cd = c_sale_cd_gmk or c_sale_cd_smart
-
-                    # PlayAuto API에서 c_sale_cd로 상품 검색
-                    # TODO: PlayAuto에 c_sale_cd로 검색하는 API가 있는지 확인 필요
-                    # 임시로 에러 메시지에 안내 추가
-                    logger.error(f"[마켓코드동기화] 상품 {product_id}번: ol_shop_no가 DB에 없습니다. 상품 재등록 필요")
-
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"ol_shop_no가 DB에 저장되지 않았습니다.\n\n해결 방법:\n1. PlayAuto에서 상품을 삭제하고 다시 등록\n2. 또는 관리자에게 문의하여 수동으로 ol_shop_no 입력\n\n(c_sale_cd: {c_sale_cd})"
-                    )
-
-                except Exception as e:
-                    logger.error(f"[마켓코드동기화] c_sale_cd 조회 실패: {e}")
-                    raise HTTPException(
-                        status_code=400,
-                        detail="ol_shop_no가 없어 마켓 코드를 수집할 수 없습니다. 상품을 재등록하세요."
-                    )
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"ol_shop_no가 DB에 저장되지 않았습니다.\n\n해결 방법:\n1. PlayAuto에서 상품을 삭제하고 다시 등록\n2. 또는 관리자에게 문의하여 수동으로 ol_shop_no 입력\n\n(c_sale_cd_gmk: {c_sale_cd_gmk}, c_sale_cd_smart: {c_sale_cd_smart})"
+                )
             else:
                 raise HTTPException(
                     status_code=400,
@@ -1244,8 +1258,43 @@ async def sync_product_marketplace_codes(product_id: int):
 
         logger.info(f"[마켓코드동기화] 상품 {product_id}번 동기화 시작")
 
-        detail = await api.get_product_detail(ol_shop_no)
-        shops = detail.get("shops", [])
+        # 모든 마켓 코드를 수집할 shops 리스트
+        all_shops = []
+
+        # GMK 채널 조회
+        if ol_shop_no_gmk:
+            logger.info(f"[마켓코드동기화] GMK 채널 조회 (ol_shop_no: {ol_shop_no_gmk})")
+            try:
+                detail_gmk = await api.get_product_detail(ol_shop_no_gmk)
+                shops_gmk = detail_gmk.get("shops", [])
+                all_shops.extend(shops_gmk)
+                logger.info(f"[마켓코드동기화] GMK: {len(shops_gmk)}개 마켓 코드 수집")
+            except Exception as e:
+                logger.error(f"[마켓코드동기화] GMK 조회 실패: {e}")
+
+        # SmartStore 채널 조회
+        if ol_shop_no_smart:
+            logger.info(f"[마켓코드동기화] SmartStore 채널 조회 (ol_shop_no: {ol_shop_no_smart})")
+            try:
+                detail_smart = await api.get_product_detail(ol_shop_no_smart)
+                shops_smart = detail_smart.get("shops", [])
+                all_shops.extend(shops_smart)
+                logger.info(f"[마켓코드동기화] SmartStore: {len(shops_smart)}개 마켓 코드 수집")
+            except Exception as e:
+                logger.error(f"[마켓코드동기화] SmartStore 조회 실패: {e}")
+
+        # 하위 호환성: 레거시 ol_shop_no가 있고 신규 필드가 없는 경우
+        if not ol_shop_no_gmk and not ol_shop_no_smart and ol_shop_no_legacy:
+            logger.warning(f"[마켓코드동기화] 레거시 ol_shop_no 사용: {ol_shop_no_legacy}")
+            try:
+                detail_legacy = await api.get_product_detail(ol_shop_no_legacy)
+                shops_legacy = detail_legacy.get("shops", [])
+                all_shops.extend(shops_legacy)
+                logger.info(f"[마켓코드동기화] 레거시: {len(shops_legacy)}개 마켓 코드 수집")
+            except Exception as e:
+                logger.error(f"[마켓코드동기화] 레거시 조회 실패: {e}")
+
+        shops = all_shops
 
         if not shops:
             return {

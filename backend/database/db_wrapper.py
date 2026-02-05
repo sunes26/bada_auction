@@ -427,6 +427,8 @@ class DatabaseWrapper:
         sol_cate_no: Optional[int] = None,
         playauto_product_no: Optional[str] = None,
         ol_shop_no: Optional[str] = None,
+        ol_shop_no_gmk: Optional[str] = None,
+        ol_shop_no_smart: Optional[str] = None,
         c_sale_cd_gmk: Optional[str] = None,
         c_sale_cd_smart: Optional[str] = None,
         is_active: Optional[bool] = None,
@@ -464,6 +466,10 @@ class DatabaseWrapper:
                 product.playauto_product_no = playauto_product_no
             if ol_shop_no is not None:
                 product.ol_shop_no = ol_shop_no
+            if ol_shop_no_gmk is not None:
+                product.ol_shop_no_gmk = ol_shop_no_gmk
+            if ol_shop_no_smart is not None:
+                product.ol_shop_no_smart = ol_shop_no_smart
             if c_sale_cd_gmk is not None:
                 product.c_sale_cd_gmk = c_sale_cd_gmk
             if c_sale_cd_smart is not None:

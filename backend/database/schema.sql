@@ -253,8 +253,12 @@ CREATE TABLE IF NOT EXISTS my_selling_products (
     thumbnail_url TEXT,
     original_thumbnail_url TEXT,  -- 원본 썸네일 URL (리사이즈 전)
     sol_cate_no INTEGER,  -- PlayAuto 카테고리 코드
-    playauto_product_no TEXT,  -- PlayAuto 상품 등록 번호 (c_sale_cd)
-    ol_shop_no TEXT,  -- 온라인 쇼핑몰 번호 (PlayAuto 등록 시)
+    playauto_product_no TEXT,  -- PlayAuto 상품 등록 번호 (c_sale_cd, 하위 호환성)
+    ol_shop_no TEXT,  -- 온라인 쇼핑몰 번호 (PlayAuto 등록 시, 하위 호환성)
+    ol_shop_no_gmk TEXT,  -- 지마켓/옥션용 온라인 쇼핑몰 번호
+    ol_shop_no_smart TEXT,  -- 스마트스토어용 온라인 쇼핑몰 번호
+    c_sale_cd_gmk TEXT,  -- 지마켓/옥션용 판매자 관리코드
+    c_sale_cd_smart TEXT,  -- 스마트스토어용 판매자 관리코드
     is_active BOOLEAN DEFAULT TRUE,  -- 판매 중 여부
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

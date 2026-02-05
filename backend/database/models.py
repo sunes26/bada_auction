@@ -331,7 +331,9 @@ class MySellingProduct(Base):
     original_thumbnail_url = Column(Text)
     sol_cate_no = Column(BigInteger)
     playauto_product_no = Column(Text)
-    ol_shop_no = Column(Text)
+    ol_shop_no = Column(Text)  # 하위 호환성 유지
+    ol_shop_no_gmk = Column(Text)  # 지마켓/옥션용 온라인 쇼핑몰 번호
+    ol_shop_no_smart = Column(Text)  # 스마트스토어용 온라인 쇼핑몰 번호
     c_sale_cd_gmk = Column(Text)  # 지마켓/옥션용 판매자 관리코드
     c_sale_cd_smart = Column(Text)  # 스마트스토어용 판매자 관리코드
     is_active = Column(Boolean, default=False)  # 기본값: 중단 (상세페이지 생성기에서 추가된 상품은 중단 상태로 시작)
