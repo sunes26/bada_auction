@@ -380,36 +380,6 @@ export default function UnifiedOrderManagementPage() {
     }
   };
 
-  const testConnection = async () => {
-    try {
-      setActionLoading({ ...actionLoading, 'test-connection': true });
-      const res = await fetch(`${API_BASE_URL}/api/playauto/test-connection`, {
-        method: 'POST'
-      });
-      const data = await res.json();
-      setConnectionStatus({
-        tested: true,
-        success: data.success,
-        message: data.message
-      });
-      if (data.success) {
-        toast.success('연결 성공!');
-      } else {
-        toast.error(`연결 실패: ${data.message}`);
-      }
-    } catch (error) {
-      console.error('연결 테스트 실패:', error);
-      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
-      setConnectionStatus({
-        tested: true,
-        success: false,
-        message: errorMessage
-      });
-      toast.error('연결 테스트 중 오류가 발생했습니다');
-    } finally {
-      setActionLoading({ ...actionLoading, 'test-connection': false });
-    }
-  };
 
   // 송장 관련
   const autoUploadTracking = async (days: number = 7) => {
