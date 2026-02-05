@@ -270,10 +270,13 @@ export default function UnifiedOrderManagementPage() {
       let playautoOrders: Order[] = [];
       try {
         // 공통 API 클라이언트 사용 (캐싱 적용)
-        const playautoData = await playautoApi.getOrders(50, true);
+        const playautoData = await playautoApi.getOrders(50, false); // 캐시 비활성화
 
-        if (playautoData.success && playautoData.data) {
-          playautoOrders = (playautoData.data as any[]).map((o: any) => ({
+        console.log('[DEBUG] PlayAuto API 응답:', playautoData);
+
+        // 백엔드 응답: { success: true, orders: [...], total: 0 }
+        if (playautoData.success && playautoData.orders) {
+          playautoOrders = (playautoData.orders as any[]).map((o: any) => ({
             id: o.playauto_order_id || o.id,
             order_number: o.order_number,
             market: o.market,
