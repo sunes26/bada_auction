@@ -188,14 +188,89 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
     }
   };
 
+  // 이미지를 JPG 또는 PNG로 변환하는 헬퍼 함수
+  const convertImageToJpgOrPng = (file: File): Promise<{ blob: Blob; format: 'jpeg' | 'png'; filename: string }> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+      };
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
+        }
+
+        // 흰색 배경 그리기 (JPG 변환 시 투명도 대체용)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 이미지 그리기
+        ctx.drawImage(img, 0, 0);
+
+        // 투명도 체크
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let hasAlpha = false;
+
+        for (let i = 3; i < imageData.data.length; i += 4) {
+          if (imageData.data[i] < 255) {
+            hasAlpha = true;
+            break;
+          }
+        }
+
+        const originalName = file.name.replace(/\.[^/.]+$/, ''); // 확장자 제거
+
+        if (hasAlpha) {
+          // 투명도가 있으면 PNG로 변환
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                resolve({ blob, format: 'png', filename: `${originalName}.png` });
+              } else {
+                reject(new Error('PNG 변환 실패'));
+              }
+            },
+            'image/png'
+          );
+        } else {
+          // 투명도가 없으면 JPG로 변환 (파일 크기 최적화)
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                resolve({ blob, format: 'jpeg', filename: `${originalName}.jpg` });
+              } else {
+                reject(new Error('JPG 변환 실패'));
+              }
+            },
+            'image/jpeg',
+            0.9 // 90% 품질
+          );
+        }
+      };
+
+      img.onerror = () => reject(new Error('이미지 로드 실패'));
+      reader.onerror = () => reject(new Error('파일 읽기 실패'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   // 썸네일 이미지 업로드
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 파일 크기 체크 (5MB 제한)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('이미지 파일 크기는 5MB 이하로 제한됩니다.');
+    // 파일 크기 체크 (10MB 제한 - 변환 후 작아질 수 있음)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('이미지 파일 크기는 10MB 이하로 제한됩니다.');
       return;
     }
 
@@ -207,8 +282,23 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
 
     setUploadingImage(true);
     try {
+      let fileToUpload: File | Blob = file;
+      let filename = file.name;
+
+      // JPG, JPEG, PNG가 아니면 변환
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      const isJpgOrPng = ['jpg', 'jpeg', 'png'].includes(fileExtension || '');
+
+      if (!isJpgOrPng) {
+        console.log(`[이미지 변환] ${file.type} → JPG/PNG 변환 중...`);
+        const converted = await convertImageToJpgOrPng(file);
+        fileToUpload = converted.blob;
+        filename = converted.filename;
+        console.log(`[이미지 변환] 완료: ${converted.format.toUpperCase()} 형식, ${(converted.blob.size / 1024).toFixed(2)}KB`);
+      }
+
       const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
+      formDataUpload.append('file', fileToUpload, filename);
 
       const response = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
         method: 'POST',
@@ -219,7 +309,11 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
 
       if (data.success && data.url) {
         setFormData(prev => ({ ...prev, thumbnail_url: data.url }));
-        alert('✅ 이미지가 업로드되었습니다!');
+        if (!isJpgOrPng) {
+          alert(`✅ 이미지가 ${filename.endsWith('.png') ? 'PNG' : 'JPG'}로 변환되어 업로드되었습니다!`);
+        } else {
+          alert('✅ 이미지가 업로드되었습니다!');
+        }
       } else {
         alert('❌ 이미지 업로드 실패: ' + (data.message || '알 수 없는 오류'));
       }
@@ -621,7 +715,10 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                 {uploadingImage ? '업로드 중...' : formData.thumbnail_url ? '이미지 변경' : '이미지 업로드'}
               </label>
               <p className="text-xs text-pink-600 mt-2">
-                💡 JPG, PNG 파일만 가능하며, 최대 5MB까지 업로드할 수 있습니다
+                💡 모든 이미지 형식 지원 (WebP, AVIF, BMP 등 자동 변환) | 최대 10MB
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                ✨ JPG/PNG가 아닌 이미지는 자동으로 최적 포맷으로 변환됩니다
               </p>
             </div>
           </div>
