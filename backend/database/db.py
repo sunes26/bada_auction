@@ -1288,6 +1288,115 @@ class Database:
             conn.execute("DELETE FROM my_selling_products WHERE id = ?", (product_id,))
             conn.commit()
 
+    # ========================================
+    # 상품별 마켓 코드 관리
+    # ========================================
+
+    def upsert_marketplace_code(
+        self,
+        product_id: int,
+        shop_cd: str,
+        shop_sale_no: Optional[str] = None,
+        transmitted_at: Optional[datetime] = None
+    ) -> int:
+        """마켓별 상품번호 저장/업데이트"""
+        with self.get_connection() as conn:
+            # 기존 레코드 확인
+            cursor = conn.execute("""
+                SELECT id FROM product_marketplace_codes
+                WHERE product_id = ? AND shop_cd = ?
+            """, (product_id, shop_cd))
+            existing = cursor.fetchone()
+
+            now = datetime.now()
+
+            if existing:
+                # 업데이트
+                conn.execute("""
+                    UPDATE product_marketplace_codes
+                    SET shop_sale_no = ?,
+                        transmitted_at = COALESCE(?, transmitted_at),
+                        last_checked_at = ?,
+                        updated_at = ?
+                    WHERE product_id = ? AND shop_cd = ?
+                """, (shop_sale_no, transmitted_at, now, now, product_id, shop_cd))
+                conn.commit()
+                return existing['id']
+            else:
+                # 신규 생성
+                cursor = conn.execute("""
+                    INSERT INTO product_marketplace_codes
+                    (product_id, shop_cd, shop_sale_no, transmitted_at, last_checked_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (product_id, shop_cd, shop_sale_no, transmitted_at, now))
+                conn.commit()
+                return cursor.lastrowid
+
+    def get_marketplace_codes_by_product(self, product_id: int) -> List[Dict]:
+        """상품의 모든 마켓 코드 조회"""
+        with self.get_connection() as conn:
+            cursor = conn.execute("""
+                SELECT * FROM product_marketplace_codes
+                WHERE product_id = ?
+                ORDER BY updated_at DESC
+            """, (product_id,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_product_by_marketplace_code(self, shop_cd: str, shop_sale_no: str) -> Optional[Dict]:
+        """마켓 코드로 상품 조회 (주문 매칭용)"""
+        with self.get_connection() as conn:
+            cursor = conn.execute("""
+                SELECT sp.*, pmc.shop_cd, pmc.shop_sale_no
+                FROM my_selling_products sp
+                JOIN product_marketplace_codes pmc ON sp.id = pmc.product_id
+                WHERE pmc.shop_cd = ? AND pmc.shop_sale_no = ?
+                LIMIT 1
+            """, (shop_cd, shop_sale_no))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_products_without_marketplace_codes(self, limit: int = 100) -> List[Dict]:
+        """마켓 코드가 없는 상품 조회 (동기화 대상)"""
+        with self.get_connection() as conn:
+            cursor = conn.execute("""
+                SELECT sp.*
+                FROM my_selling_products sp
+                WHERE sp.ol_shop_no IS NOT NULL
+                AND sp.is_active = TRUE
+                AND NOT EXISTS (
+                    SELECT 1 FROM product_marketplace_codes pmc
+                    WHERE pmc.product_id = sp.id
+                    AND pmc.shop_sale_no IS NOT NULL
+                )
+                LIMIT ?
+            """, (limit,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_products_for_marketplace_sync(self, hours: int = 24, limit: int = 100) -> List[Dict]:
+        """마켓 코드 동기화가 필요한 상품 조회 (주기적 업데이트)"""
+        with self.get_connection() as conn:
+            cursor = conn.execute("""
+                SELECT DISTINCT sp.*
+                FROM my_selling_products sp
+                WHERE sp.ol_shop_no IS NOT NULL
+                AND sp.is_active = TRUE
+                AND (
+                    NOT EXISTS (
+                        SELECT 1 FROM product_marketplace_codes pmc
+                        WHERE pmc.product_id = sp.id
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM product_marketplace_codes pmc
+                        WHERE pmc.product_id = sp.id
+                        AND (pmc.last_checked_at IS NULL
+                             OR pmc.last_checked_at < datetime('now', '-' || ? || ' hours'))
+                    )
+                )
+                ORDER BY sp.updated_at DESC
+                LIMIT ?
+            """, (hours, limit))
+            return [dict(row) for row in cursor.fetchall()]
+
     def log_margin_change(
         self,
         selling_product_id: int,

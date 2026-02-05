@@ -262,6 +262,20 @@ CREATE TABLE IF NOT EXISTS my_selling_products (
     FOREIGN KEY (monitored_product_id) REFERENCES monitored_products (id) ON DELETE SET NULL
 );
 
+-- 상품별 마켓 코드 매핑 (쇼핑몰상품번호)
+CREATE TABLE IF NOT EXISTS product_marketplace_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,  -- my_selling_products.id
+    shop_cd TEXT NOT NULL,  -- 마켓 코드 (A001=옥션, A006=쿠팡, A112=스마트스토어 등)
+    shop_sale_no TEXT,  -- 마켓별 상품번호 (쇼핑몰상품번호)
+    transmitted_at DATETIME,  -- 상품 전송 일시
+    last_checked_at DATETIME,  -- 마지막 확인 일시
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(product_id, shop_cd),  -- 상품+마켓 조합 중복 방지
+    FOREIGN KEY (product_id) REFERENCES my_selling_products (id) ON DELETE CASCADE
+);
+
 -- 마진 변동 이력
 CREATE TABLE IF NOT EXISTS margin_change_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -283,6 +297,8 @@ CREATE TABLE IF NOT EXISTS margin_change_logs (
 -- 인덱스 생성 (판매 상품 관리)
 CREATE INDEX IF NOT EXISTS idx_my_selling_products_active ON my_selling_products(is_active, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_my_selling_products_monitored ON my_selling_products(monitored_product_id);
+CREATE INDEX IF NOT EXISTS idx_product_marketplace_codes_product ON product_marketplace_codes(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_marketplace_codes_shop ON product_marketplace_codes(shop_cd, shop_sale_no);
 CREATE INDEX IF NOT EXISTS idx_margin_change_logs_product ON margin_change_logs(selling_product_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_margin_change_logs_notification ON margin_change_logs(notification_sent, created_at DESC);
 

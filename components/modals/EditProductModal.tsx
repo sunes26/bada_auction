@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Search, Package } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Search, Package, RefreshCw } from 'lucide-react';
 import { categoryStructure } from '@/lib/categories';
 import type { Category } from '@/types';
 import { productsApi, monitorApi, API_BASE_URL } from '@/lib/api';
@@ -20,6 +20,23 @@ interface Product {
   c_sale_cd_gmk?: string;  // 지마켓/옥션용
   c_sale_cd_smart?: string;  // 스마트스토어용
 }
+
+// 마켓 코드 -> 한글 이름 변환
+const getMarketName = (shopCd: string): string => {
+  const marketNames: { [key: string]: string } = {
+    'A001': '옥션',
+    'A006': '쿠팡',
+    'A112': '네이버 스마트스토어',
+    'A027': '11번가',
+    'A077': '지마켓',
+    'A524': 'SSG.COM',
+    'A113': '롯데ON',
+    'A522': 'GS SHOP',
+    'A419': 'CJ온스타일',
+    'A900': '카페24',
+  };
+  return marketNames[shopCd] || shopCd;
+};
 
 export default function EditProductModal({ product, onClose, onSuccess }: {
   product: Product;
@@ -53,6 +70,11 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
   const [category, setCategory] = useState<Category>(parseCategory(product.category));
   const [loading, setLoading] = useState(false);
   const [extractingUrl, setExtractingUrl] = useState(false);
+
+  // 마켓 코드 관련 상태
+  const [marketplaceCodes, setMarketplaceCodes] = useState<any[]>([]);
+  const [loadingMarketplaceCodes, setLoadingMarketplaceCodes] = useState(false);
+  const [syncingMarketplaceCodes, setSyncingMarketplaceCodes] = useState(false);
 
   const level1Options = Object.keys(categoryStructure);
   const level2Options = category.level1 ? Object.keys((categoryStructure as any)[category.level1] || {}) : [];
@@ -109,6 +131,57 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
       setExtractingUrl(false);
     }
   }, [formData.sourcing_url]);
+
+  // 마켓 코드 조회
+  const loadMarketplaceCodes = useCallback(async () => {
+    setLoadingMarketplaceCodes(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/products/${product.id}/marketplace-codes`);
+      const data = await response.json();
+
+      if (data.success) {
+        setMarketplaceCodes(data.marketplace_codes || []);
+      }
+    } catch (error) {
+      console.error('마켓 코드 조회 실패:', error);
+    } finally {
+      setLoadingMarketplaceCodes(false);
+    }
+  }, [product.id]);
+
+  // 마켓 코드 동기화
+  const handleSyncMarketplaceCodes = async () => {
+    if (syncingMarketplaceCodes) return;
+
+    setSyncingMarketplaceCodes(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/products/${product.id}/sync-marketplace-codes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`✅ ${data.synced_count}개 마켓 코드 수집 완료`);
+        await loadMarketplaceCodes(); // 재조회
+      } else {
+        alert('수집 실패: ' + data.message);
+      }
+    } catch (error) {
+      console.error('마켓 코드 동기화 실패:', error);
+      alert('마켓 코드 동기화 중 오류가 발생했습니다.');
+    } finally {
+      setSyncingMarketplaceCodes(false);
+    }
+  };
+
+  // 모달 열릴 때 마켓 코드 조회
+  useEffect(() => {
+    loadMarketplaceCodes();
+  }, [loadMarketplaceCodes]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -508,6 +581,73 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                 )}
               </div>
             )}
+
+            {/* 마켓별 상품코드 정보 */}
+            <div className="mt-6 border-t border-purple-200 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Package className="w-4 h-4 text-purple-600" />
+                  <h4 className="text-sm font-bold text-purple-800">쇼핑몰 상품코드</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSyncMarketplaceCodes}
+                  disabled={syncingMarketplaceCodes || loadingMarketplaceCodes}
+                  className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-xs font-semibold flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <RefreshCw className={`w-3 h-3 ${syncingMarketplaceCodes ? 'animate-spin' : ''}`} />
+                  {syncingMarketplaceCodes ? '수집 중...' : '수집'}
+                </button>
+              </div>
+
+              {loadingMarketplaceCodes ? (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+                  <p className="text-xs text-purple-600">로딩 중...</p>
+                </div>
+              ) : marketplaceCodes.length > 0 ? (
+                <div className="space-y-2">
+                  {marketplaceCodes.map((code, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center justify-between"
+                    >
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-purple-900">
+                          {getMarketName(code.shop_cd)}
+                        </p>
+                        <p className="text-xs text-gray-600 font-mono mt-0.5">
+                          {code.shop_sale_no}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">
+                          {code.shop_cd}
+                        </p>
+                        {code.transmitted_at && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {new Date(code.transmitted_at).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-600">
+                    아직 수집된 쇼핑몰 상품코드가 없습니다.
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    PlayAuto에서 마켓 전송 후 &quot;수집&quot; 버튼을 클릭하세요.
+                  </p>
+                </div>
+              )}
+
+              <p className="text-xs text-purple-600 mt-2 bg-white/70 rounded-lg p-2 border border-purple-100">
+                💡 PlayAuto에서 마켓 전송 시 자동으로 부여되는 각 쇼핑몰의 고유 상품번호입니다.
+                주문 수집 시 자동으로 매칭됩니다.
+              </p>
+            </div>
           </div>
 
           <div>

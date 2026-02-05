@@ -1128,3 +1128,226 @@ async def reset_playauto_info(product_id: int):
     except Exception as e:
         logger.error(f"[PlayAuto초기화] 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=f"PlayAuto 정보 초기화 실패: {str(e)}")
+
+
+# ========================================
+# 마켓 코드 관리 API
+# ========================================
+
+@router.get("/{product_id}/marketplace-codes")
+async def get_product_marketplace_codes(product_id: int):
+    """
+    상품의 마켓별 상품번호 조회
+
+    Args:
+        product_id: 판매 상품 ID
+
+    Returns:
+        마켓별 shop_sale_no 목록
+    """
+    try:
+        db = get_db()
+
+        # 상품 존재 확인
+        product = db.get_selling_product(product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
+
+        # 마켓 코드 조회
+        codes = db.get_marketplace_codes_by_product(product_id)
+
+        return {
+            "success": True,
+            "product_id": product_id,
+            "product_name": product.get("product_name"),
+            "ol_shop_no": product.get("ol_shop_no"),
+            "marketplace_codes": codes
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[마켓코드조회] 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"마켓 코드 조회 실패: {str(e)}")
+
+
+@router.post("/{product_id}/sync-marketplace-codes")
+async def sync_product_marketplace_codes(product_id: int):
+    """
+    특정 상품의 마켓 코드 강제 동기화
+
+    Args:
+        product_id: 판매 상품 ID
+
+    Returns:
+        동기화 결과
+    """
+    try:
+        db = get_db()
+
+        # 상품 존재 확인
+        product = db.get_selling_product(product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
+
+        ol_shop_no = product.get("ol_shop_no")
+        if not ol_shop_no:
+            raise HTTPException(
+                status_code=400,
+                detail="PlayAuto에 등록되지 않은 상품입니다. 먼저 상품을 등록하세요."
+            )
+
+        # PlayAuto API 호출
+        from playauto.products import PlayautoProductAPI
+        api = PlayautoProductAPI()
+
+        logger.info(f"[마켓코드동기화] 상품 {product_id}번 동기화 시작")
+
+        detail = await api.get_product_detail(ol_shop_no)
+        shops = detail.get("shops", [])
+
+        if not shops:
+            return {
+                "success": True,
+                "message": "아직 마켓에 전송되지 않은 상품입니다.",
+                "synced_count": 0,
+                "marketplace_codes": []
+            }
+
+        # DB에 저장
+        synced_count = 0
+        from datetime import datetime
+
+        for shop in shops:
+            shop_cd = shop.get("shop_cd")
+            shop_sale_no = shop.get("shop_sale_no")
+
+            if shop_cd and shop_sale_no:
+                db.upsert_marketplace_code(
+                    product_id=product_id,
+                    shop_cd=shop_cd,
+                    shop_sale_no=shop_sale_no,
+                    transmitted_at=datetime.now()
+                )
+                synced_count += 1
+                logger.info(f"[마켓코드동기화] {shop.get('shop_name')} ({shop_cd}): {shop_sale_no}")
+
+        # 동기화된 코드 조회
+        codes = db.get_marketplace_codes_by_product(product_id)
+
+        return {
+            "success": True,
+            "message": f"{synced_count}개 마켓 코드 동기화 완료",
+            "synced_count": synced_count,
+            "marketplace_codes": codes
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[마켓코드동기화] 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"마켓 코드 동기화 실패: {str(e)}")
+
+
+@router.post("/sync-all-marketplace-codes")
+async def sync_all_marketplace_codes():
+    """
+    모든 상품의 마켓 코드 일괄 동기화 (이미 수집된 건 스킵)
+
+    Returns:
+        동기화 결과
+    """
+    try:
+        db = get_db()
+
+        logger.info("[일괄마켓코드동기화] 시작")
+
+        # 마켓 코드가 없는 상품만 조회 (이미 있는 건 스킵)
+        products = db.get_products_without_marketplace_codes(limit=500)
+
+        if not products:
+            return {
+                "success": True,
+                "message": "동기화할 상품이 없습니다. 모든 상품이 이미 수집되었습니다.",
+                "total_products": 0,
+                "synced_products": 0,
+                "skipped_products": 0,
+                "error_products": 0
+            }
+
+        logger.info(f"[일괄마켓코드동기화] 대상 상품: {len(products)}개")
+
+        # PlayAuto API 클라이언트
+        from playauto.products import PlayautoProductAPI
+        api = PlayautoProductAPI()
+
+        synced_products = 0
+        skipped_products = 0
+        error_products = 0
+        from datetime import datetime
+
+        for product in products:
+            try:
+                product_id = product.get("id")
+                ol_shop_no = product.get("ol_shop_no")
+                product_name = product.get("product_name")
+
+                if not ol_shop_no:
+                    logger.warning(f"[일괄마켓코드동기화] 상품 {product_id} ({product_name}): ol_shop_no 없음 (스킵)")
+                    skipped_products += 1
+                    continue
+
+                # 상품 상세 정보 조회
+                detail = await api.get_product_detail(ol_shop_no)
+                shops = detail.get("shops", [])
+
+                if not shops:
+                    logger.info(f"[일괄마켓코드동기화] 상품 {product_id} ({product_name}): 아직 마켓에 전송 안 됨 (스킵)")
+                    skipped_products += 1
+                    continue
+
+                # 각 마켓별로 저장
+                codes_synced = 0
+                for shop in shops:
+                    shop_cd = shop.get("shop_cd")
+                    shop_sale_no = shop.get("shop_sale_no")
+
+                    if shop_cd and shop_sale_no:
+                        db.upsert_marketplace_code(
+                            product_id=product_id,
+                            shop_cd=shop_cd,
+                            shop_sale_no=shop_sale_no,
+                            transmitted_at=datetime.now()
+                        )
+                        codes_synced += 1
+
+                if codes_synced > 0:
+                    synced_products += 1
+                    logger.info(f"[일괄마켓코드동기화] 상품 {product_id} ({product_name}): {codes_synced}개 마켓 코드 수집")
+                else:
+                    skipped_products += 1
+
+            except Exception as e:
+                error_products += 1
+                logger.error(f"[일괄마켓코드동기화] 상품 {product.get('id')} 동기화 실패: {e}")
+
+        message = f"✅ {synced_products}개 상품 수집 완료"
+        if skipped_products > 0:
+            message += f", {skipped_products}개 스킵"
+        if error_products > 0:
+            message += f", {error_products}개 실패"
+
+        logger.info(f"[일괄마켓코드동기화] 완료: {message}")
+
+        return {
+            "success": True,
+            "message": message,
+            "total_products": len(products),
+            "synced_products": synced_products,
+            "skipped_products": skipped_products,
+            "error_products": error_products
+        }
+
+    except Exception as e:
+        logger.error(f"[일괄마켓코드동기화] 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"일괄 마켓 코드 동기화 실패: {str(e)}")

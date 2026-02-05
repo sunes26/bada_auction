@@ -124,6 +124,55 @@ class PlayautoProductAPI:
             logger.error(f"[플레이오토] 상품 조회 실패: {str(e)}")
             raise
 
+    async def get_product_detail(
+        self,
+        ol_shop_no: str
+    ) -> Dict:
+        """
+        온라인 상품 상세 정보 조회 (마켓별 shop_sale_no 포함)
+
+        GET /api/products/:ol_shop_no/v1.2
+
+        Args:
+            ol_shop_no: 온라인 상품 고유번호
+
+        Returns:
+            {
+                "c_sale_cd": "판매자관리코드",
+                "ol_shop_no": "온라인상품번호",
+                "shops": [
+                    {
+                        "shop_cd": "A001",  # 마켓 코드
+                        "shop_sale_no": "B123456789",  # 쇼핑몰상품번호
+                        "shop_name": "옥션",
+                        "status": "판매중"
+                    },
+                    ...
+                ]
+            }
+        """
+        try:
+            endpoint = f"/products/{ol_shop_no}/v1.2"
+
+            logger.info(f"[플레이오토] 상품 상세 조회: ol_shop_no={ol_shop_no}")
+
+            async with self.client as client:
+                result = await client.get(endpoint)
+
+            # 응답 구조 확인
+            if "data" in result:
+                data = result["data"]
+            else:
+                data = result
+
+            logger.info(f"[플레이오토] 상품 상세 조회 성공: c_sale_cd={data.get('c_sale_cd')}")
+
+            return data
+
+        except Exception as e:
+            logger.error(f"[플레이오토] 상품 상세 조회 실패: {str(e)}")
+            raise
+
 
 def calculate_selling_price_with_margin(
     sourcing_price: float,

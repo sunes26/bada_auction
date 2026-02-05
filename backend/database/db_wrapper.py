@@ -963,6 +963,10 @@ class DatabaseWrapper:
 
                 session.add(new_order)
                 print(f"[INFO] 신규 주문 저장: {playauto_order_id}")
+
+                # 주문-상품 매칭 시도 (shop_cd + shop_sale_no 기반)
+                self._match_order_to_product(order_data, playauto_order_id)
+
                 return True
 
         except Exception as e:
@@ -970,6 +974,34 @@ class DatabaseWrapper:
             import traceback
             traceback.print_exc()
             return False
+
+    def _match_order_to_product(self, order_data: Dict, playauto_order_id: str):
+        """
+        주문을 마켓 코드 기반으로 상품과 매칭
+
+        Args:
+            order_data: 주문 데이터
+            playauto_order_id: 플레이오토 주문 ID
+        """
+        try:
+            shop_cd = order_data.get("shop_cd")
+            shop_sale_no = order_data.get("shop_sale_no")
+
+            if not shop_cd or not shop_sale_no:
+                print(f"[WARN] 주문 {playauto_order_id}: shop_cd 또는 shop_sale_no 없음 (매칭 불가)")
+                return
+
+            # 마켓 코드로 상품 조회
+            product = self.db_manager.get_product_by_marketplace_code(shop_cd, shop_sale_no)
+
+            if product:
+                print(f"[OK] 주문 {playauto_order_id} 매칭 성공: 상품 ID {product['id']} ({product['product_name']})")
+                # TODO: 주문-상품 연결 테이블에 저장 (필요시 구현)
+            else:
+                print(f"[INFO] 주문 {playauto_order_id}: 매칭되는 상품 없음 (shop_cd={shop_cd}, shop_sale_no={shop_sale_no})")
+
+        except Exception as e:
+            print(f"[ERROR] 주문 매칭 실패: {e}")
 
     # ========================================
     # 유틸리티 메서드

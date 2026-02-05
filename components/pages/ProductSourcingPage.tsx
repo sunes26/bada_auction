@@ -68,6 +68,9 @@ export default function ProductSourcingPage() {
   // 일괄 작업
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
+  // 마켓 코드 수집
+  const [syncingMarketplaceCodes, setSyncingMarketplaceCodes] = useState(false);
+
   const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
@@ -94,6 +97,41 @@ export default function ProductSourcingPage() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  // 쇼핑몰 상품코드 일괄 수집
+  const handleSyncAllMarketplaceCodes = async () => {
+    if (syncingMarketplaceCodes) return;
+
+    if (!confirm('PlayAuto에 등록된 모든 상품의 쇼핑몰 상품코드를 수집하시겠습니까?\n\n이미 수집된 상품은 자동으로 건너뜁니다.')) {
+      return;
+    }
+
+    try {
+      setSyncingMarketplaceCodes(true);
+
+      const response = await fetch(`${API_BASE_URL}/api/products/sync-all-marketplace-codes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(data.message, {
+          description: `총 ${data.total_products}개 상품 중 ${data.synced_products}개 수집 완료`
+        });
+      } else {
+        toast.error('수집 실패: ' + data.message);
+      }
+    } catch (error) {
+      console.error('마켓 코드 수집 실패:', error);
+      toast.error('마켓 코드 수집 중 오류가 발생했습니다.');
+    } finally {
+      setSyncingMarketplaceCodes(false);
+    }
+  };
 
   // 검색, 정렬, 필터링 (useMemo로 최적화)
   const filteredProducts = useMemo(() => {
@@ -554,13 +592,23 @@ export default function ProductSourcingPage() {
           <h1 className="text-3xl font-bold text-gray-800">내 판매 상품</h1>
           <p className="text-gray-600 mt-1">판매 중인 상품과 소싱 정보를 관리하세요</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          상품 추가
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleSyncAllMarketplaceCodes}
+            disabled={syncingMarketplaceCodes}
+            className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-5 h-5 ${syncingMarketplaceCodes ? 'animate-spin' : ''}`} />
+            {syncingMarketplaceCodes ? '수집 중...' : '쇼핑몰 상품코드 수집'}
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            상품 추가
+          </button>
+        </div>
       </div>
 
       {/* Search and Filters */}
