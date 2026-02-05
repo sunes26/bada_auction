@@ -353,7 +353,7 @@ async def lifespan(app: FastAPI):
             stop_backup_scheduler()
             print("[INFO] 데이터베이스 백업 스케줄러 중지 완료")
         except Exception as e:
-        print(f"[WARN] 데이터베이스 백업 스케줄러 중지 실패: {e}")
+            print(f"[WARN] 데이터베이스 백업 스케줄러 중지 실패: {e}")
 
     # 송장 업로드 스케줄러 중지
     try:
