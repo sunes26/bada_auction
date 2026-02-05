@@ -127,7 +127,7 @@ interface SourcingAccount {
 }
 
 // 탭 타입 정의
-type TabType = 'dashboard' | 'orders' | 'create' | 'playauto' | 'tracking' | 'scheduler' | 'accounts' | 'auto-pricing';
+type TabType = 'dashboard' | 'orders' | 'tracking' | 'auto-pricing';
 
 // 주문 필터 타입
 type OrderSourceFilter = 'all' | 'playauto' | 'manual';
@@ -609,12 +609,8 @@ export default function UnifiedOrderManagementPage() {
       loadRecentLogs();
     } else if (activeTab === 'orders') {
       fetchOrders();
-    } else if (activeTab === 'playauto') {
-      loadSettings();
     } else if (activeTab === 'tracking') {
       loadTrackingHistory();
-    } else if (activeTab === 'accounts') {
-      fetchAccounts();
     } else if (activeTab === 'auto-pricing') {
       loadAutoPricingSettings();
     }
@@ -774,10 +770,8 @@ export default function UnifiedOrderManagementPage() {
           {[
             { key: 'dashboard', label: '대시보드', icon: <BarChart3 className="w-4 h-4" /> },
             { key: 'orders', label: '주문 목록', icon: <Package className="w-4 h-4" /> },
-            { key: 'playauto', label: '플레이오토 설정', icon: <Settings className="w-4 h-4" /> },
             { key: 'auto-pricing', label: '자동 가격 조정', icon: <TrendingUp className="w-4 h-4" /> },
-            { key: 'tracking', label: '송장 관리', icon: <Truck className="w-4 h-4" /> },
-            { key: 'accounts', label: '소싱처 계정', icon: <Settings className="w-4 h-4" /> }
+            { key: 'tracking', label: '송장 관리', icon: <Truck className="w-4 h-4" /> }
           ].map((tab) => (
             <button
               key={tab.key}

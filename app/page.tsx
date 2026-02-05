@@ -1,18 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Home, FileText, ShoppingCart, Package, Lock, DollarSign } from 'lucide-react';
+import { Home, FileText, ShoppingCart, Package, Lock, DollarSign, Settings } from 'lucide-react';
 import HomePage from '@/components/pages/HomePage';
 import DetailPage from '@/components/pages/DetailPage';
 import ProductSourcingPage from '@/components/pages/ProductSourcingPage';
 import UnifiedOrderManagementPage from '@/components/pages/UnifiedOrderManagementPage';
 import AdminPage from '@/components/pages/AdminPage';
 import AccountingPage from '@/components/pages/AccountingPage';
+import SettingsPage from '@/components/pages/SettingsPage';
 import { ToastProvider } from '@/app/providers/ToastProvider';
 import NotificationCenter from '@/components/ui/NotificationCenter';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 
-type Page = 'home' | 'detail' | 'sourcing' | 'orders' | 'accounting' | 'admin';
+type Page = 'home' | 'detail' | 'sourcing' | 'orders' | 'accounting' | 'settings' | 'admin';
 
 export default function Main() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -184,6 +185,12 @@ export default function Main() {
                 icon={<DollarSign className="w-5 h-5" />}
                 label="회계"
               />
+              <NavButton
+                active={currentPage === 'settings'}
+                onClick={() => setCurrentPage('settings')}
+                icon={<Settings className="w-5 h-5" />}
+                label="설정"
+              />
             </div>
           </div>
           <div className="flex-1 flex justify-end items-center gap-3">
@@ -206,6 +213,7 @@ export default function Main() {
             currentPage === 'sourcing' ? [{ label: '상품' }] :
             currentPage === 'orders' ? [{ label: '주문 관리' }] :
             currentPage === 'accounting' ? [{ label: '회계' }] :
+            currentPage === 'settings' ? [{ label: '설정' }] :
             currentPage === 'admin' ? [{ label: '관리자' }] :
             [{ label: '메인홈' }]
           }
@@ -218,6 +226,7 @@ export default function Main() {
           {currentPage === 'sourcing' && <ProductSourcingPage />}
           {currentPage === 'orders' && <UnifiedOrderManagementPage />}
           {currentPage === 'accounting' && <AccountingPage />}
+          {currentPage === 'settings' && <SettingsPage />}
           {currentPage === 'admin' && <AdminPage />}
         </div>
       </div>
