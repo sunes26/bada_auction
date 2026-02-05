@@ -881,17 +881,6 @@ export default function UnifiedOrderManagementPage() {
               </button>
 
               <button
-                onClick={() => setActiveTab('create')}
-                className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg transition-all"
-              >
-                <Plus className="w-6 h-6" />
-                <div className="text-left">
-                  <div className="font-semibold">주문 생성</div>
-                  <div className="text-sm opacity-90">수동 주문 입력</div>
-                </div>
-              </button>
-
-              <button
                 onClick={() => setActiveTab('tracking')}
                 className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all"
               >
