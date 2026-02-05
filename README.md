@@ -1237,7 +1237,41 @@ DATABASE_URL=postgresql://...  # Supabase PostgreSQL
 
 ### ⚠️ 현재 알려진 문제
 
-**없음** - 모든 주요 문제가 해결되었습니다! 🎉
+#### 🔴 마켓 코드 동기화 이슈 (작업 중)
+
+**증상**:
+```
+❌ ol_shop_no가 없어 마켓 코드를 수집할 수 없습니다. 상품을 재등록하세요.
+```
+
+**근본 원인**:
+- PlayAuto에 상품을 2번 등록 (지마켓/옥션용, 스마트스토어용)
+- 각 등록마다 다른 `ol_shop_no`(온라인 쇼핑몰 번호)를 반환
+- 기존 DB는 하나의 `ol_shop_no`만 저장 → 일부 마켓 코드 누락
+
+**완료된 작업** (2026-02-05):
+- ✅ DB 스키마 확장 (`ol_shop_no_gmk`, `ol_shop_no_smart` 컬럼 추가)
+- ✅ 상품 등록 로직 수정 (채널별 `ol_shop_no` 저장)
+- ✅ 마켓 코드 동기화 로직 수정 (모든 채널 조회)
+- ✅ Railway 배포 및 마이그레이션 완료
+- ✅ 커밋: `3058b41`, `a231dbc`, `2aa4aa0`
+
+**남은 작업**:
+- ❌ **기존 상품의 `ol_shop_no` 데이터 복구** ← 현재 문제
+  - 기존 상품들은 `ol_shop_no_gmk`, `ol_shop_no_smart`가 NULL
+  - 마켓 코드 동기화 시도하면 에러 발생
+
+**임시 해결 방법**:
+1. 문제 있는 상품을 PlayAuto에 **재등록**
+2. 재등록 시 `ol_shop_no_gmk`, `ol_shop_no_smart` 자동 저장
+3. 마켓 코드 동기화 → ✅ 정상 작동
+
+**다음 세션 계획**:
+1. PlayAuto API 문서 재확인 (상품 검색/목록 조회 API 찾기)
+2. 자동 복구 스크립트 작성 (`c_sale_cd`로 `ol_shop_no` 자동 매칭)
+3. 또는 일괄 재등록 UI 추가
+
+**상세 문서**: [`OL_SHOP_NO_ISSUE_STATUS.md`](./OL_SHOP_NO_ISSUE_STATUS.md)
 
 ---
 
