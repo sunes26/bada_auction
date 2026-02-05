@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Search, Package, RefreshCw } from 'lucide-react';
+import { Search, Package, RefreshCw, Upload, X } from 'lucide-react';
 import { categoryStructure } from '@/lib/categories';
 import type { Category } from '@/types';
 import { productsApi, monitorApi, API_BASE_URL } from '@/lib/api';
@@ -75,6 +75,9 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
   const [marketplaceCodes, setMarketplaceCodes] = useState<any[]>([]);
   const [loadingMarketplaceCodes, setLoadingMarketplaceCodes] = useState(false);
   const [syncingMarketplaceCodes, setSyncingMarketplaceCodes] = useState(false);
+
+  // 이미지 업로드 상태
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const level1Options = Object.keys(categoryStructure);
   const level2Options = category.level1 ? Object.keys((categoryStructure as any)[category.level1] || {}) : [];
@@ -182,6 +185,51 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
       alert('마켓 코드 동기화 중 오류가 발생했습니다.');
     } finally {
       setSyncingMarketplaceCodes(false);
+    }
+  };
+
+  // 썸네일 이미지 업로드
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 파일 크기 체크 (5MB 제한)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('이미지 파일 크기는 5MB 이하로 제한됩니다.');
+      return;
+    }
+
+    // 파일 타입 체크
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+
+      const response = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
+        method: 'POST',
+        body: formDataUpload
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        setFormData(prev => ({ ...prev, thumbnail_url: data.url }));
+        alert('✅ 이미지가 업로드되었습니다!');
+      } else {
+        alert('❌ 이미지 업로드 실패: ' + (data.message || '알 수 없는 오류'));
+      }
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error);
+      alert('이미지 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setUploadingImage(false);
+      // input 초기화
+      e.target.value = '';
     }
   };
 
@@ -523,6 +571,59 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                 선택된 카테고리: {category.level1} &gt; {category.level2} &gt; {category.level3} &gt; {category.level4}
               </p>
             )}
+          </div>
+
+          {/* 썸네일 이미지 */}
+          <div className="bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-300 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Upload className="w-5 h-5 text-pink-600" />
+              <h3 className="text-lg font-bold text-pink-800">썸네일 이미지</h3>
+            </div>
+
+            {formData.thumbnail_url && (
+              <div className="mb-4">
+                <div className="text-xs font-semibold text-gray-700 mb-2">현재 썸네일</div>
+                <div className="relative inline-block">
+                  <img
+                    src={formData.thumbnail_url.startsWith('/static') ? `${API_BASE_URL}${formData.thumbnail_url}` : formData.thumbnail_url}
+                    alt="상품 썸네일"
+                    className="w-40 h-40 object-cover rounded-lg border-2 border-pink-300 shadow-md"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="160" height="160"%3E%3Crect fill="%23f0f0f0" width="160" height="160"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="14" fill="%23999"%3E이미지 없음%3C/text%3E%3C/svg%3E';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, thumbnail_url: '' })}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
+                    title="이미지 제거"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="thumbnail-upload"
+                disabled={uploadingImage}
+              />
+              <label
+                htmlFor="thumbnail-upload"
+                className={`cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all ${uploadingImage ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Upload className="w-4 h-4" />
+                {uploadingImage ? '업로드 중...' : formData.thumbnail_url ? '이미지 변경' : '이미지 업로드'}
+              </label>
+              <p className="text-xs text-pink-600 mt-2">
+                💡 JPG, PNG 파일만 가능하며, 최대 5MB까지 업로드할 수 있습니다
+              </p>
+            </div>
           </div>
 
           {/* PlayAuto 판매자 관리코드 */}
