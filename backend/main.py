@@ -239,6 +239,48 @@ async def lifespan(app: FastAPI):
                 print(f"[WARN] category_infocode_mapping 테이블 생성 중 오류: {e}")
                 conn.rollback()
 
+            # 5. product_marketplace_codes 테이블 생성
+            try:
+                cursor.execute("""
+                    SELECT to_regclass('public.product_marketplace_codes')
+                """)
+                table_exists = cursor.fetchone()[0] is not None
+
+                if not table_exists:
+                    print("[MIGRATION] product_marketplace_codes 테이블 생성 중...")
+                    cursor.execute("""
+                        CREATE TABLE product_marketplace_codes (
+                            id SERIAL PRIMARY KEY,
+                            product_id BIGINT NOT NULL,
+                            shop_cd TEXT NOT NULL,
+                            shop_sale_no TEXT,
+                            transmitted_at TIMESTAMP,
+                            last_checked_at TIMESTAMP,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            CONSTRAINT fk_product_marketplace_product
+                                FOREIGN KEY (product_id)
+                                REFERENCES my_selling_products(id)
+                                ON DELETE CASCADE,
+                            CONSTRAINT uq_product_marketplace UNIQUE (product_id, shop_cd)
+                        )
+                    """)
+                    cursor.execute("""
+                        CREATE INDEX idx_product_marketplace_codes_product
+                        ON product_marketplace_codes(product_id)
+                    """)
+                    cursor.execute("""
+                        CREATE INDEX idx_product_marketplace_codes_shop
+                        ON product_marketplace_codes(shop_cd, shop_sale_no)
+                    """)
+                    conn.commit()
+                    print("[OK] product_marketplace_codes 테이블 생성 완료")
+                else:
+                    print("[OK] product_marketplace_codes 테이블이 이미 존재합니다")
+            except Exception as e:
+                print(f"[WARN] product_marketplace_codes 테이블 생성 중 오류: {e}")
+                conn.rollback()
+
             cursor.close()
             conn.close()
     except Exception as e:
