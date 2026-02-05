@@ -365,7 +365,6 @@ export default function UnifiedOrderManagementPage() {
       localStorage.setItem('current_order_address', JSON.stringify({
         name: order.customer_name,
         phone: order.customer_phone || '',
-        zipcode: order.customer_zipcode || '',
         address: order.customer_address || '',
         bundle_no: order.playauto_order_id || order.order_number
       }));
