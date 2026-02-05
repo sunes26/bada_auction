@@ -253,12 +253,12 @@ async def lifespan(app: FastAPI):
         import traceback
         traceback.print_exc()
 
-    # 상품 모니터링 스케줄러 시작
-    try:
-        start_monitor_scheduler()
-        print("[INFO] 상품 모니터링 스케줄러 시작 완료")
-    except Exception as e:
-        print(f"[WARN] 상품 모니터링 스케줄러 시작 실패: {e}")
+    # 상품 모니터링 스케줄러 시작 (비활성화 - UI 없어서 사용 안 함)
+    # try:
+    #     start_monitor_scheduler()
+    #     print("[INFO] 상품 모니터링 스케줄러 시작 완료")
+    # except Exception as e:
+    #     print(f"[WARN] 상품 모니터링 스케줄러 시작 실패: {e}")
 
     # 데이터베이스 백업 스케줄러 시작
     try:
@@ -286,12 +286,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[WARN] 플레이오토 스케줄러 중지 실패: {e}")
 
-    # 상품 모니터링 스케줄러 중지
-    try:
-        stop_monitor_scheduler()
-        print("[INFO] 상품 모니터링 스케줄러 중지 완료")
-    except Exception as e:
-        print(f"[WARN] 상품 모니터링 스케줄러 중지 실패: {e}")
+    # 상품 모니터링 스케줄러 중지 (비활성화)
+    # try:
+    #     stop_monitor_scheduler()
+    #     print("[INFO] 상품 모니터링 스케줄러 중지 완료")
+    # except Exception as e:
+    #     print(f"[WARN] 상품 모니터링 스케줄러 중지 실패: {e}")
 
     # 데이터베이스 백업 스케줄러 중지
     try:
