@@ -31,7 +31,16 @@ except Exception as e:
 from database.db_wrapper import get_db
 from playauto.scheduler import start_scheduler as start_playauto_scheduler, stop_scheduler as stop_playauto_scheduler
 from monitor.scheduler import start_scheduler as start_monitor_scheduler, stop_scheduler as stop_monitor_scheduler
-from backup.scheduler import start_scheduler as start_backup_scheduler, stop_scheduler as stop_backup_scheduler
+
+# Optional backup scheduler (may not exist in all environments)
+try:
+    from backup.scheduler import start_scheduler as start_backup_scheduler, stop_scheduler as stop_backup_scheduler
+    BACKUP_AVAILABLE = True
+except ImportError:
+    start_backup_scheduler = None
+    stop_backup_scheduler = None
+    BACKUP_AVAILABLE = False
+
 from services.tracking_scheduler import start_tracking_scheduler, stop_tracking_scheduler
 import sys
 import asyncio
@@ -303,11 +312,14 @@ async def lifespan(app: FastAPI):
     #     print(f"[WARN] 상품 모니터링 스케줄러 시작 실패: {e}")
 
     # 데이터베이스 백업 스케줄러 시작
-    try:
-        start_backup_scheduler()
-        print("[INFO] 데이터베이스 백업 스케줄러 시작 완료")
-    except Exception as e:
-        print(f"[WARN] 데이터베이스 백업 스케줄러 시작 실패: {e}")
+    if BACKUP_AVAILABLE:
+        try:
+            start_backup_scheduler()
+            print("[INFO] 데이터베이스 백업 스케줄러 시작 완료")
+        except Exception as e:
+            print(f"[WARN] 데이터베이스 백업 스케줄러 시작 실패: {e}")
+    else:
+        print("[INFO] 백업 모듈을 사용할 수 없습니다 (선택적 기능)")
 
     # 송장 업로드 스케줄러 시작
     try:
@@ -336,10 +348,11 @@ async def lifespan(app: FastAPI):
     #     print(f"[WARN] 상품 모니터링 스케줄러 중지 실패: {e}")
 
     # 데이터베이스 백업 스케줄러 중지
-    try:
-        stop_backup_scheduler()
-        print("[INFO] 데이터베이스 백업 스케줄러 중지 완료")
-    except Exception as e:
+    if BACKUP_AVAILABLE:
+        try:
+            stop_backup_scheduler()
+            print("[INFO] 데이터베이스 백업 스케줄러 중지 완료")
+        except Exception as e:
         print(f"[WARN] 데이터베이스 백업 스케줄러 중지 실패: {e}")
 
     # 송장 업로드 스케줄러 중지
