@@ -90,14 +90,25 @@ class PlayautoOrdersAPI:
             body["search_type"] = kwargs.get("search_type", "partial")
 
         # POST 요청으로 변경
-        if not self.client:
-            async with PlayautoClient() as client:
-                response = await client.post("/orders", data=body)
-        else:
-            response = await self.client.post("/orders", data=body)
+        print(f"[DEBUG] PlayAuto API 호출 시작: POST /orders")
+        print(f"[DEBUG] Request Body: {body}")
 
-        # 응답 데이터 파싱
-        return self._parse_orders_response(response)
+        try:
+            if not self.client:
+                async with PlayautoClient() as client:
+                    response = await client.post("/orders", data=body)
+            else:
+                response = await self.client.post("/orders", data=body)
+
+            print(f"[DEBUG] PlayAuto API 응답 받음: {type(response)}")
+
+            # 응답 데이터 파싱
+            return self._parse_orders_response(response)
+        except Exception as e:
+            print(f"[ERROR] PlayAuto API 호출 실패: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     async def get_order_detail(self, playauto_order_id: str) -> PlayautoOrder:
         """
