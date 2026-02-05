@@ -88,16 +88,27 @@ def start_scheduler():
     try:
         # 설정 확인
         db = get_db()
+        import os
 
         # 환경 변수 우선, DB 설정 대체 (프로덕션 환경 대응)
-        import os
-        enabled = os.getenv("PLAYAUTO_ENABLED", db.get_playauto_setting("enabled")) == "true"
-        auto_sync_enabled = os.getenv("PLAYAUTO_AUTO_SYNC_ENABLED", db.get_playauto_setting("auto_sync_enabled")) == "true"
+        # 프로덕션 환경(ENVIRONMENT=production)이면 강제로 활성화
+        is_production = os.getenv("ENVIRONMENT") == "production"
+
+        if is_production:
+            # 프로덕션에서는 무조건 활성화
+            enabled = True
+            auto_sync_enabled = True
+            print("[PLAYAUTO] 프로덕션 환경 감지: 자동 동기화 강제 활성화")
+        else:
+            # 개발 환경에서는 환경 변수 또는 DB 설정 사용
+            enabled = os.getenv("PLAYAUTO_ENABLED", db.get_playauto_setting("enabled")) == "true"
+            auto_sync_enabled = os.getenv("PLAYAUTO_AUTO_SYNC_ENABLED", db.get_playauto_setting("auto_sync_enabled")) == "true"
+
         auto_sync_interval = int(db.get_playauto_setting("auto_sync_interval") or "30")
 
         if not enabled:
             print("[PLAYAUTO] 플레이오토가 비활성화되어 있어 스케줄러를 시작하지 않습니다")
-            print(f"[PLAYAUTO] enabled={enabled}, PLAYAUTO_ENABLED env={os.getenv('PLAYAUTO_ENABLED')}")
+            print(f"[PLAYAUTO] enabled={enabled}, is_production={is_production}")
             return
 
         # 주문 자동 수집 작업 등록 (설정된 주기마다)
