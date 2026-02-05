@@ -246,13 +246,12 @@ async def lifespan(app: FastAPI):
 
     # 플레이오토 스케줄러 시작
     try:
-        db = get_db()
-        enabled = db.get_playauto_setting("enabled") == "true"
-        if enabled:
-            start_playauto_scheduler()
-            print("[INFO] 플레이오토 스케줄러 시작 완료")
+        start_playauto_scheduler()
+        print("[INFO] 플레이오토 스케줄러 시작 완료")
     except Exception as e:
         print(f"[WARN] 플레이오토 스케줄러 시작 실패: {e}")
+        import traceback
+        traceback.print_exc()
 
     # 상품 모니터링 스케줄러 시작
     try:
