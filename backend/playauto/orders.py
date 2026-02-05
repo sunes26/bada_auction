@@ -156,13 +156,22 @@ class PlayautoOrdersAPI:
             파싱된 주문 목록
         """
         try:
-            # API 응답 구조에 맞게 파싱 (플레이오토 API 문서 참조)
-            orders_data = response.get("data", {}).get("orders", [])
-            total = response.get("data", {}).get("total", 0)
-            page = response.get("data", {}).get("page", 1)
+            # PlayAuto API 실제 응답 구조 (results 키 사용)
+            orders_data = response.get("results", [])
+
+            # 대체 경로도 확인 (하위 호환성)
+            if not orders_data:
+                orders_data = response.get("data", {}).get("orders", [])
+
+            total = response.get("recordsTotal", response.get("recordsFiltered", 0))
+            page = response.get("page", 1)
+
+            print(f"[DEBUG] Parsing {len(orders_data)} orders from response")
 
             # 주문 목록 파싱
             orders = [self._parse_order(order_data) for order_data in orders_data]
+
+            print(f"[DEBUG] Successfully parsed {len(orders)} orders")
 
             return {
                 "success": True,
@@ -173,6 +182,8 @@ class PlayautoOrdersAPI:
 
         except Exception as e:
             print(f"[ERROR] 주문 목록 파싱 실패: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 "success": False,
                 "total": 0,
