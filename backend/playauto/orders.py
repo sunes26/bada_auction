@@ -101,6 +101,18 @@ class PlayautoOrdersAPI:
                 response = await self.client.post("/orders", data=body)
 
             print(f"[DEBUG] PlayAuto API 응답 받음: {type(response)}")
+            print(f"[DEBUG] Response keys: {response.keys() if isinstance(response, dict) else 'Not a dict'}")
+
+            # 응답 구조 확인
+            if isinstance(response, dict):
+                data = response.get("data", {})
+                print(f"[DEBUG] Response.data type: {type(data)}")
+                if isinstance(data, dict):
+                    print(f"[DEBUG] Response.data.orders exists: {'orders' in data}")
+                    orders = data.get("orders", [])
+                    print(f"[DEBUG] Orders count in response: {len(orders) if isinstance(orders, list) else 'Not a list'}")
+                    if orders and len(orders) > 0:
+                        print(f"[DEBUG] First order sample: {list(orders[0].keys())[:10] if isinstance(orders[0], dict) else orders[0]}")
 
             # 응답 데이터 파싱
             return self._parse_orders_response(response)
