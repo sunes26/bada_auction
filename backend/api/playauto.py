@@ -180,12 +180,45 @@ async def fetch_playauto_orders(
     page: int = 1,
     limit: int = 100,
     auto_sync: bool = False,
+    # 신규 파라미터 (고급 필터링)
+    bundle_yn: bool = False,
+    search_key: Optional[str] = None,
+    search_word: Optional[str] = None,
+    status: Optional[str] = None,  # 쉼표 구분 ("신규주문,출고대기")
     background_tasks: BackgroundTasks = None
 ):
-    """플레이오토에서 주문 수집"""
+    """
+    플레이오토에서 주문 수집 (고급 필터링 지원)
+
+    Args:
+        start_date: 시작 날짜 (YYYY-MM-DD)
+        end_date: 종료 날짜 (YYYY-MM-DD)
+        market: 마켓 필터 (쇼핑몰 코드)
+        order_status: 단일 주문 상태 필터 (레거시)
+        page: 페이지 번호
+        limit: 페이지당 항목 수
+        auto_sync: 자동 동기화 여부
+        bundle_yn: 묶음 주문 그룹화
+        search_key: 검색 필드 (order_name, shop_ord_no 등)
+        search_word: 검색어
+        status: 다중 주문 상태 필터 (쉼표 구분)
+        background_tasks: 백그라운드 작업
+    """
     try:
         import time
         start_time = time.time()
+
+        # 상태 필터 파싱 (다중 상태 지원)
+        status_list = None
+        if status:
+            # 쉼표로 구분된 다중 상태
+            status_list = [s.strip() for s in status.split(",")]
+        elif order_status:
+            # 레거시 단일 상태
+            status_list = [order_status]
+
+        # 페이지네이션 계산 (start/length 방식)
+        start = (page - 1) * limit
 
         # 주문 수집
         if auto_sync:
@@ -199,13 +232,18 @@ async def fetch_playauto_orders(
             orders = []
             total = result.get("total_orders", 0)
         else:
-            # 조회만
+            # 조회만 (새로운 파라미터 전달)
             orders_api = PlayautoOrdersAPI()
             result = await orders_api.fetch_orders(
                 start_date=start_date,
                 end_date=end_date,
-                order_status=order_status,
+                order_status=status_list,
                 market=market,
+                start=start,
+                length=limit,
+                bundle_yn=bundle_yn,
+                search_key=search_key,
+                search_word=search_word,
                 page=page,
                 limit=limit
             )

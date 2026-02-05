@@ -898,6 +898,79 @@ class DatabaseWrapper:
                 .limit(limit).all()
             return [self._model_to_dict(o) for o in orders]
 
+    def sync_playauto_order_to_local(self, order_data: Dict) -> bool:
+        """
+        플레이오토 주문을 로컬 DB에 동기화 (확장 필드 지원)
+
+        Args:
+            order_data: 주문 데이터 (dict 형식)
+
+        Returns:
+            성공 여부
+        """
+        try:
+            import json
+
+            with self.db_manager.get_session() as session:
+                # 주문 ID 추출 (새 필드 우선, 레거시 필드 fallback)
+                playauto_order_id = order_data.get("uniq") or order_data.get("playauto_order_id")
+                if not playauto_order_id:
+                    print("[WARN] 주문 ID가 없어 동기화를 건너뜁니다.")
+                    return False
+
+                # 중복 확인
+                existing = session.query(MarketOrderRaw).filter_by(
+                    playauto_order_id=playauto_order_id
+                ).first()
+
+                if existing:
+                    # 업데이트
+                    existing.order_status = order_data.get("ord_status") or order_data.get("order_status")
+                    existing.updated_at = datetime.now()
+                    existing.raw_data = json.dumps(order_data, ensure_ascii=False)
+                    print(f"[INFO] 주문 업데이트: {playauto_order_id}")
+                    return True
+
+                # 신규 생성
+                # 필드 매핑 (새 필드 우선, 레거시 필드 fallback)
+                market = order_data.get("shop_name") or order_data.get("market", "unknown")
+                order_number = order_data.get("shop_ord_no") or order_data.get("order_number", "")
+
+                # 날짜 파싱
+                order_date = None
+                ord_time_str = order_data.get("ord_time") or order_data.get("order_date")
+                if ord_time_str:
+                    try:
+                        if isinstance(ord_time_str, str):
+                            order_date = datetime.strptime(ord_time_str, "%Y-%m-%d %H:%M:%S")
+                        else:
+                            order_date = ord_time_str
+                    except Exception:
+                        try:
+                            order_date = datetime.fromisoformat(ord_time_str.replace("Z", "+00:00"))
+                        except Exception:
+                            pass
+
+                new_order = MarketOrderRaw(
+                    playauto_order_id=playauto_order_id,
+                    market=market,
+                    order_number=order_number,
+                    raw_data=json.dumps(order_data, ensure_ascii=False),  # 전체 JSON 저장 (80+ 필드)
+                    order_date=order_date,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+
+                session.add(new_order)
+                print(f"[INFO] 신규 주문 저장: {playauto_order_id}")
+                return True
+
+        except Exception as e:
+            print(f"[ERROR] 동기화 실패: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     # ========================================
     # 유틸리티 메서드
     # ========================================

@@ -48,8 +48,50 @@ class OrderItem(BaseModel):
     option: Optional[str] = Field(None, description="옵션 정보")
 
 
+class OrdererInfo(BaseModel):
+    """주문자 정보"""
+    order_name: Optional[str] = Field(None, max_length=30, description="주문자명")
+    order_id: Optional[str] = Field(None, max_length=30, description="주문자 ID")
+    order_tel: Optional[str] = Field(None, max_length=20, description="주문자 전화번호")
+    order_htel: Optional[str] = Field(None, max_length=20, description="주문자 휴대폰")
+    order_email: Optional[str] = Field(None, max_length=50, description="주문자 이메일")
+
+
+class ReceiverInfo(BaseModel):
+    """수령인 정보"""
+    to_name: Optional[str] = Field(None, max_length=30, description="수령인명")
+    to_tel: Optional[str] = Field(None, max_length=20, description="수령인 전화번호")
+    to_htel: Optional[str] = Field(None, max_length=20, description="수령인 휴대폰")
+    to_zipcd: Optional[str] = Field(None, max_length=10, description="우편번호")
+    to_addr1: Optional[str] = Field(None, max_length=255, description="기본 주소")
+    to_addr2: Optional[str] = Field(None, max_length=255, description="상세 주소")
+
+
+class DeliveryInfo(BaseModel):
+    """배송 정보"""
+    ship_cost: Optional[float] = Field(None, description="배송비")
+    ship_method: Optional[str] = Field(None, description="배송 방법")
+    ship_msg: Optional[str] = Field(None, description="배송 메시지")
+    carr_name: Optional[str] = Field(None, max_length=30, description="택배사명")
+    carr_no: Optional[str] = Field(None, max_length=5, description="택배사 코드")
+    invoice_no: Optional[str] = Field(None, max_length=20, description="송장번호")
+    invoice_send_time: Optional[datetime] = Field(None, description="송장 발송 시각")
+
+
+class PaymentInfo(BaseModel):
+    """결제 정보"""
+    pay_amt: Optional[float] = Field(None, description="결제 금액")
+    discount_amt: Optional[float] = Field(None, description="할인 금액")
+    sales: Optional[float] = Field(None, description="매출")
+    pay_method: Optional[str] = Field(None, description="결제 수단")
+    pay_time: Optional[datetime] = Field(None, description="결제 시각")
+
+
 class PlayautoOrder(BaseModel):
-    """플레이오토 주문 데이터"""
+    """플레이오토 주문 데이터 (80+ 필드 지원)"""
+    # ========================================
+    # 기존 필드 (하위 호환성 유지)
+    # ========================================
     playauto_order_id: str = Field(..., description="플레이오토 주문 ID")
     market: str = Field(..., description="마켓 (coupang, naver, 11st 등)")
     order_number: str = Field(..., description="마켓 주문번호")
@@ -62,16 +104,78 @@ class PlayautoOrder(BaseModel):
     order_status: Optional[str] = Field("pending", description="주문 상태")
     items: List[OrderItem] = Field(default_factory=list, description="주문 상품 목록")
 
+    # ========================================
+    # 신규 필드 (공식 API)
+    # ========================================
+    # 핵심 필드
+    uniq: Optional[str] = Field(None, max_length=20, description="주문 고유번호")
+    bundle_no: Optional[str] = Field(None, max_length=20, description="묶음 번호")
+    sol_no: Optional[int] = Field(None, description="솔루션 번호")
+
+    # 마켓 정보
+    shop_cd: Optional[str] = Field(None, max_length=4, description="쇼핑몰 코드")
+    shop_name: Optional[str] = Field(None, max_length=50, description="쇼핑몰명")
+    shop_id: Optional[str] = Field(None, max_length=40, description="쇼핑몰 ID")
+    shop_ord_no: Optional[str] = Field(None, max_length=50, description="쇼핑몰 주문번호")
+
+    # 상태 정보
+    ord_status: Optional[str] = Field(None, description="주문 상태")
+    ord_time: Optional[datetime] = Field(None, description="주문 시각")
+    ord_confirm_time: Optional[datetime] = Field(None, description="주문 확인 시각")
+
+    # 중첩 객체
+    orderer: Optional[OrdererInfo] = Field(None, description="주문자 정보")
+    receiver: Optional[ReceiverInfo] = Field(None, description="수령인 정보")
+    delivery: Optional[DeliveryInfo] = Field(None, description="배송 정보")
+    payment: Optional[PaymentInfo] = Field(None, description="결제 정보")
+
+    # 상품 정보
+    shop_sale_no: Optional[str] = Field(None, max_length=40, description="쇼핑몰 상품번호")
+    shop_sale_name: Optional[str] = Field(None, max_length=255, description="쇼핑몰 상품명")
+    shop_opt_name: Optional[str] = Field(None, max_length=250, description="옵션명")
+    sale_cnt: Optional[int] = Field(None, description="판매 수량")
+    c_sale_cd: Optional[str] = Field(None, max_length=40, description="상품 코드")
+
+    # 매칭 정보
+    map_yn: Optional[int] = Field(None, description="매칭 여부 (0/1)")
+    sku_cd: Optional[str] = Field(None, max_length=40, description="SKU 코드")
+    prod_name: Optional[str] = Field(None, max_length=200, description="상품명")
+
 
 class OrdersFetchRequest(BaseModel):
-    """주문 수집 요청"""
-    start_date: Optional[str] = Field(None, description="시작 날짜 (YYYY-MM-DD)")
-    end_date: Optional[str] = Field(None, description="종료 날짜 (YYYY-MM-DD)")
-    market: Optional[str] = Field(None, description="특정 마켓 필터")
-    order_status: Optional[str] = Field(None, description="주문 상태 필터")
-    page: int = Field(1, ge=1, description="페이지 번호")
-    limit: int = Field(100, ge=1, le=1000, description="페이지당 항목 수")
-    auto_sync: bool = Field(False, description="자동 동기화 여부")
+    """주문 수집 요청 (공식 API 호환)"""
+    # 페이지네이션
+    start: int = Field(0, ge=0, description="시작 인덱스 (offset)")
+    length: int = Field(500, ge=1, le=3000, description="조회 개수")
+
+    # 정렬
+    orderby: Optional[str] = Field("wdate desc", description="정렬 기준")
+
+    # 날짜 필터
+    date_type: str = Field("wdate", description="날짜 유형 (wdate, udate 등)")
+    sdate: str = Field(..., description="시작 날짜 (YYYY-MM-DD)")
+    edate: str = Field(..., description="종료 날짜 (YYYY-MM-DD)")
+
+    # 마켓/상태 필터 (다중)
+    shop_cd: Optional[str] = Field(None, description="쇼핑몰 코드")
+    status: List[str] = Field(default_factory=lambda: ["ALL"], description="주문 상태 리스트")
+
+    # 검색
+    search_key: Optional[str] = Field(None, description="검색 필드 (order_name, shop_ord_no 등)")
+    search_word: Optional[str] = Field(None, description="검색어")
+    search_type: Optional[str] = Field("partial", description="검색 방식 (partial/exact)")
+
+    # 묶음 주문
+    bundle_yn: bool = Field(False, description="묶음 주문 그룹화")
+
+    # 레거시 필드 (하위 호환성)
+    start_date: Optional[str] = Field(None, description="시작 날짜 (YYYY-MM-DD) - 레거시")
+    end_date: Optional[str] = Field(None, description="종료 날짜 (YYYY-MM-DD) - 레거시")
+    market: Optional[str] = Field(None, description="특정 마켓 필터 - 레거시")
+    order_status: Optional[str] = Field(None, description="주문 상태 필터 - 레거시")
+    page: int = Field(1, ge=1, description="페이지 번호 - 레거시")
+    limit: int = Field(100, ge=1, le=1000, description="페이지당 항목 수 - 레거시")
+    auto_sync: bool = Field(False, description="자동 동기화 여부 - 레거시")
 
 
 class OrdersFetchResponse(BaseModel):
