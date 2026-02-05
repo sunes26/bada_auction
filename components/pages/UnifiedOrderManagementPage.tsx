@@ -148,6 +148,14 @@ export default function UnifiedOrderManagementPage() {
     auto_disable_on_low_margin: true
   });
 
+  // 주문 처리 상태 (송장 입력 모달)
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [trackingInfo, setTrackingInfo] = useState({
+    carrier_code: '4', // 기본값: CJ대한통운
+    tracking_number: ''
+  });
+
   // 송장 관리 탭 상태
   const [trackingHistory, setTrackingHistory] = useState<SyncLog[]>([]);
   const [trackingStats, setTrackingStats] = useState({
@@ -315,6 +323,135 @@ export default function UnifiedOrderManagementPage() {
       toast.error('주문 삭제 중 오류가 발생했습니다');
     }
   }, [fetchOrders]);
+
+  /**
+   * 상품 매칭 (주문 상품 → 내 판매 상품 찾기)
+   */
+  const matchOrderWithProduct = async (order: Order) => {
+    try {
+      // 주문의 상품명으로 내 상품 DB 검색
+      const res = await fetch(`${API_BASE_URL}/api/products/search?query=${encodeURIComponent(order.customer_name)}`);
+      const data = await res.json();
+
+      if (data.success && data.products && data.products.length > 0) {
+        const matchedProduct = data.products[0];
+        return {
+          sourcing_url: matchedProduct.sourcing_url,
+          sourcing_source: matchedProduct.sourcing_source,
+          product_id: matchedProduct.id
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('상품 매칭 실패:', error);
+      return null;
+    }
+  };
+
+  /**
+   * 구매하기 버튼 핸들러
+   */
+  const handlePurchase = async (order: Order) => {
+    try {
+      // 상품 매칭
+      const productMatch = await matchOrderWithProduct(order);
+
+      if (!productMatch || !productMatch.sourcing_url) {
+        toast.error('소싱처 정보가 없습니다. 상품 탭에서 소싱처 URL을 먼저 등록해주세요.');
+        return;
+      }
+
+      // 배송지 정보를 로컬스토리지에 저장 (크롬 확장에서 사용)
+      localStorage.setItem('current_order_address', JSON.stringify({
+        name: order.customer_name,
+        phone: order.customer_phone || '',
+        zipcode: order.customer_zipcode || '',
+        address: order.customer_address || '',
+        bundle_no: order.playauto_order_id || order.order_number
+      }));
+
+      // 소싱처 링크 열기
+      window.open(productMatch.sourcing_url, '_blank');
+
+      toast.info(`${productMatch.sourcing_source}에서 구매를 진행해주세요.\n배송지는 자동으로 입력됩니다.`);
+    } catch (error) {
+      console.error('구매하기 실패:', error);
+      toast.error('구매 처리 중 오류가 발생했습니다');
+    }
+  };
+
+  /**
+   * 송장 입력 모달 열기
+   */
+  const openTrackingModal = (order: Order) => {
+    setSelectedOrder(order);
+    setTrackingInfo({
+      carrier_code: '4', // 기본값: CJ대한통운
+      tracking_number: ''
+    });
+    setIsTrackingModalOpen(true);
+  };
+
+  /**
+   * 송장 입력 모달 닫기
+   */
+  const closeTrackingModal = () => {
+    setIsTrackingModalOpen(false);
+    setSelectedOrder(null);
+    setTrackingInfo({
+      carrier_code: '4',
+      tracking_number: ''
+    });
+  };
+
+  /**
+   * 송장 번호 업데이트 핸들러
+   */
+  const handleUpdateTracking = async () => {
+    if (!selectedOrder) return;
+
+    if (!trackingInfo.tracking_number.trim()) {
+      toast.error('송장번호를 입력해주세요');
+      return;
+    }
+
+    try {
+      setActionLoading({ ...actionLoading, 'update-tracking': true });
+
+      // PlayAuto API 호출 (송장 업데이트)
+      const bundle_no = selectedOrder.playauto_order_id || selectedOrder.order_number;
+
+      const res = await fetch(`${API_BASE_URL}/api/playauto/orders/invoice`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orders: [{
+            bundle_no: bundle_no,
+            carr_no: trackingInfo.carrier_code,
+            invoice_no: trackingInfo.tracking_number
+          }],
+          overwrite: true,
+          change_complete: true  // 출고완료로 변경
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success('송장 등록 완료! 출고완료 처리되었습니다.');
+        closeTrackingModal();
+        fetchOrders(); // 주문 목록 새로고침
+      } else {
+        throw new Error(data.message || '송장 업데이트 실패');
+      }
+    } catch (error) {
+      console.error('송장 업데이트 실패:', error);
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      toast.error(`송장 업데이트 실패: ${errorMessage}`);
+    } finally {
+      setActionLoading({ ...actionLoading, 'update-tracking': false });
+    }
+  };
 
 
   // 플레이오토 설정 관련
@@ -1024,7 +1161,7 @@ export default function UnifiedOrderManagementPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                       <div>
                         <span className="text-gray-600">주문 금액:</span>
                         <p className="text-gray-800 font-bold">{formatCurrency(order.total_amount)}</p>
@@ -1041,6 +1178,22 @@ export default function UnifiedOrderManagementPage() {
                         <span className="text-gray-600">주문 일시:</span>
                         <p className="text-gray-800">{formatDate(order.created_at)}</p>
                       </div>
+                    </div>
+
+                    {/* 주문 처리 버튼 */}
+                    <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={() => handlePurchase(order)}
+                        className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                      >
+                        🛒 구매하기
+                      </button>
+                      <button
+                        onClick={() => openTrackingModal(order)}
+                        className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                      >
+                        📝 송장 입력
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1280,6 +1433,78 @@ export default function UnifiedOrderManagementPage() {
             <p className="mt-4 text-sm text-gray-600">
               * 계산된 가격을 {autoPricingSettings.price_unit.toLocaleString()}원 단위로 올림하여 조정된 판매가가 결정됩니다.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* 송장 입력 모달 */}
+      {isTrackingModalOpen && selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">송장번호 입력</h2>
+
+            {/* 주문 정보 요약 */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              <p className="text-sm text-gray-600">주문번호</p>
+              <p className="text-lg font-bold text-gray-800">{selectedOrder.order_number}</p>
+              <p className="text-sm text-gray-600 mt-2">고객명</p>
+              <p className="text-gray-800">{selectedOrder.customer_name}</p>
+              <p className="text-sm text-gray-600 mt-2">주문금액</p>
+              <p className="text-gray-800 font-bold">{formatCurrency(selectedOrder.total_amount)}</p>
+            </div>
+
+            {/* 배송사 선택 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                배송사
+              </label>
+              <select
+                value={trackingInfo.carrier_code}
+                onChange={(e) => setTrackingInfo({ ...trackingInfo, carrier_code: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="4">CJ대한통운</option>
+                <option value="5">한진택배</option>
+                <option value="8">롯데택배</option>
+                <option value="1">우체국택배</option>
+                <option value="6">로젠택배</option>
+              </select>
+            </div>
+
+            {/* 송장번호 입력 */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                송장번호
+              </label>
+              <input
+                type="text"
+                value={trackingInfo.tracking_number}
+                onChange={(e) => setTrackingInfo({ ...trackingInfo, tracking_number: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="송장번호를 입력하세요"
+                autoFocus
+              />
+              <p className="mt-2 text-sm text-gray-600">
+                💡 소싱처에서 복사 → 붙여넣기
+              </p>
+            </div>
+
+            {/* 버튼 */}
+            <div className="flex gap-3">
+              <button
+                onClick={closeTrackingModal}
+                className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleUpdateTracking}
+                disabled={actionLoading['update-tracking']}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading['update-tracking'] ? '처리 중...' : '저장 및 출고완료 처리'}
+              </button>
+            </div>
           </div>
         </div>
       )}
