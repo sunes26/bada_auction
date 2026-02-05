@@ -204,9 +204,9 @@ export default function UnifiedOrderManagementPage() {
   } | null>(null);
   const [showApiSecret, setShowApiSecret] = useState(false);
 
-  // 자동 가격 조정 설정
+  // 자동 가격 조정 설정 (항상 활성화)
   const [autoPricingSettings, setAutoPricingSettings] = useState({
-    enabled: false,
+    enabled: true,  // 무조건 활성화
     target_margin: 30.0,
     min_margin: 15.0,
     price_unit: 100,
@@ -522,7 +522,8 @@ export default function UnifiedOrderManagementPage() {
       if (!res.ok) throw new Error('자동 가격 조정 설정 조회 실패');
       const data = await res.json();
       if (data.success && data.settings) {
-        setAutoPricingSettings(data.settings);
+        // enabled는 항상 true로 강제 설정
+        setAutoPricingSettings({ ...data.settings, enabled: true });
       }
     } catch (error) {
       console.error('자동 가격 조정 설정 로드 실패:', error);
@@ -536,7 +537,8 @@ export default function UnifiedOrderManagementPage() {
       const res = await fetch(`${API_BASE_URL}/api/auto-pricing/settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(autoPricingSettings)
+        // enabled는 항상 true로 강제 전송
+        body: JSON.stringify({ ...autoPricingSettings, enabled: true })
       });
       const data = await res.json();
       if (data.success) {
@@ -2073,34 +2075,13 @@ export default function UnifiedOrderManagementPage() {
                 <h3 className="text-2xl font-bold text-gray-800">자동 가격 조정 설정</h3>
                 <p className="text-gray-600 mt-2">소싱가 변동 시 자동으로 판매가를 조정합니다</p>
               </div>
-              <div className={`px-4 py-2 rounded-full font-semibold ${
-                autoPricingSettings.enabled
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-800'
-              }`}>
-                {autoPricingSettings.enabled ? '활성화됨' : '비활성화됨'}
+              <div className="px-4 py-2 rounded-full font-semibold bg-green-100 text-green-800">
+                활성화됨
               </div>
             </div>
 
             {/* 설정 폼 */}
             <form onSubmit={saveAutoPricingSettings} className="space-y-6">
-              {/* 활성화 토글 */}
-              <div className="flex items-center justify-between p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-800">자동 가격 조정 활성화</h4>
-                  <p className="text-sm text-gray-600 mt-1">소싱가 변동 감지 시 자동으로 판매가 조정</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoPricingSettings.enabled}
-                    onChange={(e) => setAutoPricingSettings({ ...autoPricingSettings, enabled: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
-                </label>
-              </div>
-
               {/* 목표 마진율 */}
               <div className="grid grid-cols-2 gap-6">
                 <div>
@@ -2260,7 +2241,7 @@ export default function UnifiedOrderManagementPage() {
 
             <button
               onClick={adjustAllPrices}
-              disabled={!autoPricingSettings.enabled || actionLoading['adjust-all-prices']}
+              disabled={actionLoading['adjust-all-prices']}
               className="w-full mt-6 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-4 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {actionLoading['adjust-all-prices'] ? (
@@ -2275,17 +2256,6 @@ export default function UnifiedOrderManagementPage() {
                 </div>
               )}
             </button>
-
-            {!autoPricingSettings.enabled && (
-              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-yellow-600" />
-                  <p className="text-sm text-yellow-800">
-                    자동 가격 조정을 활성화해야 수동 조정이 가능합니다.
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* 가격 계산 예시 */}
