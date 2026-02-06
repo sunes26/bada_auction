@@ -134,6 +134,7 @@ class PlayautoOrder(BaseModel):
     shop_sale_name: Optional[str] = Field(None, max_length=255, description="쇼핑몰 상품명")
     shop_opt_name: Optional[str] = Field(None, max_length=250, description="옵션명")
     sale_cnt: Optional[int] = Field(None, description="판매 수량")
+    sales: Optional[float] = Field(None, description="판매 금액")
     c_sale_cd: Optional[str] = Field(None, max_length=40, description="상품 코드")
 
     # 매칭 정보

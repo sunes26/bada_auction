@@ -1201,10 +1201,10 @@ export default function UnifiedOrderManagementPage() {
                         </div>
                         <div className="text-right ml-4">
                           <p className="font-bold text-purple-600">
-                            {formatCurrency((order as any).pay_amt || (order as any).payment?.pay_amt || order.total_amount)}
+                            {formatCurrency((order as any).sales || order.total_amount || 0)}
                           </p>
                           <p className="text-sm text-gray-500">
-                            수량: {(order as any).sale_cnt || 1}개
+                            수량: {(order as any).sale_cnt ?? 1}개
                           </p>
                         </div>
                       </div>
@@ -1213,7 +1213,7 @@ export default function UnifiedOrderManagementPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                       <div>
                         <span className="text-gray-600">주문 금액:</span>
-                        <p className="text-gray-800 font-bold">{formatCurrency((order as any).pay_amt || (order as any).payment?.pay_amt || order.total_amount)}</p>
+                        <p className="text-gray-800 font-bold">{formatCurrency((order as any).sales || order.total_amount || 0)}</p>
                       </div>
                       <div>
                         <span className="text-gray-600">배송지:</span>

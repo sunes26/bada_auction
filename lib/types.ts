@@ -108,6 +108,7 @@ export interface Order {
   shop_sale_name?: string; // 쇼핑몰 상품명
   shop_opt_name?: string;  // 옵션명
   sale_cnt?: number;       // 판매 수량
+  sales?: number;          // 판매 금액 (PlayAuto)
   pay_amt?: number;        // 결제 금액
   prod_name?: string;      // 상품명 (매칭용)
 }

@@ -348,6 +348,8 @@ class PlayautoOrdersAPI:
                 shop_opt_name=order_data.get("shop_opt_name"),
                 # 수량 필드 (여러 필드명 확인)
                 sale_cnt=order_data.get("sale_cnt") or order_data.get("qty") or order_data.get("quantity") or order_data.get("ord_cnt"),
+                # 판매 금액 (sales 필드 직접 전달)
+                sales=order_data.get("sales"),
                 c_sale_cd=order_data.get("c_sale_cd"),
 
                 # 매칭 정보
