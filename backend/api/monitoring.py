@@ -330,23 +330,105 @@ async def extract_url_info(request: dict):
 
         # FlareSolverr로 먼저 시도 (Cloudflare 우회)
         flaresolverr_result = None
-        flaresolverr_cookies = None
 
         if is_cloudflare_site:
             print(f"[FLARESOLVERR] Cloudflare 보호 사이트 감지, FlareSolverr 시도...")
             flaresolverr_result = solve_cloudflare(product_url)
 
-            if flaresolverr_result:
-                print(f"[FLARESOLVERR] 성공! HTML 길이: {len(flaresolverr_result.get('html', ''))}")
-                flaresolverr_cookies = flaresolverr_result.get('selenium_cookies', [])
+            if flaresolverr_result and flaresolverr_result.get('html'):
+                html_content = flaresolverr_result.get('html', '')
+                print(f"[FLARESOLVERR] 성공! HTML 길이: {len(html_content)}")
+
+                # HTML 직접 파싱으로 데이터 추출 (Selenium 사용 안 함)
+                from bs4 import BeautifulSoup
+                import re
+
+                soup = BeautifulSoup(html_content, 'html.parser')
+
+                # 상품명 추출
+                product_name = None
+                if 'gmarket.co.kr' in product_url or 'auction.co.kr' in product_url:
+                    # G마켓/옥션
+                    title_el = soup.select_one('.itemtit') or soup.select_one('h1')
+                    if title_el:
+                        product_name = title_el.get_text(strip=True)
+                elif 'smartstore.naver.com' in product_url:
+                    # 스마트스토어
+                    title_el = soup.select_one('h3._copyable') or soup.select_one('meta[property="og:title"]')
+                    if title_el:
+                        product_name = title_el.get('content') if title_el.name == 'meta' else title_el.get_text(strip=True)
+
+                # og:title 폴백
+                if not product_name:
+                    og_title = soup.select_one('meta[property="og:title"]')
+                    if og_title:
+                        product_name = og_title.get('content', '')
+
+                print(f"[FLARESOLVERR] 추출된 상품명: {product_name}")
+
+                # 가격 추출
+                current_price = None
+                # og:price 먼저 시도
+                og_price = soup.select_one('meta[property="product:price:amount"]')
+                if og_price and og_price.get('content'):
+                    try:
+                        current_price = int(og_price.get('content'))
+                        print(f"[FLARESOLVERR] og:price에서 가격 추출: {current_price}")
+                    except:
+                        pass
+
+                # HTML에서 가격 패턴 찾기
+                if not current_price:
+                    price_patterns = [
+                        r'(\d{1,3}(?:,\d{3})+)\s*원',  # XX,XXX원
+                        r'"price":\s*"?(\d+)"?',  # JSON price
+                    ]
+                    for pattern in price_patterns:
+                        matches = re.findall(pattern, html_content)
+                        if matches:
+                            for match in matches:
+                                try:
+                                    price = int(match.replace(',', ''))
+                                    if 1000 < price < 10000000:
+                                        current_price = price
+                                        print(f"[FLARESOLVERR] 패턴에서 가격 추출: {current_price}")
+                                        break
+                                except:
+                                    pass
+                            if current_price:
+                                break
+
+                # 썸네일 추출
+                thumbnail_url = None
+                og_image = soup.select_one('meta[property="og:image"]')
+                if og_image:
+                    thumbnail_url = og_image.get('content')
+                    print(f"[FLARESOLVERR] og:image에서 썸네일 추출: {thumbnail_url}")
+
+                # FlareSolverr로 성공적으로 데이터 추출 완료
+                if product_name or current_price:
+                    print(f"[FLARESOLVERR] 데이터 추출 완료 - 상품명: {product_name}, 가격: {current_price}")
+                    return {
+                        "success": True,
+                        "data": {
+                            "source": source,
+                            "product_name": product_name or "자동 감지 실패",
+                            "current_price": current_price,
+                            "status": "available",
+                            "details": "FlareSolverr로 추출",
+                            "thumbnail_url": thumbnail_url
+                        }
+                    }
+                else:
+                    print(f"[FLARESOLVERR] HTML에서 데이터 추출 실패, Selenium으로 폴백")
             else:
                 print(f"[FLARESOLVERR] 실패 또는 사용 불가, Selenium으로 폴백")
 
-        # 모니터로 상품 정보 추출
+        # 모니터로 상품 정보 추출 (FlareSolverr 실패 시 또는 비-Cloudflare 사이트)
         monitor = ProductMonitor()
 
-        # 모든 마켓에서 Selenium 사용 (정확도 우선)
-        print(f"[SELENIUM] 정확한 추출을 위해 Selenium 사용")
+        # Selenium 사용
+        print(f"[SELENIUM] Selenium으로 추출 시도")
         monitor._init_driver()
 
         try:
@@ -355,19 +437,6 @@ async def extract_url_info(request: dict):
             from selenium.webdriver.support import expected_conditions as EC
             from selenium.webdriver.common.by import By
             from selenium.common.exceptions import UnexpectedAlertPresentException
-
-            # FlareSolverr 쿠키가 있으면 먼저 적용
-            if flaresolverr_cookies:
-                print(f"[FLARESOLVERR] {len(flaresolverr_cookies)}개 쿠키 적용 중...")
-                # 먼저 도메인에 접속해야 쿠키 설정 가능
-                monitor.driver.get(product_url.split('?')[0])
-                time.sleep(1)
-                for cookie in flaresolverr_cookies:
-                    try:
-                        monitor.driver.add_cookie(cookie)
-                    except Exception as e:
-                        print(f"[FLARESOLVERR] 쿠키 추가 실패: {e}")
-                print(f"[FLARESOLVERR] 쿠키 적용 완료, 페이지 새로고침")
 
             monitor.driver.get(product_url)
 
