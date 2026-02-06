@@ -382,9 +382,15 @@ async def extract_url_info(request: dict):
             except:
                 pass
 
+            # 페이지 로드 확인
+            page_title = monitor.driver.title
+            print(f"[DEBUG] 페이지 타이틀: {page_title}")
+            print(f"[DEBUG] 현재 URL: {monitor.driver.current_url}")
+
             # 상품명 추출 (페이지가 로드된 상태에서)
             try:
                 product_name = monitor.extract_product_name(product_url, source)
+                print(f"[DEBUG] 상품명 추출 결과: {product_name}")
                 logger.debug(f"상품명 추출: {product_name}")
             except UnexpectedAlertPresentException:
                 try:
@@ -419,16 +425,40 @@ async def extract_url_info(request: dict):
             else:
                 result = monitor._check_generic_status()
 
+            print(f"[DEBUG] 가격 추출 결과: {result}")
+
             # 썸네일 추출 및 다운로드 (이미 로드된 페이지에서)
             logger.debug("썸네일 추출 중...")
             thumbnail_url = None
             thumbnail_path = None
             try:
-                # 썸네일 URL 추출
+                # 썸네일 URL 추출 (사이트별 최적화)
                 thumbnail_url = monitor.driver.execute_script("""
-                    // 대표 이미지 찾기 (일반적인 선택자들)
+                    // 1. 스마트스토어 전용 셀렉터
+                    if (window.location.hostname.includes('smartstore.naver.com')) {
+                        // 대표 이미지 (클래스명이 동적이므로 구조로 찾기)
+                        const mainImg = document.querySelector('img[alt="대표이미지"]') ||
+                                       document.querySelector('img[class*="TgO1N1wWTm"]') ||
+                                       document.querySelector('[class*="mdFeBiFowv"] img');
+                        if (mainImg && mainImg.src) return mainImg.src;
+                    }
+
+                    // 2. 옥션/G마켓 전용 셀렉터
+                    if (window.location.hostname.includes('auction.co.kr') ||
+                        window.location.hostname.includes('gmarket.co.kr')) {
+                        const mainImg = document.querySelector('.thumb-image img') ||
+                                       document.querySelector('.item-topimg img') ||
+                                       document.querySelector('#mainImage') ||
+                                       document.querySelector('.box-im img');
+                        if (mainImg && mainImg.src) return mainImg.src;
+                    }
+
+                    // 3. og:image 메타 태그 (가장 신뢰성 높음)
+                    const ogImage = document.querySelector('meta[property="og:image"]');
+                    if (ogImage && ogImage.content) return ogImage.content;
+
+                    // 4. 일반적인 선택자들
                     const selectors = [
-                        'meta[property="og:image"]',
                         'meta[name="twitter:image"]',
                         '.product-image img',
                         '.detail-image img',
@@ -443,16 +473,16 @@ async def extract_url_info(request: dict):
                         if (el) {
                             if (el.tagName === 'META') {
                                 return el.content;
-                            } else if (el.tagName === 'IMG') {
+                            } else if (el.tagName === 'IMG' && el.src) {
                                 return el.src;
                             }
                         }
                     }
 
-                    // 첫 번째 큰 이미지 찾기
+                    // 5. 첫 번째 큰 이미지 찾기
                     const images = document.querySelectorAll('img');
                     for (let img of images) {
-                        if (img.naturalWidth > 200 && img.naturalHeight > 200) {
+                        if (img.naturalWidth > 200 && img.naturalHeight > 200 && img.src) {
                             return img.src;
                         }
                     }

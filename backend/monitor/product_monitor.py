@@ -922,7 +922,6 @@ class ProductMonitor:
                 const debugInfo = [];
 
                 // 방법 1: "원" 텍스트를 포함한 span의 이전 형제 요소에서 숫자 추출
-                const wonSpans = document.querySelectorAll('span.won, span:contains("원")');
                 document.querySelectorAll('span').forEach(span => {
                     if (span.textContent.trim() === '원' || span.classList.contains('won')) {
                         const parent = span.parentElement;
@@ -947,7 +946,7 @@ class ProductMonitor:
                 document.querySelectorAll('strong').forEach(strong => {
                     const text = strong.textContent.trim();
                     // "29,200원" 또는 "29,200" 패턴
-                    const match = text.match(/([\d,]+)원?/);
+                    const match = text.match(/([\d,]+)\s*원/);
                     if (match) {
                         const num = parseInt(match[1].replace(/,/g, ''));
                         if (num > 100 && num < 10000000 && !prices.includes(num)) {
@@ -957,7 +956,30 @@ class ProductMonitor:
                     }
                 });
 
-                // 방법 3: 기존 선택자
+                // 방법 3: 페이지 전체에서 가격 패턴 찾기 (XX,XXX원 형태)
+                const bodyText = document.body.innerText;
+                const priceMatches = bodyText.match(/(\d{1,3}(,\d{3})+)\s*원/g);
+                if (priceMatches) {
+                    priceMatches.forEach(match => {
+                        const num = parseInt(match.replace(/[^0-9]/g, ''));
+                        if (num > 1000 && num < 10000000 && !prices.includes(num)) {
+                            prices.push(num);
+                            debugInfo.push('body: ' + num);
+                        }
+                    });
+                }
+
+                // 방법 4: og:price 메타 태그
+                const ogPrice = document.querySelector('meta[property="product:price:amount"]');
+                if (ogPrice && ogPrice.content) {
+                    const num = parseInt(ogPrice.content);
+                    if (num > 100 && num < 10000000 && !prices.includes(num)) {
+                        prices.push(num);
+                        debugInfo.push('og:price: ' + num);
+                    }
+                }
+
+                // 방법 5: 기존 선택자
                 const selectors = [
                     '.price_num strong',
                     '.lowestPrice strong',
@@ -977,21 +999,20 @@ class ProductMonitor:
                     });
                 }
 
-                // 방법 4: og:price 메타 태그
-                const ogPrice = document.querySelector('meta[property="product:price:amount"]');
-                if (ogPrice && ogPrice.content) {
-                    const num = parseInt(ogPrice.content);
-                    if (num > 100 && num < 10000000 && !prices.includes(num)) {
-                        prices.push(num);
-                        debugInfo.push('og:price: ' + num);
-                    }
-                }
-
                 console.log('스마트스토어 가격 디버그:', debugInfo);
-                return prices.length > 0 ? prices : null;
+                return { prices: prices, debug: debugInfo };
             """)
 
-            price = min(price_data) if price_data and len(price_data) > 0 else None
+            print(f"[DEBUG] 스마트스토어 가격 추출 결과: {price_data}")
+
+            # 결과에서 가격 추출
+            if price_data and isinstance(price_data, dict):
+                prices = price_data.get('prices', [])
+                price = min(prices) if prices else None
+            elif price_data and isinstance(price_data, list):
+                price = min(price_data) if price_data else None
+            else:
+                price = None
 
             return {
                 'status': status,
