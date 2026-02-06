@@ -122,63 +122,51 @@ class TrackingScheduler:
             print(f"[ERROR] 자동 송장 업로드 실패: {e}")
 
     def _load_config(self) -> dict:
-        """설정 로드"""
+        """설정 로드 (SQLAlchemy ORM 사용)"""
         try:
-            cursor = self.db.conn.cursor()
-            cursor.execute("""
-                SELECT
-                    enabled,
-                    schedule_time,
-                    retry_count,
-                    notify_discord,
-                    notify_slack
-                FROM tracking_upload_scheduler
-                WHERE id = 1
-            """)
+            from database.models import TrackingUploadScheduler
 
-            row = cursor.fetchone()
-            if not row:
-                return None
+            with self.db.db_manager.get_session() as session:
+                config = session.query(TrackingUploadScheduler).filter_by(id=1).first()
+                if not config:
+                    return None
 
-            return {
-                'enabled': bool(row[0]),
-                'schedule_time': row[1],
-                'retry_count': row[2],
-                'notify_discord': bool(row[3]),
-                'notify_slack': bool(row[4])
-            }
+                return {
+                    'enabled': bool(config.enabled),
+                    'schedule_time': config.schedule_time or '17:00',
+                    'retry_count': config.retry_count or 3,
+                    'notify_discord': bool(config.notify_discord),
+                    'notify_slack': bool(config.notify_slack)
+                }
 
         except Exception as e:
             print(f"[ERROR] 설정 로드 실패: {e}")
             return None
 
     def _update_last_run_time(self):
-        """마지막 실행 시각 업데이트"""
+        """마지막 실행 시각 업데이트 (SQLAlchemy ORM 사용)"""
         try:
-            cursor = self.db.conn.cursor()
-            cursor.execute("""
-                UPDATE tracking_upload_scheduler
-                SET last_run_at = CURRENT_TIMESTAMP
-                WHERE id = 1
-            """)
-            self.db.conn.commit()
+            from database.models import TrackingUploadScheduler
+            from datetime import datetime
+
+            with self.db.db_manager.get_session() as session:
+                config = session.query(TrackingUploadScheduler).filter_by(id=1).first()
+                if config:
+                    config.last_run_at = datetime.now()
         except Exception as e:
             print(f"[ERROR] 마지막 실행 시각 업데이트 실패: {e}")
 
     def _update_next_run_time(self):
-        """다음 실행 시각 업데이트"""
+        """다음 실행 시각 업데이트 (SQLAlchemy ORM 사용)"""
         try:
+            from database.models import TrackingUploadScheduler
+
             job = self.scheduler.get_job(self.job_id)
             if job and job.next_run_time:
-                next_run = job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')
-
-                cursor = self.db.conn.cursor()
-                cursor.execute("""
-                    UPDATE tracking_upload_scheduler
-                    SET next_run_at = ?
-                    WHERE id = 1
-                """, (next_run,))
-                self.db.conn.commit()
+                with self.db.db_manager.get_session() as session:
+                    config = session.query(TrackingUploadScheduler).filter_by(id=1).first()
+                    if config:
+                        config.next_run_at = job.next_run_time
         except Exception as e:
             print(f"[ERROR] 다음 실행 시각 업데이트 실패: {e}")
 
