@@ -288,16 +288,44 @@ class ProductMonitor:
                     }
                 }
 
-                // 스마트스토어 선택자
+                // 스마트스토어 선택자 (클래스명이 동적 생성되므로 다양한 패턴 시도)
                 if (window.location.hostname.includes('smartstore.naver.com')) {
+                    // 1. _copyable 클래스가 있는 h3 (가장 안정적)
+                    const copyable = document.querySelector('h3._copyable');
+                    if (copyable) return copyable.textContent.trim();
+
+                    // 2. 기존 선택자
                     const el = document.querySelector('._22kNQuEXmb h3') || document.querySelector('.bd_tit');
                     if (el) return el.textContent.trim();
+
+                    // 3. og:title 메타 태그
+                    const ogTitle = document.querySelector('meta[property="og:title"]');
+                    if (ogTitle && ogTitle.content) return ogTitle.content.trim();
+
+                    // 4. 페이지 타이틀에서 추출
+                    const title = document.title;
+                    if (title && title.length > 5) {
+                        // "상품명 : 스토어명" 형태에서 상품명만 추출
+                        return title.split(' : ')[0].split(' - ')[0].trim();
+                    }
                 }
 
                 // G마켓 선택자
                 if (window.location.hostname.includes('gmarket.co.kr')) {
                     const el = document.querySelector('.itemtit') || document.querySelector('h1');
                     if (el) return el.textContent.trim();
+                }
+
+                // 옥션 선택자 (G마켓과 유사한 구조)
+                if (window.location.hostname.includes('auction.co.kr')) {
+                    const el = document.querySelector('.itemtit') ||
+                              document.querySelector('.product-name') ||
+                              document.querySelector('h1');
+                    if (el) return el.textContent.trim();
+
+                    // og:title 메타 태그
+                    const ogTitle = document.querySelector('meta[property="og:title"]');
+                    if (ogTitle && ogTitle.content) return ogTitle.content.trim();
                 }
 
                 // 홈플러스/Traders 선택자
@@ -420,6 +448,8 @@ class ProductMonitor:
                 result = self._check_smartstore_status()
             elif 'gmarket.co.kr' in product_url:
                 result = self._check_gmarket_status()
+            elif 'auction.co.kr' in product_url:
+                result = self._check_auction_status()
             else:
                 result = self._check_generic_status()
 
@@ -817,9 +847,48 @@ class ProductMonitor:
                 status = 'discontinued'
                 details.append("판매종료")
 
-            # 가격 추출
+            # 가격 추출 (개선된 로직 - 동적 클래스명 대응)
             price_data = self.driver.execute_script("""
-                // 스마트스토어 가격 선택자
+                const prices = [];
+                const debugInfo = [];
+
+                // 방법 1: "원" 텍스트를 포함한 span의 이전 형제 요소에서 숫자 추출
+                const wonSpans = document.querySelectorAll('span.won, span:contains("원")');
+                document.querySelectorAll('span').forEach(span => {
+                    if (span.textContent.trim() === '원' || span.classList.contains('won')) {
+                        const parent = span.parentElement;
+                        if (parent) {
+                            // 부모 요소의 모든 span에서 숫자 찾기
+                            parent.querySelectorAll('span').forEach(s => {
+                                const text = s.textContent.trim();
+                                // 숫자와 콤마만 있는 텍스트
+                                if (/^[\d,]+$/.test(text) && text.length >= 3) {
+                                    const num = parseInt(text.replace(/,/g, ''));
+                                    if (num > 100 && num < 10000000) {
+                                        prices.push(num);
+                                        debugInfo.push('won형제: ' + num);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+
+                // 방법 2: strong 태그 내의 가격 패턴
+                document.querySelectorAll('strong').forEach(strong => {
+                    const text = strong.textContent.trim();
+                    // "29,200원" 또는 "29,200" 패턴
+                    const match = text.match(/([\d,]+)원?/);
+                    if (match) {
+                        const num = parseInt(match[1].replace(/,/g, ''));
+                        if (num > 100 && num < 10000000 && !prices.includes(num)) {
+                            prices.push(num);
+                            debugInfo.push('strong: ' + num);
+                        }
+                    }
+                });
+
+                // 방법 3: 기존 선택자
                 const selectors = [
                     '.price_num strong',
                     '.lowestPrice strong',
@@ -827,19 +896,29 @@ class ProductMonitor:
                     '[class*="Price"] strong'
                 ];
 
-                const prices = [];
-
                 for (let selector of selectors) {
                     const elements = document.querySelectorAll(selector);
                     elements.forEach(el => {
                         const text = el.textContent || '';
                         const num = parseInt(text.replace(/[^0-9]/g, ''));
-                        if (num > 100 && num < 10000000) {
+                        if (num > 100 && num < 10000000 && !prices.includes(num)) {
                             prices.push(num);
+                            debugInfo.push(selector + ': ' + num);
                         }
                     });
                 }
 
+                // 방법 4: og:price 메타 태그
+                const ogPrice = document.querySelector('meta[property="product:price:amount"]');
+                if (ogPrice && ogPrice.content) {
+                    const num = parseInt(ogPrice.content);
+                    if (num > 100 && num < 10000000 && !prices.includes(num)) {
+                        prices.push(num);
+                        debugInfo.push('og:price: ' + num);
+                    }
+                }
+
+                console.log('스마트스토어 가격 디버그:', debugInfo);
                 return prices.length > 0 ? prices : null;
             """)
 
@@ -1001,4 +1080,136 @@ class ProductMonitor:
                 'price': None,
                 'original_price': None,
                 'details': f"G마켓 체크 오류: {str(e)}"
+            }
+
+    def _check_auction_status(self) -> Dict:
+        """옥션 상품 상태 체크 (G마켓과 유사한 구조)"""
+        try:
+            # JavaScript로 상태 체크
+            status_info = self.driver.execute_script("""
+                // 구매 버튼 영역에서 품절 확인
+                const buyBtn = document.querySelector('.btn-buy') ||
+                              document.querySelector('.button-buy') ||
+                              document.querySelector('[class*="btn"][class*="buy"]');
+
+                if (buyBtn) {
+                    const text = buyBtn.textContent;
+                    if (text.includes('품절') || text.includes('SOLD OUT') || text.includes('일시품절')) {
+                        return { status: 'out_of_stock', details: '품절' };
+                    }
+                    if (text.includes('판매종료') || text.includes('판매중지')) {
+                        return { status: 'discontinued', details: '판매종료' };
+                    }
+                }
+
+                // 품절 표시 확인
+                const soldoutEl = document.querySelector('.soldout') ||
+                                 document.querySelector('[class*="soldout"]');
+
+                if (soldoutEl && soldoutEl.offsetParent !== null) {
+                    return { status: 'out_of_stock', details: '품절' };
+                }
+
+                return { status: 'available', details: '정상' };
+            """)
+
+            status = status_info.get('status', 'available')
+            details = [status_info.get('details', '')]
+
+            # 가격 추출 (옥션 - G마켓과 유사)
+            price_data = self.driver.execute_script("""
+                const result = {
+                    prices: [],
+                    debug_info: []
+                };
+
+                // 옥션 주요 가격 선택자
+                const mainSelectors = [
+                    '.price_sect .price strong',
+                    '.item_price .price strong',
+                    '.box__item-price .price strong',
+                    '.price_innerwrap strong',
+                    '.item_price strong',
+                    '.price strong'
+                ];
+
+                for (let selector of mainSelectors) {
+                    const elements = document.querySelectorAll(selector);
+                    if (elements.length > 0) {
+                        elements.forEach(el => {
+                            const parentText = el.closest('.price_sect, .item_price, .box__item-price')?.textContent || '';
+                            const isDelivery = parentText.includes('배송비') || parentText.includes('무료배송');
+                            const isPoint = parentText.includes('포인트') || parentText.includes('적립');
+                            const isCoupon = el.closest('[class*="coupon"]') !== null;
+
+                            if (!isDelivery && !isPoint && !isCoupon) {
+                                const text = el.textContent.trim();
+                                const num = parseInt(text.replace(/[^0-9]/g, ''));
+                                if (num > 1000 && num < 10000000) {
+                                    result.prices.push(num);
+                                    result.debug_info.push(`${selector}: ${num}원`);
+                                }
+                            }
+                        });
+
+                        if (result.prices.length > 0) {
+                            break;
+                        }
+                    }
+                }
+
+                // 가격을 못 찾은 경우, 텍스트에서 "원" 패턴 찾기
+                if (result.prices.length === 0) {
+                    const priceSection = document.querySelector('.item_price, .price_sect, .box__item-price');
+                    if (priceSection) {
+                        const text = priceSection.textContent;
+                        const matches = text.match(/(\\d{1,3}(,\\d{3})*)\\s*원/g);
+                        if (matches) {
+                            matches.forEach(match => {
+                                const num = parseInt(match.replace(/[^0-9]/g, ''));
+                                if (num > 1000 && num < 10000000) {
+                                    result.prices.push(num);
+                                    result.debug_info.push(`텍스트 추출: ${num}원`);
+                                }
+                            });
+                        }
+                    }
+                }
+
+                return result;
+            """)
+
+            logger.debug(f"옥션 가격 추출 정보: {price_data}")
+
+            prices = price_data.get('prices', []) if price_data else []
+
+            if len(prices) > 0:
+                prices_sorted = sorted(prices)
+                if len(prices) == 1:
+                    price = prices_sorted[0]
+                elif len(prices) >= 3:
+                    price = prices_sorted[len(prices) // 2]
+                else:
+                    price = prices_sorted[-1]
+
+                logger.info(f"옥션 추출된 모든 가격: {prices_sorted}")
+                logger.info(f"옥션 선택된 가격: {price}원")
+            else:
+                price = None
+                logger.warning("옥션 가격 추출 실패")
+
+            return {
+                'status': status,
+                'price': price,
+                'original_price': None,
+                'details': ', '.join(details) if details else '정상'
+            }
+
+        except Exception as e:
+            logger.error(f"옥션 체크 오류: {str(e)}")
+            return {
+                'status': 'error',
+                'price': None,
+                'original_price': None,
+                'details': f"옥션 체크 오류: {str(e)}"
             }

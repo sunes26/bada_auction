@@ -318,8 +318,10 @@ async def extract_url_info(request: dict):
             source = 'smartstore'
         elif 'gmarket.co.kr' in product_url:
             source = 'gmarket'
+        elif 'auction.co.kr' in product_url:
+            source = 'auction'
         else:
-            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 스마트스토어, G마켓 URL을 입력해주세요.")
+            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 스마트스토어, G마켓, 옥션 URL을 입력해주세요.")
 
         # 모니터로 상품 정보 추출
         monitor = ProductMonitor()
@@ -412,6 +414,8 @@ async def extract_url_info(request: dict):
                 result = monitor._check_smartstore_status()
             elif 'gmarket.co.kr' in product_url:
                 result = monitor._check_gmarket_status()
+            elif 'auction.co.kr' in product_url:
+                result = monitor._check_auction_status()
             else:
                 result = monitor._check_generic_status()
 
