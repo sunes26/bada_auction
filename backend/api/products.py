@@ -1454,6 +1454,7 @@ async def recover_ol_shop_no():
     PlayAuto 상품 리스트 API로 ol_shop_no를 조회하여 DB 업데이트
     """
     try:
+        db = get_db()
         from playauto.products import PlayautoProductAPI
         api = PlayautoProductAPI()
 
