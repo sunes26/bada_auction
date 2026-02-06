@@ -324,8 +324,8 @@ async def extract_url_info(request: dict):
         else:
             raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 스마트스토어, G마켓, 옥션 URL을 입력해주세요.")
 
-        # Cloudflare 보호 사이트 확인
-        cloudflare_sites = ['gmarket.co.kr', 'auction.co.kr', 'smartstore.naver.com']
+        # Cloudflare 보호 사이트 확인 (스마트스토어는 React SPA라 Selenium이 더 적합)
+        cloudflare_sites = ['gmarket.co.kr', 'auction.co.kr']
         is_cloudflare_site = any(site in product_url for site in cloudflare_sites)
 
         # FlareSolverr로 먼저 시도 (Cloudflare 우회)
@@ -439,23 +439,41 @@ async def extract_url_info(request: dict):
                         thumbnail_url = og_image.get('content')
                         print(f"[FLARESOLVERR] og:image에서 썸네일 추출: {thumbnail_url}")
 
-                    # 2. G마켓/옥션 전용 선택자
+                    # 2. G마켓/옥션 전용: CDN 도메인에서 이미지 찾기
                     if not thumbnail_url and ('gmarket.co.kr' in product_url or 'auction.co.kr' in product_url):
-                        img_selectors = [
-                            '.thumb-image img',
-                            '.item-topimg img',
-                            '#mainImage',
-                            '.box-im img',
-                            '.viewer img',
-                            'img[src*="gmarket"]',
-                            'img[src*="auction"]',
-                        ]
-                        for selector in img_selectors:
-                            img_el = soup.select_one(selector)
-                            if img_el:
-                                thumbnail_url = img_el.get('src') or img_el.get('data-src')
-                                if thumbnail_url:
-                                    print(f"[FLARESOLVERR] {selector}에서 썸네일 추출: {thumbnail_url}")
+                        # G마켓/옥션 이미지 CDN 도메인
+                        cdn_domains = ['gstatic.gmarket.co.kr', 'gimage.gmarket.co.kr', 'image.auction.co.kr', 'g-static.auction.co.kr']
+
+                        # 모든 이미지에서 CDN 도메인 찾기
+                        for img in soup.find_all('img'):
+                            src = img.get('src') or img.get('data-src') or img.get('data-original')
+                            if src:
+                                for cdn in cdn_domains:
+                                    if cdn in src:
+                                        thumbnail_url = src
+                                        if thumbnail_url.startswith('//'):
+                                            thumbnail_url = 'https:' + thumbnail_url
+                                        print(f"[FLARESOLVERR] CDN 이미지 발견: {thumbnail_url}")
+                                        break
+                            if thumbnail_url:
+                                break
+
+                        # HTML에서 이미지 URL 패턴 직접 찾기 (정규식)
+                        if not thumbnail_url:
+                            import re
+                            img_patterns = [
+                                r'(https?://gstatic\.gmarket\.co\.kr[^\s"\'<>]+\.(?:jpg|jpeg|png|gif))',
+                                r'(https?://gimage\.gmarket\.co\.kr[^\s"\'<>]+\.(?:jpg|jpeg|png|gif))',
+                                r'(https?://image\.auction\.co\.kr[^\s"\'<>]+\.(?:jpg|jpeg|png|gif))',
+                                r'(//gstatic\.gmarket\.co\.kr[^\s"\'<>]+\.(?:jpg|jpeg|png|gif))',
+                            ]
+                            for pattern in img_patterns:
+                                matches = re.findall(pattern, html_content, re.IGNORECASE)
+                                if matches:
+                                    thumbnail_url = matches[0]
+                                    if thumbnail_url.startswith('//'):
+                                        thumbnail_url = 'https:' + thumbnail_url
+                                    print(f"[FLARESOLVERR] 정규식으로 이미지 발견: {thumbnail_url}")
                                     break
 
                     # 3. 첫 번째 큰 이미지 찾기 (폴백)
@@ -463,8 +481,9 @@ async def extract_url_info(request: dict):
                         for img in soup.find_all('img'):
                             src = img.get('src') or img.get('data-src')
                             if src and ('http' in src or src.startswith('//')):
-                                # 작은 아이콘 제외
-                                if 'icon' not in src.lower() and 'logo' not in src.lower():
+                                # 작은 아이콘, 로고, 배너 제외
+                                skip_keywords = ['icon', 'logo', 'banner', 'btn', 'button', 'sprite', 'blank', '1x1']
+                                if not any(kw in src.lower() for kw in skip_keywords):
                                     thumbnail_url = src
                                     if thumbnail_url.startswith('//'):
                                         thumbnail_url = 'https:' + thumbnail_url
@@ -539,8 +558,34 @@ async def extract_url_info(request: dict):
 
             # 사이트별 대기 시간 조정 (최적화됨)
             if 'smartstore.naver.com' in product_url:
-                time.sleep(3)  # 스마트스토어 (7초 → 3초)
-                wait_for_cloudflare()
+                # 스마트스토어: React SPA - 가격 요소가 로드될 때까지 대기
+                print(f"[SMARTSTORE] React 콘텐츠 로딩 대기 중...")
+                for i in range(10):  # 최대 10초 대기
+                    try:
+                        # 가격 요소 또는 상품명 요소 확인
+                        has_content = monitor.driver.execute_script("""
+                            // 가격 요소 확인
+                            const priceEl = document.querySelector('meta[property="product:price:amount"]');
+                            if (priceEl && priceEl.content) return true;
+
+                            // 상품명 확인 (og:title)
+                            const titleEl = document.querySelector('meta[property="og:title"]');
+                            if (titleEl && titleEl.content && titleEl.content.length > 5) return true;
+
+                            // "원" 텍스트가 있는 가격 표시 확인
+                            const bodyText = document.body.innerText;
+                            if (bodyText && /\d{1,3}(,\d{3})+\s*원/.test(bodyText)) return true;
+
+                            return false;
+                        """)
+                        if has_content:
+                            print(f"[SMARTSTORE] 콘텐츠 로드 완료 ({i+1}초)")
+                            break
+                    except:
+                        pass
+                    print(f"[SMARTSTORE] 대기 중... ({i+1}/10초)")
+                    time.sleep(1)
+                time.sleep(1)  # 추가 안정화
             elif 'gmarket.co.kr' in product_url or 'auction.co.kr' in product_url:
                 # G마켓/옥션: Cloudflare 보호 사용
                 time.sleep(2)
