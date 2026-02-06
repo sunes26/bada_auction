@@ -364,9 +364,23 @@ async def extract_url_info(request: dict):
                 page_title = soup.title.string if soup.title else ""
                 print(f"[FLARESOLVERR] 페이지 타이틀: {page_title}")
 
-                # 에러 페이지 감지
-                if '에러' in str(page_title) or 'error' in str(page_title).lower():
-                    print(f"[FLARESOLVERR] 에러 페이지 감지, Selenium으로 폴백")
+                # CAPTCHA/에러 페이지 감지
+                is_captcha = 'captcha' in html_content.lower() or 'ncpt.naver.com' in html_content
+                is_error_page = '에러' in str(page_title) or 'error' in str(page_title).lower()
+                is_blocked = len(html_content) < 50000 and ('smartstore.naver.com' in product_url)
+
+                if is_captcha:
+                    print(f"[FLARESOLVERR] CAPTCHA 페이지 감지 - 네이버 봇 차단")
+                    # 스마트스토어는 CAPTCHA로 차단됨 - 에러 반환
+                    if 'smartstore.naver.com' in product_url:
+                        return {
+                            "success": False,
+                            "error": "smartstore_captcha",
+                            "message": "네이버 스마트스토어가 CAPTCHA로 자동 접근을 차단했습니다. 상품 정보를 수동으로 입력해주세요."
+                        }
+                    flaresolverr_result = None  # 다른 사이트는 Selenium 폴백
+                elif is_error_page or is_blocked:
+                    print(f"[FLARESOLVERR] 에러/차단 페이지 감지, Selenium으로 폴백")
                     flaresolverr_result = None  # Selenium 폴백 트리거
                 else:
                     # 상품명 추출
