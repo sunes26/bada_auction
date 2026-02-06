@@ -524,15 +524,15 @@ class PlayautoOrdersAPI:
             body["sdate"] = start_date
             body["edate"] = end_date
 
-        print(f"[DEBUG] 출고 지시 API 호출: PUT /api/order/instruction")
+        print(f"[DEBUG] 출고 지시 API 호출: PUT /order/instruction")
         print(f"[DEBUG] Request Body: {body}")
 
-        # PUT 요청
+        # PUT 요청 (base_url에 이미 /api가 포함되어 있음)
         if not self.client:
             async with PlayautoClient() as client:
-                response = await client.put("/api/order/instruction", data=body)
+                response = await client.put("/order/instruction", data=body)
         else:
-            response = await self.client.put("/api/order/instruction", data=body)
+            response = await self.client.put("/order/instruction", data=body)
 
         print(f"[DEBUG] 출고 지시 응답: {response}")
         return response
@@ -578,15 +578,15 @@ class PlayautoOrdersAPI:
             "dupl_doubt_except_yn": dupl_doubt_except_yn
         }
 
-        print(f"[DEBUG] 송장 업데이트 API 호출: PUT /api/order/setInvoice")
+        print(f"[DEBUG] 송장 업데이트 API 호출: PUT /order/setInvoice")
         print(f"[DEBUG] Request Body: {body}")
 
-        # PUT 요청
+        # PUT 요청 (base_url에 이미 /api가 포함되어 있음)
         if not self.client:
             async with PlayautoClient() as client:
-                response = await client.put("/api/order/setInvoice", data=body)
+                response = await client.put("/order/setInvoice", data=body)
         else:
-            response = await self.client.put("/api/order/setInvoice", data=body)
+            response = await self.client.put("/order/setInvoice", data=body)
 
         print(f"[DEBUG] 송장 업데이트 응답: {response}")
         return response
