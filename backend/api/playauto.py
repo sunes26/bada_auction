@@ -750,12 +750,17 @@ async def update_order_invoice(request: InvoiceUpdateRequest):
     try:
         orders_api = PlayautoOrdersAPI()
 
+        # 디버그: 받은 요청 데이터 출력
+        print(f"[DEBUG] 송장 업데이트 요청 - orders: {[(o.bundle_no, o.ord_status) for o in request.orders]}")
+
         # 출고대기 상태가 아닌 주문들 확인 및 상태 변경
         # 출고대기 상태: "출고대기", "배송준비", "배송준비중" 등
         ready_statuses = ["출고대기", "배송준비", "배송준비중", "출고준비", "출고준비중"]
 
         orders_need_status_change = []
         for order in request.orders:
+            print(f"[DEBUG] 주문 {order.bundle_no} 상태 확인: '{order.ord_status}'")
+            # ord_status가 있고, 출고대기 관련 상태가 아니면 상태 변경 필요
             if order.ord_status and order.ord_status not in ready_statuses:
                 orders_need_status_change.append(order.bundle_no)
                 print(f"[DEBUG] 주문 {order.bundle_no}의 상태가 '{order.ord_status}'이므로 출고대기로 변경 필요")
@@ -764,7 +769,7 @@ async def update_order_invoice(request: InvoiceUpdateRequest):
         if orders_need_status_change:
             print(f"[DEBUG] {len(orders_need_status_change)}개 주문을 출고대기 상태로 변경 중...")
             try:
-                status_result = await orders_api.change_order_status(
+                status_result = await orders_api.update_order_status(
                     bundle_codes=orders_need_status_change,
                     status="출고대기"
                 )
