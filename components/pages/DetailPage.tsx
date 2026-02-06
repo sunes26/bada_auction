@@ -116,7 +116,7 @@ export default function DetailPage() {
 
       const result = await response.json();
       if (result.success && result.data) {
-        const { product_name, current_price, source } = result.data;
+        const { product_name, current_price, source, thumbnail_url } = result.data;
 
         // 상품명 설정
         if (product_name && product_name !== '자동 감지 실패') {
@@ -137,50 +137,59 @@ export default function DetailPage() {
           setDetectedSource(source.toUpperCase());
         }
 
-        // 썸네일 추출 시도 (URL에서 직접)
-        try {
-          const thumbnailResponse = await fetch(`${API_BASE_URL}/api/monitor/extract-thumbnail`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ product_url: productUrl }),
-          });
+        // 썸네일 처리: extract-url-info에서 받은 thumbnail_url 우선 사용
+        let finalThumbnailUrl = thumbnail_url;
 
-          if (thumbnailResponse.ok) {
-            const thumbnailResult = await thumbnailResponse.json();
-            if (thumbnailResult.success && thumbnailResult.thumbnail_url) {
-              // 썸네일 URL을 Supabase에 업로드
-              try {
-                const saveResponse = await fetch(`${API_BASE_URL}/api/monitor/save-thumbnail`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    image_url: thumbnailResult.thumbnail_url,
-                    product_name: result.product_name || '상품'
-                  }),
-                });
+        // thumbnail_url이 없으면 extract-thumbnail 호출 (폴백)
+        if (!finalThumbnailUrl) {
+          try {
+            const thumbnailResponse = await fetch(`${API_BASE_URL}/api/monitor/extract-thumbnail`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ product_url: productUrl }),
+            });
 
-                if (saveResponse.ok) {
-                  const saveResult = await saveResponse.json();
-                  if (saveResult.success && saveResult.thumbnail_url) {
-                    // Supabase URL 사용
-                    setExtractedThumbnail(saveResult.thumbnail_url);
-                  } else {
-                    // Supabase 업로드 실패 시 원본 URL 사용
-                    setExtractedThumbnail(thumbnailResult.thumbnail_url);
-                  }
-                } else {
-                  // 업로드 실패 시 원본 URL 사용
-                  setExtractedThumbnail(thumbnailResult.thumbnail_url);
-                }
-              } catch (uploadError) {
-                console.error('썸네일 Supabase 업로드 실패:', uploadError);
-                // 업로드 실패 시 원본 URL 사용
-                setExtractedThumbnail(thumbnailResult.thumbnail_url);
+            if (thumbnailResponse.ok) {
+              const thumbnailResult = await thumbnailResponse.json();
+              if (thumbnailResult.success && thumbnailResult.thumbnail_url) {
+                finalThumbnailUrl = thumbnailResult.thumbnail_url;
               }
             }
+          } catch (thumbnailError) {
+            console.error('썸네일 추출 폴백 실패:', thumbnailError);
           }
-        } catch (error) {
-          console.error('썸네일 추출 실패:', error);
+        }
+
+        // 썸네일 URL이 있으면 Supabase에 업로드
+        if (finalThumbnailUrl) {
+          try {
+            const saveResponse = await fetch(`${API_BASE_URL}/api/monitor/save-thumbnail`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                image_url: finalThumbnailUrl,
+                product_name: product_name || '상품'
+              }),
+            });
+
+            if (saveResponse.ok) {
+              const saveResult = await saveResponse.json();
+              if (saveResult.success && saveResult.thumbnail_path) {
+                // Supabase URL 사용
+                setExtractedThumbnail(saveResult.thumbnail_path);
+              } else {
+                // Supabase 업로드 실패 시 원본 URL 사용
+                setExtractedThumbnail(finalThumbnailUrl);
+              }
+            } else {
+              // 업로드 실패 시 원본 URL 사용
+              setExtractedThumbnail(finalThumbnailUrl);
+            }
+          } catch (uploadError) {
+            console.error('썸네일 Supabase 업로드 실패:', uploadError);
+            // 업로드 실패 시 원본 URL 사용
+            setExtractedThumbnail(finalThumbnailUrl);
+          }
         }
       }
     } catch (error) {
