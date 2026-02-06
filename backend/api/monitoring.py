@@ -324,16 +324,31 @@ async def extract_url_info(request: dict):
         else:
             raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 스마트스토어, G마켓, 옥션 URL을 입력해주세요.")
 
-        # Cloudflare 보호 사이트 확인 (스마트스토어는 React SPA라 Selenium이 더 적합)
-        cloudflare_sites = ['gmarket.co.kr', 'auction.co.kr']
-        is_cloudflare_site = any(site in product_url for site in cloudflare_sites)
+        # 봇 감지 보호 사이트 (FlareSolverr 사용)
+        bot_protected_sites = ['gmarket.co.kr', 'auction.co.kr', 'smartstore.naver.com']
+        is_bot_protected = any(site in product_url for site in bot_protected_sites)
 
-        # FlareSolverr로 먼저 시도 (Cloudflare 우회)
+        # 스마트스토어 URL 정리 (추적 파라미터 제거 - 봇 감지 회피)
+        clean_url = product_url
+        if 'smartstore.naver.com' in product_url:
+            from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+            parsed = urlparse(product_url)
+            # 추적 파라미터 제거 (nl-query, nl-au, NaPm 등)
+            tracking_params = ['nl-query', 'nl-au', 'NaPm', 'utm_source', 'utm_medium', 'utm_campaign']
+            query_params = parse_qs(parsed.query)
+            clean_params = {k: v for k, v in query_params.items() if k not in tracking_params}
+            clean_query = urlencode(clean_params, doseq=True)
+            clean_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, clean_query, parsed.fragment))
+            print(f"[SMARTSTORE] URL 정리: {product_url[:80]}... -> {clean_url}")
+
+        # FlareSolverr로 먼저 시도 (봇 감지 우회)
         flaresolverr_result = None
 
-        if is_cloudflare_site:
-            print(f"[FLARESOLVERR] Cloudflare 보호 사이트 감지, FlareSolverr 시도...")
-            flaresolverr_result = solve_cloudflare(product_url)
+        if is_bot_protected:
+            print(f"[FLARESOLVERR] 봇 보호 사이트 감지, FlareSolverr 시도...")
+            # 스마트스토어는 React SPA라 더 긴 대기 시간 필요
+            timeout = 90000 if 'smartstore.naver.com' in product_url else 60000
+            flaresolverr_result = solve_cloudflare(clean_url, max_timeout=timeout)
 
             if flaresolverr_result and flaresolverr_result.get('html'):
                 html_content = flaresolverr_result.get('html', '')

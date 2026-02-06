@@ -196,12 +196,13 @@ def get_flaresolverr_client() -> FlareSolverrClient:
     return _client
 
 
-def solve_cloudflare(url: str) -> Optional[Dict[str, Any]]:
+def solve_cloudflare(url: str, max_timeout: int = 60000) -> Optional[Dict[str, Any]]:
     """
     Cloudflare 보호 우회하여 페이지 내용 가져오기
 
     Args:
         url: 요청할 URL
+        max_timeout: 최대 대기 시간 (밀리초, 기본 60초)
 
     Returns:
         {
@@ -218,7 +219,7 @@ def solve_cloudflare(url: str) -> Optional[Dict[str, Any]]:
         logger.warning("FlareSolverr 사용 불가")
         return None
 
-    result = client.get_page(url)
+    result = client.get_page(url, max_timeout=max_timeout)
 
     if result and result.get("status") == "ok":
         solution = result.get("solution", {})
