@@ -1254,47 +1254,53 @@ async def sync_product_marketplace_codes(product_id: int):
                     detail="PlayAuto에 등록되지 않은 상품입니다. 먼저 상품을 등록하세요."
                 )
 
-        # PlayAuto API 호출
+        # PlayAuto API 호출 - 상품 리스트 API 사용 (shop_sale_no 직접 조회)
         from playauto.products import PlayautoProductAPI
         api = PlayautoProductAPI()
 
         logger.info(f"[마켓코드동기화] 상품 {product_id}번 동기화 시작")
 
-        # 모든 마켓 코드를 수집할 shops 리스트
+        # c_sale_cd로 검색
+        c_sale_cd_gmk = product.get("c_sale_cd_gmk")
+        c_sale_cd_smart = product.get("c_sale_cd_smart")
+
+        c_sale_cd_list = []
+        if c_sale_cd_gmk:
+            c_sale_cd_list.append(c_sale_cd_gmk)
+        if c_sale_cd_smart:
+            c_sale_cd_list.append(c_sale_cd_smart)
+
+        if not c_sale_cd_list:
+            return {
+                "success": True,
+                "message": "c_sale_cd가 없습니다. 상품을 먼저 등록하세요.",
+                "synced_count": 0,
+                "marketplace_codes": []
+            }
+
+        # 상품 리스트 API로 조회 (shop_sale_no 포함)
         all_shops = []
+        try:
+            result = await api.search_products_by_c_sale_cd(c_sale_cd_list)
+            results = result.get("results", {})
 
-        # GMK 채널 조회
-        if ol_shop_no_gmk:
-            logger.info(f"[마켓코드동기화] GMK 채널 조회 (ol_shop_no: {ol_shop_no_gmk})")
-            try:
-                detail_gmk = await api.get_product_detail(ol_shop_no_gmk)
-                shops_gmk = detail_gmk.get("shops", [])
-                all_shops.extend(shops_gmk)
-                logger.info(f"[마켓코드동기화] GMK: {len(shops_gmk)}개 마켓 코드 수집")
-            except Exception as e:
-                logger.error(f"[마켓코드동기화] GMK 조회 실패: {e}")
+            for c_sale_cd, items in results.items():
+                for item in items:
+                    shop_cd = item.get("shop_cd")
+                    shop_sale_no = item.get("shop_sale_no")
+                    shop_name = item.get("shop_name", "")
 
-        # SmartStore 채널 조회
-        if ol_shop_no_smart:
-            logger.info(f"[마켓코드동기화] SmartStore 채널 조회 (ol_shop_no: {ol_shop_no_smart})")
-            try:
-                detail_smart = await api.get_product_detail(ol_shop_no_smart)
-                shops_smart = detail_smart.get("shops", [])
-                all_shops.extend(shops_smart)
-                logger.info(f"[마켓코드동기화] SmartStore: {len(shops_smart)}개 마켓 코드 수집")
-            except Exception as e:
-                logger.error(f"[마켓코드동기화] SmartStore 조회 실패: {e}")
+                    # Z000(마스터)은 shop_sale_no가 없으므로 스킵
+                    if shop_cd and shop_cd != "Z000" and shop_sale_no:
+                        all_shops.append({
+                            "shop_cd": shop_cd,
+                            "shop_sale_no": shop_sale_no,
+                            "shop_name": shop_name
+                        })
+                        logger.info(f"[마켓코드동기화] 발견: {shop_name} ({shop_cd}): {shop_sale_no}")
 
-        # 하위 호환성: 레거시 ol_shop_no가 있고 신규 필드가 없는 경우
-        if not ol_shop_no_gmk and not ol_shop_no_smart and ol_shop_no_legacy:
-            logger.warning(f"[마켓코드동기화] 레거시 ol_shop_no 사용: {ol_shop_no_legacy}")
-            try:
-                detail_legacy = await api.get_product_detail(ol_shop_no_legacy)
-                shops_legacy = detail_legacy.get("shops", [])
-                all_shops.extend(shops_legacy)
-                logger.info(f"[마켓코드동기화] 레거시: {len(shops_legacy)}개 마켓 코드 수집")
-            except Exception as e:
-                logger.error(f"[마켓코드동기화] 레거시 조회 실패: {e}")
+        except Exception as e:
+            logger.error(f"[마켓코드동기화] 상품 리스트 조회 실패: {e}")
 
         shops = all_shops
 
@@ -1378,50 +1384,69 @@ async def sync_all_marketplace_codes():
         error_products = 0
         from datetime import datetime
 
+        # c_sale_cd 수집 및 매핑
+        c_sale_cd_to_product = {}  # c_sale_cd -> product_id
+        c_sale_cd_list = []
+
         for product in products:
-            try:
-                product_id = product.get("id")
-                ol_shop_no = product.get("ol_shop_no")
-                product_name = product.get("product_name")
+            product_id = product.get("id")
+            c_sale_cd_gmk = product.get("c_sale_cd_gmk") or product.get("playauto_product_no")
+            c_sale_cd_smart = product.get("c_sale_cd_smart")
 
-                if not ol_shop_no:
-                    logger.warning(f"[일괄마켓코드동기화] 상품 {product_id} ({product_name}): ol_shop_no 없음 (스킵)")
-                    skipped_products += 1
-                    continue
+            if c_sale_cd_gmk:
+                c_sale_cd_list.append(c_sale_cd_gmk)
+                c_sale_cd_to_product[c_sale_cd_gmk] = product_id
+            if c_sale_cd_smart:
+                c_sale_cd_list.append(c_sale_cd_smart)
+                c_sale_cd_to_product[c_sale_cd_smart] = product_id
 
-                # 상품 상세 정보 조회
-                detail = await api.get_product_detail(ol_shop_no)
-                shops = detail.get("shops", [])
+        if not c_sale_cd_list:
+            return {
+                "success": True,
+                "message": "c_sale_cd가 있는 상품이 없습니다.",
+                "total_products": len(products),
+                "synced_products": 0,
+                "skipped_products": len(products),
+                "error_products": 0
+            }
 
-                if not shops:
-                    logger.info(f"[일괄마켓코드동기화] 상품 {product_id} ({product_name}): 아직 마켓에 전송 안 됨 (스킵)")
-                    skipped_products += 1
-                    continue
+        # 상품 리스트 API로 일괄 조회 (50개씩)
+        try:
+            for i in range(0, len(c_sale_cd_list), 50):
+                batch = c_sale_cd_list[i:i+50]
+                result = await api.search_products_by_c_sale_cd(batch)
+                results = result.get("results", {})
 
-                # 각 마켓별로 저장
-                codes_synced = 0
-                for shop in shops:
-                    shop_cd = shop.get("shop_cd")
-                    shop_sale_no = shop.get("shop_sale_no")
+                for c_sale_cd, items in results.items():
+                    product_id = c_sale_cd_to_product.get(c_sale_cd)
+                    if not product_id:
+                        continue
 
-                    if shop_cd and shop_sale_no:
-                        db.upsert_marketplace_code(
-                            product_id=product_id,
-                            shop_cd=shop_cd,
-                            shop_sale_no=shop_sale_no,
-                            transmitted_at=datetime.now()
-                        )
-                        codes_synced += 1
+                    codes_synced = 0
+                    for item in items:
+                        shop_cd = item.get("shop_cd")
+                        shop_sale_no = item.get("shop_sale_no")
+                        shop_name = item.get("shop_name", "")
 
-                if codes_synced > 0:
-                    synced_products += 1
-                    logger.info(f"[일괄마켓코드동기화] 상품 {product_id} ({product_name}): {codes_synced}개 마켓 코드 수집")
-                else:
-                    skipped_products += 1
+                        # Z000(마스터)은 shop_sale_no가 없으므로 스킵
+                        if shop_cd and shop_cd != "Z000" and shop_sale_no:
+                            db.upsert_marketplace_code(
+                                product_id=product_id,
+                                shop_cd=shop_cd,
+                                shop_sale_no=shop_sale_no,
+                                transmitted_at=datetime.now()
+                            )
+                            codes_synced += 1
+                            logger.info(f"[일괄마켓코드동기화] 상품 {product_id}: {shop_name} ({shop_cd}): {shop_sale_no}")
 
-            except Exception as e:
-                error_products += 1
-                logger.error(f"[일괄마켓코드동기화] 상품 {product.get('id')} 동기화 실패: {e}")
+                    if codes_synced > 0:
+                        synced_products += 1
+                    else:
+                        skipped_products += 1
+
+        except Exception as e:
+            error_products += len(products)
+            logger.error(f"[일괄마켓코드동기화] API 조회 실패: {e}")
 
         message = f"✅ {synced_products}개 상품 수집 완료"
         if skipped_products > 0:
