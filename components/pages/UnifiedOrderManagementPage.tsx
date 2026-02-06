@@ -1261,10 +1261,7 @@ export default function UnifiedOrderManagementPage() {
                           const totalAmount = saleCnt * unitPrice;
                           return (
                             <p className="text-gray-800 font-bold">
-                              {saleCnt > 1
-                                ? `${saleCnt}개 × ${formatCurrency(unitPrice)} = ${formatCurrency(totalAmount)}`
-                                : formatCurrency(unitPrice)
-                              }
+                              {formatCurrency(totalAmount)}
                             </p>
                           );
                         })()}
@@ -1406,10 +1403,7 @@ export default function UnifiedOrderManagementPage() {
                           const totalAmount = saleCnt * unitPrice;
                           return (
                             <p className="text-gray-800 font-bold">
-                              {saleCnt > 1
-                                ? `${saleCnt}개 × ${formatCurrency(unitPrice)} = ${formatCurrency(totalAmount)}`
-                                : formatCurrency(unitPrice)
-                              }
+                              {formatCurrency(totalAmount)}
                             </p>
                           );
                         })()}
