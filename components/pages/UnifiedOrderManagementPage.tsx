@@ -163,6 +163,7 @@ export default function UnifiedOrderManagementPage() {
     success_rate: 0,
     last_upload_at: null as string | null
   });
+  const [completedOrders, setCompletedOrders] = useState<Order[]>([]); // 출고완료된 주문
 
 
   // ============= API 호출 함수 =============
@@ -625,32 +626,49 @@ export default function UnifiedOrderManagementPage() {
       fetchOrders();
     } else if (activeTab === 'tracking') {
       loadTrackingHistory();
+      fetchOrders(); // 출고완료 주문 목록을 위해 주문 데이터도 로드
     } else if (activeTab === 'auto-pricing') {
       loadAutoPricingSettings();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
+  // 출고완료 상태 확인 헬퍼 함수
+  const isCompletedOrder = (order: Order) => {
+    const status = (order.order_status || '').toLowerCase();
+    // PlayAuto 출고완료 상태 또는 내부 completed 상태
+    return status.includes('출고완료') ||
+           status.includes('배송완료') ||
+           status.includes('배송중') ||
+           status === 'completed' ||
+           status === 'shipped' ||
+           status === 'delivered';
+  };
+
   // 주문 소스 필터 변경 시 클라이언트 사이드 필터링 (API 호출 없음)
   useEffect(() => {
-    let combinedOrders: Order[] = [];
+    let allOrders: Order[] = [];
 
     // 필터에 따라 주문 병합
     if (orderSourceFilter === 'all') {
-      combinedOrders = [...rawManualOrders, ...rawPlayautoOrders];
+      allOrders = [...rawManualOrders, ...rawPlayautoOrders];
     } else if (orderSourceFilter === 'manual') {
-      combinedOrders = rawManualOrders;
+      allOrders = rawManualOrders;
     } else if (orderSourceFilter === 'playauto') {
-      combinedOrders = rawPlayautoOrders;
+      allOrders = rawPlayautoOrders;
     }
 
     // 날짜 기준으로 정렬 (최신순)
-    combinedOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    allOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    // 검색어 필터링
+    // 출고완료된 주문과 미처리 주문 분리
+    const completed = allOrders.filter(isCompletedOrder);
+    let pending = allOrders.filter(order => !isCompletedOrder(order));
+
+    // 검색어 필터링 (미처리 주문에만 적용)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      combinedOrders = combinedOrders.filter(order => {
+      pending = pending.filter(order => {
         return (
           order.order_number?.toLowerCase().includes(query) ||
           order.customer_name?.toLowerCase().includes(query) ||
@@ -660,9 +678,10 @@ export default function UnifiedOrderManagementPage() {
       });
     }
 
-    setOrders(combinedOrders);
-    setFilteredOrders(combinedOrders);
-    setPagination(prev => ({ ...prev, total: combinedOrders.length, page: 1 })); // 검색 시 1페이지로
+    setOrders(pending);
+    setFilteredOrders(pending);
+    setCompletedOrders(completed);
+    setPagination(prev => ({ ...prev, total: pending.length, page: 1 })); // 검색 시 1페이지로
   }, [orderSourceFilter, rawManualOrders, rawPlayautoOrders, searchQuery]);
 
   // 날짜/마켓/상태 필터 변경 시에만 재조회
@@ -1169,8 +1188,14 @@ export default function UnifiedOrderManagementPage() {
 
           {/* 주문 리스트 */}
           <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/10 p-8 border border-white/20">
-            <h3 className="text-xl font-bold text-gray-800 mb-6">
-              주문 목록 ({filteredOrders.length}건 / 전체 {orders.length}건)
+            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <Package className="w-5 h-5 text-blue-600" />
+              미처리 주문 ({filteredOrders.length}건)
+              {completedOrders.length > 0 && (
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  | 출고완료 {completedOrders.length}건은 송장관리 탭에서 확인
+                </span>
+              )}
             </h3>
 
             {loading ? (
@@ -1220,21 +1245,9 @@ export default function UnifiedOrderManagementPage() {
                           )}
                         </div>
                         <div className="text-right ml-4">
-                          {(() => {
-                            const saleCnt = (order as any).sale_cnt ?? 1;
-                            const totalSales = (order as any).sales || order.total_amount || 0;
-                            const unitPrice = saleCnt > 0 ? Math.round(totalSales / saleCnt) : totalSales;
-                            return (
-                              <>
-                                <p className="font-bold text-purple-600">
-                                  {formatCurrency(totalSales)}
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                  {saleCnt}개 × {formatCurrency(unitPrice)}
-                                </p>
-                              </>
-                            );
-                          })()}
+                          <p className="text-sm text-gray-500">
+                            수량: {(order as any).sale_cnt ?? 1}개
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1242,7 +1255,19 @@ export default function UnifiedOrderManagementPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                       <div>
                         <span className="text-gray-600">주문 금액:</span>
-                        <p className="text-gray-800 font-bold">{formatCurrency((order as any).sales || order.total_amount || 0)}</p>
+                        {(() => {
+                          const saleCnt = (order as any).sale_cnt ?? 1;
+                          const unitPrice = (order as any).sales || order.total_amount || 0;
+                          const totalAmount = saleCnt * unitPrice;
+                          return (
+                            <p className="text-gray-800 font-bold">
+                              {saleCnt > 1
+                                ? `${saleCnt}개 × ${formatCurrency(unitPrice)} = ${formatCurrency(totalAmount)}`
+                                : formatCurrency(unitPrice)
+                              }
+                            </p>
+                          );
+                        })()}
                       </div>
                       <div>
                         <span className="text-gray-600">배송지:</span>
@@ -1281,6 +1306,164 @@ export default function UnifiedOrderManagementPage() {
         </div>
       )}
 
+      {/* 송장 관리 탭 - 출고완료된 주문 목록 */}
+      {activeTab === 'tracking' && (
+        <div className="space-y-6">
+          {/* 출고완료 통계 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-xl p-6 text-white">
+              <div className="flex items-center justify-between">
+                <Truck className="w-8 h-8 opacity-80" />
+                <div className="text-right">
+                  <div className="text-3xl font-bold">{completedOrders.length}</div>
+                  <div className="text-sm opacity-90">출고완료 주문</div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-xl p-6 text-white">
+              <div className="flex items-center justify-between">
+                <CheckCircle className="w-8 h-8 opacity-80" />
+                <div className="text-right">
+                  <div className="text-3xl font-bold">{trackingStats.total_uploaded}</div>
+                  <div className="text-sm opacity-90">업로드된 송장</div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-xl p-6 text-white">
+              <div className="flex items-center justify-between">
+                <BarChart3 className="w-8 h-8 opacity-80" />
+                <div className="text-right">
+                  <div className="text-3xl font-bold">{trackingStats.success_rate}%</div>
+                  <div className="text-sm opacity-90">성공률</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 출고완료 주문 목록 */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/10 p-8 border border-white/20">
+            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <Truck className="w-5 h-5 text-green-600" />
+              출고완료 주문 목록 ({completedOrders.length}건)
+            </h3>
+
+            {completedOrders.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Truck className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>출고완료된 주문이 없습니다</p>
+                <p className="text-sm mt-2">주문 목록에서 송장을 등록하면 여기에 표시됩니다</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {completedOrders.map((order) => (
+                  <div key={order.id} className="border border-green-200 bg-green-50/50 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-800">{order.order_number}</h4>
+                        <p className="text-sm text-gray-600">
+                          {order.market} | {order.customer_name}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          {order.order_status}
+                        </span>
+                        {order.tracking_number && (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            <Truck className="w-4 h-4 mr-1" />
+                            {order.tracking_number}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 상품 정보 */}
+                    <div className="bg-white rounded-lg p-3 mb-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-800">
+                            {(order as any).shop_sale_name || (order as any).prod_name || '상품명 없음'}
+                          </p>
+                          {(order as any).shop_opt_name && (
+                            <p className="text-sm text-gray-500 mt-1">옵션: {(order as any).shop_opt_name}</p>
+                          )}
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="text-sm text-gray-500">
+                            수량: {(order as any).sale_cnt ?? 1}개
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">주문 금액:</span>
+                        {(() => {
+                          const saleCnt = (order as any).sale_cnt ?? 1;
+                          const unitPrice = (order as any).sales || order.total_amount || 0;
+                          const totalAmount = saleCnt * unitPrice;
+                          return (
+                            <p className="text-gray-800 font-bold">
+                              {saleCnt > 1
+                                ? `${saleCnt}개 × ${formatCurrency(unitPrice)} = ${formatCurrency(totalAmount)}`
+                                : formatCurrency(unitPrice)
+                              }
+                            </p>
+                          );
+                        })()}
+                      </div>
+                      <div>
+                        <span className="text-gray-600">배송지:</span>
+                        <p className="text-gray-800 truncate">{order.customer_address}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">주문일시:</span>
+                        <p className="text-gray-800">{formatDate(order.order_date || order.created_at)}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">전화번호:</span>
+                        <p className="text-gray-800">{order.customer_phone || '-'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 송장 업로드 이력 */}
+          {trackingHistory.length > 0 && (
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/10 p-8 border border-white/20">
+              <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-purple-600" />
+                송장 업로드 이력
+              </h3>
+              <div className="space-y-3">
+                {trackingHistory.slice(0, 10).map((log) => (
+                  <div key={log.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <div className="flex items-center gap-4">
+                      {getSyncStatusBadge(log.status)}
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {log.success_count}건 성공 / {log.fail_count}건 실패
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {formatDate(log.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                    {log.error_message && (
+                      <p className="text-sm text-red-600 max-w-md truncate">{log.error_message}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 자동 가격 조정 탭 */}
       {activeTab === 'auto-pricing' && (
