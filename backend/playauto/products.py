@@ -124,6 +124,62 @@ class PlayautoProductAPI:
             logger.error(f"[플레이오토] 상품 조회 실패: {str(e)}")
             raise
 
+    async def search_products_by_c_sale_cd(
+        self,
+        c_sale_cd_list: List[str],
+        sdate: str = "2020-01-01",
+        edate: str = "2030-12-31"
+    ) -> Dict:
+        """
+        판매자관리코드(c_sale_cd)로 상품 검색하여 ol_shop_no 조회
+
+        POST /api/product/online/list/v1.2
+
+        Args:
+            c_sale_cd_list: 검색할 판매자관리코드 리스트
+            sdate: 검색 시작일 (YYYY-MM-DD)
+            edate: 검색 종료일 (YYYY-MM-DD)
+
+        Returns:
+            {
+                "results": {
+                    "c_sale_cd1": [
+                        {"ol_shop_no": 12345, "shop_cd": "Z000", ...},
+                        {"ol_shop_no": 12346, "shop_cd": "A001", ...}
+                    ],
+                    ...
+                },
+                "ol_count": 1,
+                "normal_count": 1
+            }
+        """
+        try:
+            endpoint = "/product/online/list/v1.2"
+
+            data = {
+                "start": 0,
+                "length": 300,
+                "sdate": sdate,
+                "edate": edate,
+                "date_type": "wdate",
+                "multi_type": "c_sale_cd",
+                "multi_search_word": c_sale_cd_list,
+                "view_master": True
+            }
+
+            logger.info(f"[플레이오토] c_sale_cd로 상품 검색: {len(c_sale_cd_list)}개")
+
+            async with self.client as client:
+                result = await client.post(endpoint, data=data)
+
+            logger.info(f"[플레이오토] 검색 결과: ol_count={result.get('ol_count', 0)}")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"[플레이오토] 상품 검색 실패: {str(e)}")
+            raise
+
     async def get_product_detail(
         self,
         ol_shop_no: str

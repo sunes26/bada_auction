@@ -1443,3 +1443,154 @@ async def sync_all_marketplace_codes():
     except Exception as e:
         logger.error(f"[일괄마켓코드동기화] 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=f"일괄 마켓 코드 동기화 실패: {str(e)}")
+
+
+@router.post("/recover-ol-shop-no")
+async def recover_ol_shop_no():
+    """
+    ol_shop_no가 누락된 기존 상품들의 ol_shop_no를 PlayAuto API에서 복구
+
+    c_sale_cd는 있지만 ol_shop_no가 없는 상품을 찾아서
+    PlayAuto 상품 리스트 API로 ol_shop_no를 조회하여 DB 업데이트
+    """
+    try:
+        from playauto.products import PlayautoProductAPI
+        api = PlayautoProductAPI()
+
+        # ol_shop_no가 없지만 c_sale_cd가 있는 상품 조회
+        query = """
+            SELECT id, product_name, c_sale_cd_gmk, c_sale_cd_smart,
+                   ol_shop_no, ol_shop_no_gmk, ol_shop_no_smart
+            FROM selling_products
+            WHERE is_active = true
+            AND (
+                (c_sale_cd_gmk IS NOT NULL AND c_sale_cd_gmk != '' AND (ol_shop_no_gmk IS NULL OR ol_shop_no_gmk = 0))
+                OR
+                (c_sale_cd_smart IS NOT NULL AND c_sale_cd_smart != '' AND (ol_shop_no_smart IS NULL OR ol_shop_no_smart = 0))
+            )
+        """
+        products = db.execute_query(query)
+
+        if not products:
+            return {
+                "success": True,
+                "message": "복구가 필요한 상품이 없습니다.",
+                "recovered_count": 0
+            }
+
+        logger.info(f"[ol_shop_no 복구] {len(products)}개 상품 복구 시작")
+
+        # c_sale_cd 목록 수집 (GMK와 Smart 분리)
+        gmk_c_sale_cds = []
+        smart_c_sale_cds = []
+        product_map = {}  # c_sale_cd -> product_id 매핑
+
+        for product in products:
+            product_id = product["id"]
+            c_sale_cd_gmk = product.get("c_sale_cd_gmk")
+            c_sale_cd_smart = product.get("c_sale_cd_smart")
+            ol_shop_no_gmk = product.get("ol_shop_no_gmk")
+            ol_shop_no_smart = product.get("ol_shop_no_smart")
+
+            # GMK 채널 복구 필요
+            if c_sale_cd_gmk and (not ol_shop_no_gmk or ol_shop_no_gmk == 0):
+                gmk_c_sale_cds.append(c_sale_cd_gmk)
+                product_map[c_sale_cd_gmk] = {"product_id": product_id, "channel": "gmk"}
+
+            # SmartStore 채널 복구 필요
+            if c_sale_cd_smart and (not ol_shop_no_smart or ol_shop_no_smart == 0):
+                smart_c_sale_cds.append(c_sale_cd_smart)
+                product_map[c_sale_cd_smart] = {"product_id": product_id, "channel": "smart"}
+
+        recovered_count = 0
+        error_count = 0
+
+        # GMK 채널 복구
+        if gmk_c_sale_cds:
+            logger.info(f"[ol_shop_no 복구] GMK 채널: {len(gmk_c_sale_cds)}개 조회")
+            try:
+                # 최대 300개씩 나눠서 조회
+                for i in range(0, len(gmk_c_sale_cds), 50):
+                    batch = gmk_c_sale_cds[i:i+50]
+                    result = await api.search_products_by_c_sale_cd(batch)
+
+                    results = result.get("results", {})
+                    for c_sale_cd, items in results.items():
+                        if c_sale_cd in product_map:
+                            info = product_map[c_sale_cd]
+                            product_id = info["product_id"]
+
+                            # Z000(마스터) 상품의 ol_shop_no 찾기
+                            ol_shop_no = None
+                            for item in items:
+                                if item.get("shop_cd") == "Z000":
+                                    ol_shop_no = item.get("ol_shop_no")
+                                    break
+                            # Z000이 없으면 첫 번째 아이템 사용
+                            if not ol_shop_no and items:
+                                ol_shop_no = items[0].get("ol_shop_no")
+
+                            if ol_shop_no:
+                                db.execute_query(
+                                    "UPDATE selling_products SET ol_shop_no_gmk = %s WHERE id = %s",
+                                    (ol_shop_no, product_id)
+                                )
+                                logger.info(f"[ol_shop_no 복구] 상품 {product_id}: GMK ol_shop_no={ol_shop_no} 복구")
+                                recovered_count += 1
+
+            except Exception as e:
+                logger.error(f"[ol_shop_no 복구] GMK 채널 조회 실패: {e}")
+                error_count += len(gmk_c_sale_cds)
+
+        # SmartStore 채널 복구
+        if smart_c_sale_cds:
+            logger.info(f"[ol_shop_no 복구] SmartStore 채널: {len(smart_c_sale_cds)}개 조회")
+            try:
+                for i in range(0, len(smart_c_sale_cds), 50):
+                    batch = smart_c_sale_cds[i:i+50]
+                    result = await api.search_products_by_c_sale_cd(batch)
+
+                    results = result.get("results", {})
+                    for c_sale_cd, items in results.items():
+                        if c_sale_cd in product_map:
+                            info = product_map[c_sale_cd]
+                            product_id = info["product_id"]
+
+                            # Z000(마스터) 상품의 ol_shop_no 찾기
+                            ol_shop_no = None
+                            for item in items:
+                                if item.get("shop_cd") == "Z000":
+                                    ol_shop_no = item.get("ol_shop_no")
+                                    break
+                            if not ol_shop_no and items:
+                                ol_shop_no = items[0].get("ol_shop_no")
+
+                            if ol_shop_no:
+                                db.execute_query(
+                                    "UPDATE selling_products SET ol_shop_no_smart = %s WHERE id = %s",
+                                    (ol_shop_no, product_id)
+                                )
+                                logger.info(f"[ol_shop_no 복구] 상품 {product_id}: SmartStore ol_shop_no={ol_shop_no} 복구")
+                                recovered_count += 1
+
+            except Exception as e:
+                logger.error(f"[ol_shop_no 복구] SmartStore 채널 조회 실패: {e}")
+                error_count += len(smart_c_sale_cds)
+
+        message = f"✅ {recovered_count}개 ol_shop_no 복구 완료"
+        if error_count > 0:
+            message += f", {error_count}개 실패"
+
+        logger.info(f"[ol_shop_no 복구] 완료: {message}")
+
+        return {
+            "success": True,
+            "message": message,
+            "total_products": len(products),
+            "recovered_count": recovered_count,
+            "error_count": error_count
+        }
+
+    except Exception as e:
+        logger.error(f"[ol_shop_no 복구] 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"ol_shop_no 복구 실패: {str(e)}")
