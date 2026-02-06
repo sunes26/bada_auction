@@ -9,6 +9,7 @@ from datetime import datetime
 from database.db_wrapper import get_db
 from monitor.product_monitor import ProductMonitor
 from utils.cache import async_cached
+from utils.flaresolverr import solve_cloudflare, get_flaresolverr_client
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -323,6 +324,24 @@ async def extract_url_info(request: dict):
         else:
             raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 스마트스토어, G마켓, 옥션 URL을 입력해주세요.")
 
+        # Cloudflare 보호 사이트 확인
+        cloudflare_sites = ['gmarket.co.kr', 'auction.co.kr', 'smartstore.naver.com']
+        is_cloudflare_site = any(site in product_url for site in cloudflare_sites)
+
+        # FlareSolverr로 먼저 시도 (Cloudflare 우회)
+        flaresolverr_result = None
+        flaresolverr_cookies = None
+
+        if is_cloudflare_site:
+            print(f"[FLARESOLVERR] Cloudflare 보호 사이트 감지, FlareSolverr 시도...")
+            flaresolverr_result = solve_cloudflare(product_url)
+
+            if flaresolverr_result:
+                print(f"[FLARESOLVERR] 성공! HTML 길이: {len(flaresolverr_result.get('html', ''))}")
+                flaresolverr_cookies = flaresolverr_result.get('selenium_cookies', [])
+            else:
+                print(f"[FLARESOLVERR] 실패 또는 사용 불가, Selenium으로 폴백")
+
         # 모니터로 상품 정보 추출
         monitor = ProductMonitor()
 
@@ -331,12 +350,26 @@ async def extract_url_info(request: dict):
         monitor._init_driver()
 
         try:
-            monitor.driver.get(product_url)
             import time
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
             from selenium.webdriver.common.by import By
             from selenium.common.exceptions import UnexpectedAlertPresentException
+
+            # FlareSolverr 쿠키가 있으면 먼저 적용
+            if flaresolverr_cookies:
+                print(f"[FLARESOLVERR] {len(flaresolverr_cookies)}개 쿠키 적용 중...")
+                # 먼저 도메인에 접속해야 쿠키 설정 가능
+                monitor.driver.get(product_url.split('?')[0])
+                time.sleep(1)
+                for cookie in flaresolverr_cookies:
+                    try:
+                        monitor.driver.add_cookie(cookie)
+                    except Exception as e:
+                        print(f"[FLARESOLVERR] 쿠키 추가 실패: {e}")
+                print(f"[FLARESOLVERR] 쿠키 적용 완료, 페이지 새로고침")
+
+            monitor.driver.get(product_url)
 
             # Alert 처리
             try:
@@ -372,11 +405,13 @@ async def extract_url_info(request: dict):
             # 사이트별 대기 시간 조정 (최적화됨)
             if 'smartstore.naver.com' in product_url:
                 time.sleep(3)  # 스마트스토어 (7초 → 3초)
-                wait_for_cloudflare()  # 네이버도 보호 가능
+                if not flaresolverr_cookies:  # FlareSolverr 쿠키 없을 때만
+                    wait_for_cloudflare()
             elif 'gmarket.co.kr' in product_url or 'auction.co.kr' in product_url:
                 # G마켓/옥션: Cloudflare 보호 사용
                 time.sleep(2)
-                wait_for_cloudflare()
+                if not flaresolverr_cookies:  # FlareSolverr 쿠키 없을 때만
+                    wait_for_cloudflare()
                 time.sleep(1)  # 추가 안정화
             elif 'homeplus.co.kr' in product_url:
                 # 홈플러스: DOM 완전히 로드될 때까지 명시적 대기 (최적화)
