@@ -10,6 +10,7 @@ interface ExportButtonProps {
   sheetName?: string;
   buttonText?: string;
   className?: string;
+  isMobile?: boolean;
 }
 
 export default function ExportButton({
@@ -18,6 +19,7 @@ export default function ExportButton({
   sheetName = '데이터',
   buttonText = '엑셀 내보내기',
   className = '',
+  isMobile = false,
 }: ExportButtonProps) {
   const handleExport = () => {
     try {
@@ -48,10 +50,12 @@ export default function ExportButton({
   return (
     <button
       onClick={handleExport}
-      className={`px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 flex items-center gap-2 ${className}`}
+      className={`bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+        isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'
+      } ${className}`}
     >
-      <Download className="w-4 h-4" />
-      {buttonText}
+      <Download className={isMobile ? 'w-3 h-3' : 'w-4 h-4'} />
+      {isMobile ? '엑셀' : buttonText}
     </button>
   );
 }

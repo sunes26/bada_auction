@@ -1188,21 +1188,23 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
             </div>
             )}
 
-            <div className={`flex gap-3 ${isMobile ? 'mt-4' : 'mt-6'}`}>
+            <div className={`flex items-center ${isMobile ? 'mt-3 gap-2 flex-wrap' : 'mt-6 gap-3'}`}>
               <button
                 onClick={fetchOrders}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                className={`flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 ${
+                  isMobile ? 'flex-1 px-3 py-2 text-sm' : 'flex-1 px-6 py-3'
+                }`}
               >
                 {loading ? (
                   <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    조회 중...
+                    <RefreshCw className={`animate-spin ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                    {isMobile ? '조회중' : '조회 중...'}
                   </>
                 ) : (
                   <>
-                    <Package className="w-5 h-5" />
-                    주문 조회
+                    <Package className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
+                    {isMobile ? '조회' : '주문 조회'}
                   </>
                 )}
               </button>
@@ -1211,6 +1213,7 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
                 onSavePreset={handleSaveFilterPreset}
                 availableMarkets={['coupang', 'naver', '11st', 'gmarket']}
                 availableStatuses={['pending', 'processing', 'completed', 'cancelled']}
+                isMobile={isMobile}
               />
               <ExportButton
                 data={filteredOrders.map(order => ({
@@ -1226,6 +1229,7 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
                 }))}
                 filename="주문목록"
                 buttonText="엑셀 내보내기"
+                isMobile={isMobile}
               />
             </div>
           </div>
