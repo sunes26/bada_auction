@@ -87,9 +87,16 @@ const AccountingPage = () => {
   const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
 
   // Load functions
+  // period 변경 시 대시보드 새로고침
   useEffect(() => {
     if (currentTab === 'dashboard') {
       loadDashboardStats();
+    }
+  }, [period]);
+
+  useEffect(() => {
+    if (currentTab === 'dashboard') {
+      // period useEffect에서 처리
     } else if (currentTab === 'profit-loss') {
       const today = new Date();
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -663,10 +670,7 @@ const AccountingPage = () => {
                 <h2 className="text-2xl font-bold text-gray-800">회계 대시보드</h2>
                 <select
                   value={period}
-                  onChange={(e) => {
-                    setPeriod(e.target.value);
-                    loadDashboardStats();
-                  }}
+                  onChange={(e) => setPeriod(e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg"
                 >
                   <option value="this_month">이번 달</option>
@@ -675,7 +679,14 @@ const AccountingPage = () => {
                 </select>
               </div>
 
-              {dashboardStats && (
+              {loading && (
+                <div className="py-12 text-center">
+                  <LoadingSpinner />
+                  <p className="text-gray-500 mt-4">데이터를 불러오는 중...</p>
+                </div>
+              )}
+
+              {!loading && dashboardStats && (
                 <>
                   {/* Summary Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -737,6 +748,14 @@ const AccountingPage = () => {
                     </div>
                   </div>
                 </>
+              )}
+
+              {!loading && !dashboardStats && (
+                <div className="py-12 text-center text-gray-500">
+                  <DollarSign className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p className="text-lg font-medium mb-2">회계 데이터가 없습니다</p>
+                  <p className="text-sm">주문 및 지출 데이터가 쌓이면 여기에 표시됩니다</p>
+                </div>
               )}
             </div>
           )}
@@ -923,6 +942,13 @@ const AccountingPage = () => {
                     ))}
                   </tbody>
                 </table>
+                {expenses.length === 0 && (
+                  <div className="py-12 text-center text-gray-500">
+                    <Receipt className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium mb-2">등록된 지출이 없습니다</p>
+                    <p className="text-sm">지출 추가 버튼을 눌러 지출을 등록해보세요</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -991,6 +1017,13 @@ const AccountingPage = () => {
                     ))}
                   </tbody>
                 </table>
+                {settlements.length === 0 && (
+                  <div className="py-12 text-center text-gray-500">
+                    <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium mb-2">등록된 정산이 없습니다</p>
+                    <p className="text-sm">정산 추가 버튼을 눌러 마켓별 정산을 등록해보세요</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1211,8 +1244,8 @@ const AccountingPage = () => {
                     <h3 className="text-lg font-bold mb-4">마켓별 분석</h3>
                     <div className="space-y-2">
                       {monthlyReport.market_analysis.map((market: any) => (
-                        <div key={market.source} className="flex justify-between items-center">
-                          <span className="font-medium">{market.source}</span>
+                        <div key={market.market} className="flex justify-between items-center">
+                          <span className="font-medium">{market.market}</span>
                           <div className="text-right">
                             <div className="font-semibold">{formatCurrency(market.revenue)}</div>
                             <div className="text-xs text-gray-600">{market.orders}건</div>
