@@ -649,30 +649,8 @@ async def fetch_and_sync_orders(
                     db.save_playauto_setting(f"synced_order_{playauto_order_id}", "true")
                     synced_count += 1
 
-                    # 개별 주문 알림 발송
-                    try:
-                        from notifications.notifier import send_notification
-
-                        # 주문 상품 정보 준비
-                        items = []
-                        for item in order_data.get("items", []):
-                            items.append({
-                                "product_name": item.get("product_name", "알 수 없음"),
-                                "quantity": item.get("quantity", 1),
-                                "price": item.get("price", 0)
-                            })
-
-                        send_notification(
-                            notification_type="new_order",
-                            message=f"플레이오토에서 새로운 주문이 수집되었습니다: {order_data.get('order_number')}",
-                            order_number=order_data.get("order_number", ""),
-                            market=order_data.get("market", ""),
-                            customer_name=order_data.get("customer_name", ""),
-                            total_amount=order_data.get("total_amount", 0),
-                            items=items
-                        )
-                    except Exception as e:
-                        print(f"[WARN] 개별 주문 알림 발송 실패 ({playauto_order_id}): {e}")
+                    # 개별 주문 알림은 제거 (동기화 완료 요약 알림만 발송)
+                    # 주문이 많을 때 알림 폭주 방지
 
             except Exception as e:
                 print(f"[ERROR] 주문 동기화 실패 ({playauto_order_id}): {e}")

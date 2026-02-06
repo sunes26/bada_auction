@@ -37,21 +37,23 @@ async def auto_fetch_orders_job():
         result = await fetch_and_sync_orders()
 
         if result.get("success"):
-            print(f"[PLAYAUTO] 주문 수집 성공: {result.get('synced_count')}개 동기화")
+            synced_count = result.get('synced_count', 0)
+            print(f"[PLAYAUTO] 주문 수집 성공: {synced_count}개 동기화")
 
-            # Slack/Discord 알림 발송
-            try:
-                from notifications.notifier import send_notification
-                send_notification(
-                    'order_sync',
-                    f"📦 주문 수집 완료: {result.get('synced_count', 0)}건",
-                    market='전체',
-                    collected_count=result.get('total', result.get('synced_count', 0)),
-                    success_count=result.get('synced_count', 0),
-                    fail_count=0
-                )
-            except Exception as e:
-                print(f"[WARN] 주문 동기화 알림 발송 실패: {e}")
+            # 새 주문이 있을 때만 Slack/Discord 알림 발송
+            if synced_count > 0:
+                try:
+                    from notifications.notifier import send_notification
+                    send_notification(
+                        'order_sync',
+                        f"📦 새 주문 {synced_count}건이 수집되었습니다",
+                        market='전체',
+                        collected_count=result.get('total', synced_count),
+                        success_count=synced_count,
+                        fail_count=0
+                    )
+                except Exception as e:
+                    print(f"[WARN] 주문 동기화 알림 발송 실패: {e}")
         else:
             print(f"[PLAYAUTO] 주문 수집 실패: {result.get('message')}")
 
