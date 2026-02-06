@@ -225,9 +225,11 @@ class PlayautoOrdersAPI:
         """
         try:
             # 디버그: 주문 데이터의 금액/수량 관련 필드 확인
-            debug_fields = ['pay_amt', 'sales', 'sale_price', 'total_amount', 'sale_cnt', 'shop_sale_name', 'prod_name']
+            debug_fields = ['pay_amt', 'sales', 'sale_price', 'total_amount', 'sale_cnt', 'qty', 'quantity', 'ord_cnt', 'shop_sale_name', 'prod_name']
             debug_values = {k: order_data.get(k) for k in debug_fields}
             print(f"[DEBUG] Order fields: {debug_values}")
+            # 전체 키 목록도 출력 (어떤 필드가 있는지 확인)
+            print(f"[DEBUG] All order keys: {list(order_data.keys())}")
 
             # 1. 주문 상품 목록 파싱
             items_data = order_data.get("items", [])
@@ -344,7 +346,8 @@ class PlayautoOrdersAPI:
                 shop_sale_no=order_data.get("shop_sale_no"),
                 shop_sale_name=order_data.get("shop_sale_name"),
                 shop_opt_name=order_data.get("shop_opt_name"),
-                sale_cnt=order_data.get("sale_cnt"),
+                # 수량 필드 (여러 필드명 확인)
+                sale_cnt=order_data.get("sale_cnt") or order_data.get("qty") or order_data.get("quantity") or order_data.get("ord_cnt"),
                 c_sale_cd=order_data.get("c_sale_cd"),
 
                 # 매칭 정보
