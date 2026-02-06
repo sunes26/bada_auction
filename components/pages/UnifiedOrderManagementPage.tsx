@@ -460,7 +460,8 @@ export default function UnifiedOrderManagementPage() {
       // PlayAuto API 호출 (송장 업데이트)
       // bundle_no 필드 사용 (uniq가 아님!)
       const bundle_no = (selectedOrder as any).bundle_no || selectedOrder.playauto_order_id || selectedOrder.order_number;
-      console.log('[DEBUG] 송장 업데이트 - bundle_no:', bundle_no);
+      const ord_status = selectedOrder.order_status || (selectedOrder as any).ord_status;
+      console.log('[DEBUG] 송장 업데이트 - bundle_no:', bundle_no, 'ord_status:', ord_status);
 
       const res = await fetch(`${API_BASE_URL}/api/playauto/orders/invoice`, {
         method: 'PUT',
@@ -469,7 +470,8 @@ export default function UnifiedOrderManagementPage() {
           orders: [{
             bundle_no: bundle_no,
             carr_no: trackingInfo.carrier_code,
-            invoice_no: trackingInfo.tracking_number
+            invoice_no: trackingInfo.tracking_number,
+            ord_status: ord_status  // 현재 주문 상태 (출고대기 아니면 상태 변경 필요)
           }],
           overwrite: true,
           change_complete: true  // 출고완료로 변경

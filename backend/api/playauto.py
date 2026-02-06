@@ -48,6 +48,7 @@ class InvoiceOrderItem(BaseModel):
     bundle_no: str
     carr_no: str
     invoice_no: str
+    ord_status: Optional[str] = None  # 현재 주문 상태 (출고대기 아니면 상태 변경 필요)
 
 
 class InvoiceUpdateRequest(BaseModel):
@@ -748,8 +749,37 @@ async def update_order_invoice(request: InvoiceUpdateRequest):
     """
     try:
         orders_api = PlayautoOrdersAPI()
-        # Pydantic 모델을 dict로 변환
-        orders_data = [order.dict() for order in request.orders]
+
+        # 출고대기 상태가 아닌 주문들 확인 및 상태 변경
+        # 출고대기 상태: "출고대기", "배송준비", "배송준비중" 등
+        ready_statuses = ["출고대기", "배송준비", "배송준비중", "출고준비", "출고준비중"]
+
+        orders_need_status_change = []
+        for order in request.orders:
+            if order.ord_status and order.ord_status not in ready_statuses:
+                orders_need_status_change.append(order.bundle_no)
+                print(f"[DEBUG] 주문 {order.bundle_no}의 상태가 '{order.ord_status}'이므로 출고대기로 변경 필요")
+
+        # 상태 변경이 필요한 주문이 있으면 먼저 출고대기로 변경
+        if orders_need_status_change:
+            print(f"[DEBUG] {len(orders_need_status_change)}개 주문을 출고대기 상태로 변경 중...")
+            try:
+                status_result = await orders_api.change_order_status(
+                    bundle_codes=orders_need_status_change,
+                    status="출고대기"
+                )
+                print(f"[DEBUG] 상태 변경 결과: {status_result}")
+            except Exception as status_error:
+                print(f"[WARNING] 상태 변경 실패 (계속 진행): {status_error}")
+                # 상태 변경 실패해도 송장 업데이트는 시도
+
+        # Pydantic 모델을 dict로 변환 (ord_status 제외)
+        orders_data = [{
+            "bundle_no": order.bundle_no,
+            "carr_no": order.carr_no,
+            "invoice_no": order.invoice_no
+        } for order in request.orders]
+
         result = await orders_api.update_invoice(
             orders=orders_data,
             overwrite=request.overwrite,
@@ -760,7 +790,8 @@ async def update_order_invoice(request: InvoiceUpdateRequest):
         return {
             "success": True,
             "message": "송장번호가 업데이트되었습니다",
-            "results": result
+            "results": result,
+            "status_changed": len(orders_need_status_change)
         }
 
     except PlayautoAPIError as e:
