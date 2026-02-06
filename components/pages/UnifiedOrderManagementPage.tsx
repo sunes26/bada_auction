@@ -164,7 +164,24 @@ export default function UnifiedOrderManagementPage() {
     last_upload_at: null as string | null
   });
   const [completedOrders, setCompletedOrders] = useState<Order[]>([]); // 출고완료된 주문
+  const [trackingSearchQuery, setTrackingSearchQuery] = useState<string>(''); // 송장 관리 검색어
 
+  // 필터링된 출고완료 주문 (검색어 적용)
+  const filteredCompletedOrders = useMemo(() => {
+    if (!trackingSearchQuery.trim()) return completedOrders;
+
+    const query = trackingSearchQuery.toLowerCase().trim();
+    return completedOrders.filter(order => {
+      return (
+        order.order_number?.toLowerCase().includes(query) ||
+        order.customer_name?.toLowerCase().includes(query) ||
+        order.customer_phone?.includes(query) ||
+        order.market?.toLowerCase().includes(query) ||
+        order.tracking_number?.includes(query) ||
+        (order as any).shop_sale_name?.toLowerCase().includes(query)
+      );
+    });
+  }, [completedOrders, trackingSearchQuery]);
 
   // ============= API 호출 함수 =============
 
@@ -1341,12 +1358,58 @@ export default function UnifiedOrderManagementPage() {
 
           {/* 출고완료 주문 목록 */}
           <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/10 p-8 border border-white/20">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Truck className="w-5 h-5 text-green-600" />
-              출고완료 주문 목록 ({completedOrders.length}건)
+              출고완료 주문 목록 ({filteredCompletedOrders.length}건)
+              {trackingSearchQuery && (
+                <span className="text-sm font-normal text-gray-500">
+                  / 전체 {completedOrders.length}건
+                </span>
+              )}
             </h3>
 
-            {completedOrders.length === 0 ? (
+            {/* 검색창 */}
+            <div className="mb-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="주문번호, 고객명, 전화번호, 송장번호, 상품명으로 검색..."
+                  value={trackingSearchQuery}
+                  onChange={(e) => setTrackingSearchQuery(e.target.value)}
+                  className="w-full px-4 py-3 pl-11 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                />
+                <svg
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                {trackingSearchQuery && (
+                  <button
+                    onClick={() => setTrackingSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {trackingSearchQuery && (
+                <p className="mt-2 text-sm text-gray-600">
+                  "{trackingSearchQuery}" 검색 결과: <span className="font-bold text-green-600">{filteredCompletedOrders.length}건</span>
+                </p>
+              )}
+            </div>
+
+            {filteredCompletedOrders.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <Truck className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>출고완료된 주문이 없습니다</p>
@@ -1354,7 +1417,7 @@ export default function UnifiedOrderManagementPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {completedOrders.map((order) => (
+                {filteredCompletedOrders.map((order) => (
                   <div key={order.id} className="border border-green-200 bg-green-50/50 rounded-xl p-6 hover:shadow-lg transition-shadow">
                     <div className="flex justify-between items-start mb-4">
                       <div>
