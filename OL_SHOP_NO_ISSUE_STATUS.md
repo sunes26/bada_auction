@@ -173,6 +173,40 @@ def update_selling_product(
 
 ---
 
+## ✅ 추가 수정 완료 (2026-02-06)
+
+### 버그 발견 및 수정: site_list 응답 구조 오류
+
+**버그 원인**:
+PlayAuto API 공식 문서에 따르면 `POST /products/add/v1.2` 응답에서:
+- `result`: 최상위 레벨에 "성공/실패"
+- `site_list[]`: 배열 내부에는 `shop_name`, `shop_cd`, `shop_id`, `ol_shop_no`만 존재
+- **`site_list` 내부에는 `result` 필드가 없음!**
+
+**기존 코드 (버그)**:
+```python
+# products.py:884 - site_list 내부에 result가 없어서 항상 False!
+if site.get("result") == "성공" and site.get("ol_shop_no"):
+    # 이 코드가 절대 실행되지 않음
+```
+
+**수정 코드**:
+```python
+# site_list 내부에는 result 필드가 없음
+# ol_shop_no가 있으면 성공한 것으로 처리
+if site.get("ol_shop_no"):
+    shop_cd = site.get("shop_cd", "")
+    ol_no = site.get("ol_shop_no")
+    # ... 나머지 로직
+```
+
+**영향**:
+- ✅ 새로 등록하는 상품: `ol_shop_no_gmk`, `ol_shop_no_smart` 정상 저장됨
+- ✅ 기존 상품 재등록: 정상 동작
+- ❌ 기존에 등록된 상품: 여전히 `ol_shop_no`가 NULL (재등록 필요)
+
+---
+
 ## ❌ 남아있는 문제
 
 ### 문제 1: 기존 상품의 ol_shop_no 데이터 부족
@@ -596,7 +630,8 @@ POST /api/products/{product_id}/sync-marketplace-codes
 ### 현재 상태
 - ✅ 코드 수정 완료 및 배포
 - ✅ DB 스키마 확장 완료
-- ❌ **기존 상품 데이터 미해결** ← 여기가 문제!
+- ✅ **site.get("result") 버그 수정 완료** (2026-02-06)
+- ❌ **기존 상품 데이터 미해결** ← 재등록 필요
 
 ### 왜 아직 에러가 나는가?
 **기존 상품들의 `ol_shop_no_gmk`, `ol_shop_no_smart`가 NULL이기 때문**
@@ -614,6 +649,8 @@ POST /api/products/{product_id}/sync-marketplace-codes
 ---
 
 **작성일**: 2026-02-05
-**최종 커밋**: `2aa4aa0` (backup scheduler indentation fix)
-**Railway 배포 상태**: ✅ 정상 작동 중
-**남은 작업**: 기존 상품의 `ol_shop_no` 데이터 복구
+**최종 수정**: 2026-02-06 - site_list 응답 구조 버그 수정
+**Railway 배포 상태**: 배포 필요
+**남은 작업**:
+1. Railway 배포 (버그 수정 반영)
+2. 기존 상품의 `ol_shop_no` 데이터 복구 (재등록 필요)

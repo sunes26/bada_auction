@@ -879,9 +879,11 @@ async def register_products_to_playauto(request: dict):
 
                     if site_list_result:
                         for site in site_list_result:
-                            logger.info(f"[상품등록] site 확인: shop_cd={site.get('shop_cd')}, result={site.get('result')}, ol_shop_no={site.get('ol_shop_no')}")
+                            logger.info(f"[상품등록] site 확인: shop_cd={site.get('shop_cd')}, shop_name={site.get('shop_name')}, ol_shop_no={site.get('ol_shop_no')}")
 
-                            if site.get("result") == "성공" and site.get("ol_shop_no"):
+                            # PlayAuto API 응답에서 site_list 내부에는 result 필드가 없음
+                            # ol_shop_no가 있으면 성공한 것으로 처리
+                            if site.get("ol_shop_no"):
                                 shop_cd = site.get("shop_cd", "")
                                 ol_no = site.get("ol_shop_no")
 
