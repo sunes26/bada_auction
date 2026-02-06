@@ -345,24 +345,56 @@ async def extract_url_info(request: dict):
 
                 soup = BeautifulSoup(html_content, 'html.parser')
 
-                # 상품명 추출
-                product_name = None
-                if 'gmarket.co.kr' in product_url or 'auction.co.kr' in product_url:
-                    # G마켓/옥션
-                    title_el = soup.select_one('.itemtit') or soup.select_one('h1')
-                    if title_el:
-                        product_name = title_el.get_text(strip=True)
-                elif 'smartstore.naver.com' in product_url:
-                    # 스마트스토어
-                    title_el = soup.select_one('h3._copyable') or soup.select_one('meta[property="og:title"]')
-                    if title_el:
-                        product_name = title_el.get('content') if title_el.name == 'meta' else title_el.get_text(strip=True)
+                # 페이지 타이틀 확인 (에러 페이지 감지)
+                page_title = soup.title.string if soup.title else ""
+                print(f"[FLARESOLVERR] 페이지 타이틀: {page_title}")
 
-                # og:title 폴백
-                if not product_name:
-                    og_title = soup.select_one('meta[property="og:title"]')
-                    if og_title:
-                        product_name = og_title.get('content', '')
+                # 에러 페이지 감지
+                if '에러' in str(page_title) or 'error' in str(page_title).lower():
+                    print(f"[FLARESOLVERR] 에러 페이지 감지, Selenium으로 폴백")
+                    flaresolverr_result = None  # Selenium 폴백 트리거
+                else:
+                    # 상품명 추출
+                    product_name = None
+                    if 'gmarket.co.kr' in product_url or 'auction.co.kr' in product_url:
+                        # G마켓/옥션
+                        title_el = soup.select_one('.itemtit') or soup.select_one('h1')
+                        if title_el:
+                            product_name = title_el.get_text(strip=True)
+                    elif 'smartstore.naver.com' in product_url:
+                        # 스마트스토어 - 다양한 선택자 시도
+                        selectors = [
+                            'h3._copyable',
+                            'meta[property="og:title"]',
+                            'title',
+                            '.bd_tit',
+                            'h1'
+                        ]
+                        for selector in selectors:
+                            title_el = soup.select_one(selector)
+                            if title_el:
+                                if title_el.name == 'meta':
+                                    product_name = title_el.get('content', '')
+                                elif title_el.name == 'title':
+                                    # "상품명 : 스토어명" 형태에서 상품명 추출
+                                    full_title = title_el.get_text(strip=True)
+                                    if ' : ' in full_title:
+                                        product_name = full_title.split(' : ')[0]
+                                    elif ' - ' in full_title:
+                                        product_name = full_title.split(' - ')[0]
+                                    else:
+                                        product_name = full_title
+                                else:
+                                    product_name = title_el.get_text(strip=True)
+                                if product_name and len(product_name) > 3:
+                                    break
+                        print(f"[FLARESOLVERR] 스마트스토어 HTML 미리보기: {html_content[:500]}")
+
+                    # og:title 폴백
+                    if not product_name:
+                        og_title = soup.select_one('meta[property="og:title"]')
+                        if og_title:
+                            product_name = og_title.get('content', '')
 
                 print(f"[FLARESOLVERR] 추출된 상품명: {product_name}")
 
@@ -398,29 +430,63 @@ async def extract_url_info(request: dict):
                             if current_price:
                                 break
 
-                # 썸네일 추출
-                thumbnail_url = None
-                og_image = soup.select_one('meta[property="og:image"]')
-                if og_image:
-                    thumbnail_url = og_image.get('content')
-                    print(f"[FLARESOLVERR] og:image에서 썸네일 추출: {thumbnail_url}")
+                    # 썸네일 추출
+                    thumbnail_url = None
 
-                # FlareSolverr로 성공적으로 데이터 추출 완료
-                if product_name or current_price:
-                    print(f"[FLARESOLVERR] 데이터 추출 완료 - 상품명: {product_name}, 가격: {current_price}")
-                    return {
-                        "success": True,
-                        "data": {
-                            "source": source,
-                            "product_name": product_name or "자동 감지 실패",
-                            "current_price": current_price,
-                            "status": "available",
-                            "details": "FlareSolverr로 추출",
-                            "thumbnail_url": thumbnail_url
+                    # 1. og:image 메타 태그
+                    og_image = soup.select_one('meta[property="og:image"]')
+                    if og_image and og_image.get('content'):
+                        thumbnail_url = og_image.get('content')
+                        print(f"[FLARESOLVERR] og:image에서 썸네일 추출: {thumbnail_url}")
+
+                    # 2. G마켓/옥션 전용 선택자
+                    if not thumbnail_url and ('gmarket.co.kr' in product_url or 'auction.co.kr' in product_url):
+                        img_selectors = [
+                            '.thumb-image img',
+                            '.item-topimg img',
+                            '#mainImage',
+                            '.box-im img',
+                            '.viewer img',
+                            'img[src*="gmarket"]',
+                            'img[src*="auction"]',
+                        ]
+                        for selector in img_selectors:
+                            img_el = soup.select_one(selector)
+                            if img_el:
+                                thumbnail_url = img_el.get('src') or img_el.get('data-src')
+                                if thumbnail_url:
+                                    print(f"[FLARESOLVERR] {selector}에서 썸네일 추출: {thumbnail_url}")
+                                    break
+
+                    # 3. 첫 번째 큰 이미지 찾기 (폴백)
+                    if not thumbnail_url:
+                        for img in soup.find_all('img'):
+                            src = img.get('src') or img.get('data-src')
+                            if src and ('http' in src or src.startswith('//')):
+                                # 작은 아이콘 제외
+                                if 'icon' not in src.lower() and 'logo' not in src.lower():
+                                    thumbnail_url = src
+                                    if thumbnail_url.startswith('//'):
+                                        thumbnail_url = 'https:' + thumbnail_url
+                                    print(f"[FLARESOLVERR] 이미지 태그에서 썸네일 추출: {thumbnail_url}")
+                                    break
+
+                    # FlareSolverr로 성공적으로 데이터 추출 완료
+                    if product_name or current_price:
+                        print(f"[FLARESOLVERR] 데이터 추출 완료 - 상품명: {product_name}, 가격: {current_price}, 썸네일: {thumbnail_url}")
+                        return {
+                            "success": True,
+                            "data": {
+                                "source": source,
+                                "product_name": product_name or "자동 감지 실패",
+                                "current_price": current_price,
+                                "status": "available",
+                                "details": "FlareSolverr로 추출",
+                                "thumbnail_url": thumbnail_url
+                            }
                         }
-                    }
-                else:
-                    print(f"[FLARESOLVERR] HTML에서 데이터 추출 실패, Selenium으로 폴백")
+                    else:
+                        print(f"[FLARESOLVERR] HTML에서 데이터 추출 실패, Selenium으로 폴백")
             else:
                 print(f"[FLARESOLVERR] 실패 또는 사용 불가, Selenium으로 폴백")
 
