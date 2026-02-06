@@ -26,9 +26,9 @@ const getMarketName = (shopCd: string): string => {
   const marketNames: { [key: string]: string } = {
     'A001': '옥션',
     'A006': '지마켓',
-    'A027': '스마트스토어',
-    'A077': '쿠팡',
+    'A077': '스마트스토어',
     'A112': '11번가',
+    'A027': '쿠팡',
     'A524': 'SSG.COM',
     'A113': '롯데ON',
     'A522': 'GS SHOP',
