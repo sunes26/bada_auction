@@ -55,7 +55,14 @@ class ProductMonitor:
                 options.add_argument('--disable-extensions')
                 options.add_argument('--disable-plugins')
 
+                # Cloudflare 우회를 위한 추가 옵션
+                options.add_argument('--disable-blink-features=AutomationControlled')
+                options.add_argument('--disable-infobars')
+                options.add_argument('--lang=ko-KR')
+                options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+
                 # headless 모드 (undetected-chromedriver v3.5+)
+                # 주의: Cloudflare는 headless 모드를 감지할 수 있음
                 options.add_argument('--headless=new')
 
                 # ChromeDriver 경로 설정

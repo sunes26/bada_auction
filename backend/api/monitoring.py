@@ -353,9 +353,31 @@ async def extract_url_info(request: dict):
             print(f"[URL DEBUG] 요청 URL: {product_url}")
             print(f"[URL DEBUG] 실제 URL: {actual_url}")
 
+            # Cloudflare 챌린지 대기 (G마켓, 옥션 등에서 사용)
+            def wait_for_cloudflare():
+                """Cloudflare 챌린지가 완료될 때까지 대기"""
+                cloudflare_indicators = ['just a moment', 'checking your browser', '사용자 활동 검토']
+                max_wait = 20  # 최대 20초 대기
+                for i in range(max_wait):
+                    title = monitor.driver.title.lower()
+                    is_cloudflare = any(indicator in title for indicator in cloudflare_indicators)
+                    if not is_cloudflare:
+                        print(f"[CLOUDFLARE] 챌린지 통과 완료 ({i}초 후)")
+                        return True
+                    print(f"[CLOUDFLARE] 챌린지 대기 중... ({i+1}/{max_wait}초)")
+                    time.sleep(1)
+                print(f"[CLOUDFLARE] 챌린지 통과 실패 (타임아웃)")
+                return False
+
             # 사이트별 대기 시간 조정 (최적화됨)
             if 'smartstore.naver.com' in product_url:
                 time.sleep(3)  # 스마트스토어 (7초 → 3초)
+                wait_for_cloudflare()  # 네이버도 보호 가능
+            elif 'gmarket.co.kr' in product_url or 'auction.co.kr' in product_url:
+                # G마켓/옥션: Cloudflare 보호 사용
+                time.sleep(2)
+                wait_for_cloudflare()
+                time.sleep(1)  # 추가 안정화
             elif 'homeplus.co.kr' in product_url:
                 # 홈플러스: DOM 완전히 로드될 때까지 명시적 대기 (최적화)
                 time.sleep(1)
@@ -387,9 +409,18 @@ async def extract_url_info(request: dict):
             print(f"[DEBUG] 페이지 타이틀: {page_title}")
             print(f"[DEBUG] 현재 URL: {monitor.driver.current_url}")
 
-            # 봇 탐지 확인
-            if '서비스접속불가' in page_title or '차단' in page_title or 'blocked' in page_title.lower():
-                print(f"[DEBUG] 봇 탐지 의심: 페이지 타이틀 = {page_title}")
+            # Cloudflare/봇 탐지 확인
+            cloudflare_indicators = ['just a moment', 'checking your browser', '사용자 활동 검토', '서비스접속불가', '차단', 'blocked']
+            is_blocked = any(indicator in page_title.lower() for indicator in cloudflare_indicators)
+
+            if is_blocked:
+                print(f"[DEBUG] 봇 탐지/Cloudflare 차단: 페이지 타이틀 = {page_title}")
+                # 드라이버 종료
+                monitor._close_driver()
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"사이트 보안 시스템(Cloudflare)에 의해 접근이 차단되었습니다. 잠시 후 다시 시도해주세요. (페이지 타이틀: {page_title})"
+                )
 
             # 페이지 소스 일부 확인 (디버깅용)
             try:
@@ -673,6 +704,14 @@ async def save_thumbnail(request: SaveThumbnailRequest):
 
         print(f"[DEBUG] save-thumbnail 요청: URL={request.image_url[:100]}...")
         print(f"[DEBUG] save-thumbnail 요청: product_name={request.product_name}")
+
+        # data: URL 처리 (Cloudflare 페이지에서 추출된 경우)
+        if request.image_url.startswith('data:'):
+            print(f"[DEBUG] data: URL 감지 - Cloudflare 페이지에서 추출된 이미지일 가능성")
+            raise HTTPException(
+                status_code=400,
+                detail="유효한 이미지 URL이 아닙니다. Cloudflare 보호로 인해 실제 상품 이미지를 가져올 수 없습니다."
+            )
 
         # 이미지 다운로드 (Railway 환경 고려하여 타임아웃 증가)
         headers = {
