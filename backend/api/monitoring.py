@@ -315,31 +315,20 @@ async def extract_url_info(request: dict):
             source = 'traders'
         elif '11st.co.kr' in product_url:
             source = '11st'
-        elif 'smartstore.naver.com' in product_url:
-            source = 'smartstore'
+        elif 'lotteon.com' in product_url:
+            source = 'lotteon'
         elif 'gmarket.co.kr' in product_url:
             source = 'gmarket'
         elif 'auction.co.kr' in product_url:
             source = 'auction'
         else:
-            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 스마트스토어, G마켓, 옥션 URL을 입력해주세요.")
+            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 롯데ON, G마켓, 옥션 URL을 입력해주세요.")
 
         # 봇 감지 보호 사이트 (FlareSolverr 사용)
-        bot_protected_sites = ['gmarket.co.kr', 'auction.co.kr', 'smartstore.naver.com']
+        bot_protected_sites = ['gmarket.co.kr', 'auction.co.kr']
         is_bot_protected = any(site in product_url for site in bot_protected_sites)
 
-        # 스마트스토어 URL 정리 (추적 파라미터 제거 - 봇 감지 회피)
         clean_url = product_url
-        if 'smartstore.naver.com' in product_url:
-            from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-            parsed = urlparse(product_url)
-            # 추적 파라미터 제거 (nl-query, nl-au, NaPm 등)
-            tracking_params = ['nl-query', 'nl-au', 'NaPm', 'utm_source', 'utm_medium', 'utm_campaign']
-            query_params = parse_qs(parsed.query)
-            clean_params = {k: v for k, v in query_params.items() if k not in tracking_params}
-            clean_query = urlencode(clean_params, doseq=True)
-            clean_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, clean_query, parsed.fragment))
-            print(f"[SMARTSTORE] URL 정리: {product_url[:80]}... -> {clean_url}")
 
         # FlareSolverr로 먼저 시도 (봇 감지 우회)
         flaresolverr_result = None
@@ -703,8 +692,8 @@ async def extract_url_info(request: dict):
                 result = monitor._check_homeplus_status()
             elif '11st.co.kr' in product_url:
                 result = monitor._check_11st_status()
-            elif 'smartstore.naver.com' in product_url:
-                result = monitor._check_smartstore_status()
+            elif 'lotteon.com' in product_url:
+                result = monitor._check_lotteon_status()
             elif 'gmarket.co.kr' in product_url:
                 result = monitor._check_gmarket_status()
             elif 'auction.co.kr' in product_url:

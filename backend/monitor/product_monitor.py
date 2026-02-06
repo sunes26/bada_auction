@@ -519,8 +519,8 @@ class ProductMonitor:
                 result = self._check_homeplus_status()
             elif '11st.co.kr' in product_url:
                 result = self._check_11st_status()
-            elif 'smartstore.naver.com' in product_url:
-                result = self._check_smartstore_status()
+            elif 'lotteon.com' in product_url:
+                result = self._check_lotteon_status()
             elif 'gmarket.co.kr' in product_url:
                 result = self._check_gmarket_status()
             elif 'auction.co.kr' in product_url:
@@ -885,6 +885,86 @@ class ProductMonitor:
                 'price': None,
                 'original_price': None,
                 'details': f"11번가 체크 오류: {str(e)}"
+            }
+
+    def _check_lotteon_status(self) -> Dict:
+        """롯데ON 상품 상태 체크"""
+        try:
+            # JavaScript로 상태 및 가격 추출
+            result = self.driver.execute_script("""
+                const result = { status: 'available', price: null, details: '정상' };
+
+                // 1. 품절 상태 확인
+                const soldoutBtn = document.querySelector('.btn_soldout, [class*="soldout"], [class*="품절"]');
+                const btnText = document.querySelector('.btn_buy, .btn_cart')?.textContent || '';
+
+                if (soldoutBtn || btnText.includes('품절') || btnText.includes('SOLD OUT')) {
+                    result.status = 'out_of_stock';
+                    result.details = '품절';
+                }
+
+                // 2. 가격 추출 (롯데ON 전용 셀렉터)
+                // 판매가 셀렉터들
+                const priceSelectors = [
+                    '.price_area .final_price .num',
+                    '.price_area .sale_price .num',
+                    '.prd_price .price_val',
+                    '[class*="finalPrice"] [class*="num"]',
+                    '[class*="salePrice"]',
+                    '.price_info .price'
+                ];
+
+                for (let selector of priceSelectors) {
+                    const el = document.querySelector(selector);
+                    if (el) {
+                        const text = el.textContent.trim();
+                        const num = parseInt(text.replace(/[^0-9]/g, ''));
+                        if (num >= 100 && num < 10000000) {
+                            result.price = num;
+                            break;
+                        }
+                    }
+                }
+
+                // 3. og:price 메타 태그 폴백
+                if (!result.price) {
+                    const ogPrice = document.querySelector('meta[property="product:price:amount"]');
+                    if (ogPrice && ogPrice.content) {
+                        const num = parseInt(ogPrice.content);
+                        if (num >= 100 && num < 10000000) {
+                            result.price = num;
+                        }
+                    }
+                }
+
+                // 4. 페이지 전체에서 가격 패턴 찾기
+                if (!result.price) {
+                    const bodyText = document.body.innerText;
+                    const priceMatch = bodyText.match(/(\\d{1,3}(?:,\\d{3})+)\\s*원/);
+                    if (priceMatch) {
+                        const num = parseInt(priceMatch[1].replace(/,/g, ''));
+                        if (num >= 1000 && num < 10000000) {
+                            result.price = num;
+                        }
+                    }
+                }
+
+                return result;
+            """)
+
+            return {
+                'status': result.get('status', 'available') if result else 'available',
+                'price': result.get('price') if result else None,
+                'original_price': None,
+                'details': result.get('details', '정상') if result else '정상'
+            }
+
+        except Exception as e:
+            return {
+                'status': 'error',
+                'price': None,
+                'original_price': None,
+                'details': f"롯데ON 체크 오류: {str(e)}"
             }
 
     def _check_smartstore_status(self) -> Dict:
