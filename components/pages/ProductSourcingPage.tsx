@@ -823,6 +823,17 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
                           >
                             {product.is_active ? '판매중' : '중단'}
                           </button>
+                          {product.sourcing_url && (
+                            <a
+                              href={product.sourcing_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                              title="구매하기"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          )}
                           <button
                             onClick={() => {
                               setSelectedProduct(product);
