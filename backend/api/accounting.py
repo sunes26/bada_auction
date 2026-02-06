@@ -10,6 +10,7 @@ from sqlalchemy import func, and_, or_, extract, cast, Date
 from sqlalchemy.orm import Session
 
 from database.database_manager import get_database_manager
+from database.db_wrapper import get_db
 from database.models import (
     Order, OrderItem, Expense, Settlement, MarketOrderRaw
 )
@@ -948,3 +949,86 @@ async def get_expense_categories():
             "기타"
         ]
     }
+
+
+# ==========================================
+# 8. 데이터 마이그레이션 및 동기화
+# ==========================================
+
+@router.post("/sync/migrate-orders")
+async def migrate_orders_to_accounting(limit: int = 100):
+    """
+    기존 PlayAuto 주문(MarketOrderRaw)을 회계 테이블(Order/OrderItem)로 마이그레이션
+
+    - MarketOrderRaw에만 있고 Order 테이블에 없는 주문을 동기화
+    - 상품 매칭으로 sourcing_price 자동 설정
+    - 이익(profit) 자동 계산
+    """
+    try:
+        from database.db_wrapper import get_db
+        db = get_db()
+        result = db.migrate_raw_orders_to_accounting(limit=limit)
+
+        return {
+            "success": True,
+            "message": f"마이그레이션 완료: {result['success']}건 성공",
+            "stats": result
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/sync/status")
+async def get_sync_status():
+    """
+    주문 동기화 상태 조회
+    - MarketOrderRaw 전체 건수
+    - 동기화된 건수 (Order 테이블에 연결됨)
+    - 미동기화 건수
+    """
+    try:
+        with get_session() as session:
+            total_raw = session.query(MarketOrderRaw).count()
+            synced = session.query(MarketOrderRaw).filter(
+                MarketOrderRaw.synced_to_local == True
+            ).count()
+            not_synced = total_raw - synced
+
+            # Order 테이블 통계
+            total_orders = session.query(Order).count()
+            total_order_items = session.query(OrderItem).count()
+
+            # 금액 통계
+            from sqlalchemy import func
+
+            revenue_result = session.query(
+                func.sum(OrderItem.selling_price * OrderItem.quantity).label('total_revenue'),
+                func.sum(OrderItem.sourcing_price * OrderItem.quantity).label('total_cost'),
+                func.sum(OrderItem.profit).label('total_profit')
+            ).first()
+
+            total_revenue = float(revenue_result.total_revenue or 0) if revenue_result else 0
+            total_cost = float(revenue_result.total_cost or 0) if revenue_result else 0
+            total_profit = float(revenue_result.total_profit or 0) if revenue_result else 0
+
+            return {
+                "success": True,
+                "raw_orders": {
+                    "total": total_raw,
+                    "synced": synced,
+                    "not_synced": not_synced
+                },
+                "accounting": {
+                    "orders": total_orders,
+                    "order_items": total_order_items,
+                    "total_revenue": total_revenue,
+                    "total_cost": total_cost,
+                    "total_profit": total_profit
+                }
+            }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))

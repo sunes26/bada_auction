@@ -86,6 +86,13 @@ const AccountingPage = () => {
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
 
+  // Sync state
+  const [syncStatus, setSyncStatus] = useState<{
+    raw_orders: { total: number; synced: number; not_synced: number };
+    accounting: { orders: number; order_items: number; total_revenue: number; total_cost: number; total_profit: number };
+  } | null>(null);
+  const [migrating, setMigrating] = useState(false);
+
   // Load functions
   // period 변경 시 대시보드 새로고침
   useEffect(() => {
@@ -96,7 +103,7 @@ const AccountingPage = () => {
 
   useEffect(() => {
     if (currentTab === 'dashboard') {
-      // period useEffect에서 처리
+      loadSyncStatus();
     } else if (currentTab === 'profit-loss') {
       const today = new Date();
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -231,6 +238,42 @@ const AccountingPage = () => {
       toast.error('월별 리포트를 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSyncStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/accounting/sync/status`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.success) {
+        setSyncStatus(data);
+      }
+    } catch (error) {
+      console.error('동기화 상태 로드 실패:', error);
+    }
+  };
+
+  const handleMigrateOrders = async () => {
+    if (!confirm('주문 데이터를 회계 테이블로 마이그레이션하시겠습니까?')) return;
+
+    try {
+      setMigrating(true);
+      const res = await fetch(`${API_BASE_URL}/api/accounting/sync/migrate-orders?limit=500`, {
+        method: 'POST'
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`마이그레이션 완료: ${data.stats.success}건 성공`);
+        loadSyncStatus();
+        loadDashboardStats();
+      }
+    } catch (error) {
+      console.error('마이그레이션 실패:', error);
+      toast.error('마이그레이션에 실패했습니다');
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -718,6 +761,57 @@ const AccountingPage = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Sync Status */}
+                  {syncStatus && (
+                    <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold">주문 데이터 동기화 상태</h3>
+                        {syncStatus.raw_orders.not_synced > 0 && (
+                          <button
+                            onClick={handleMigrateOrders}
+                            disabled={migrating}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2"
+                          >
+                            {migrating ? (
+                              <>
+                                <LoadingSpinner />
+                                마이그레이션 중...
+                              </>
+                            ) : (
+                              <>
+                                <TrendingUp className="w-4 h-4" />
+                                {syncStatus.raw_orders.not_synced}건 동기화
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div>
+                          <div className="text-2xl font-bold text-gray-800">{syncStatus.raw_orders.total}</div>
+                          <div className="text-sm text-gray-500">전체 주문</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-green-600">{syncStatus.raw_orders.synced}</div>
+                          <div className="text-sm text-gray-500">동기화됨</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-orange-600">{syncStatus.raw_orders.not_synced}</div>
+                          <div className="text-sm text-gray-500">미동기화</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-blue-600">{syncStatus.accounting.order_items}</div>
+                          <div className="text-sm text-gray-500">회계 항목</div>
+                        </div>
+                      </div>
+                      {syncStatus.raw_orders.not_synced > 0 && (
+                        <p className="mt-3 text-sm text-orange-600">
+                          * {syncStatus.raw_orders.not_synced}건의 주문이 회계 테이블에 동기화되지 않았습니다. 동기화 버튼을 클릭하세요.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Charts */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -907,6 +907,9 @@ class DatabaseWrapper:
     def sync_playauto_order_to_local(self, order_data: Dict) -> bool:
         """
         플레이오토 주문을 로컬 DB에 동기화 (확장 필드 지원)
+        - MarketOrderRaw: 원본 데이터 저장
+        - Order: 주문 정보 저장 (회계용)
+        - OrderItem: 주문 상품 저장 (회계용, 상품 매칭으로 sourcing_price 포함)
 
         Args:
             order_data: 주문 데이터 (dict 형식)
@@ -924,23 +927,47 @@ class DatabaseWrapper:
                     print("[WARN] 주문 ID가 없어 동기화를 건너뜁니다.")
                     return False
 
-                # 중복 확인
-                existing = session.query(MarketOrderRaw).filter_by(
+                # 중복 확인 (MarketOrderRaw)
+                existing_raw = session.query(MarketOrderRaw).filter_by(
                     playauto_order_id=playauto_order_id
                 ).first()
 
-                if existing:
-                    # 업데이트
-                    existing.order_status = order_data.get("ord_status") or order_data.get("order_status")
-                    existing.updated_at = datetime.now()
-                    existing.raw_data = json.dumps(order_data, ensure_ascii=False)
-                    print(f"[INFO] 주문 업데이트: {playauto_order_id}")
-                    return True
-
-                # 신규 생성
-                # 필드 매핑 (새 필드 우선, 레거시 필드 fallback)
+                # 필드 매핑
                 market = order_data.get("shop_name") or order_data.get("market", "unknown")
                 order_number = order_data.get("shop_ord_no") or order_data.get("order_number", "")
+
+                # 고객 정보 추출 (receiver 객체 또는 flat 필드)
+                receiver = order_data.get("receiver", {}) or {}
+                customer_name = (
+                    receiver.get("to_name") or
+                    order_data.get("to_name") or
+                    order_data.get("customer_name", "")
+                )
+                customer_phone = (
+                    receiver.get("to_htel") or
+                    receiver.get("to_tel") or
+                    order_data.get("to_htel") or
+                    order_data.get("customer_phone", "")
+                )
+                customer_addr1 = receiver.get("to_addr1") or order_data.get("to_addr1", "")
+                customer_addr2 = receiver.get("to_addr2") or order_data.get("to_addr2", "")
+                customer_address = f"{customer_addr1} {customer_addr2}".strip() or order_data.get("customer_address", "")
+                customer_zipcode = receiver.get("to_zipcd") or order_data.get("to_zipcd") or order_data.get("customer_zipcode", "")
+
+                # 금액 정보
+                payment = order_data.get("payment", {}) or {}
+                total_amount = (
+                    order_data.get("sales") or
+                    payment.get("pay_amt") or
+                    order_data.get("total_amount", 0)
+                )
+                try:
+                    total_amount = float(total_amount) if total_amount else 0
+                except (ValueError, TypeError):
+                    total_amount = 0
+
+                # 주문 상태
+                order_status = order_data.get("ord_status") or order_data.get("order_status", "pending")
 
                 # 날짜 파싱
                 order_date = None
@@ -953,25 +980,135 @@ class DatabaseWrapper:
                             order_date = ord_time_str
                     except Exception:
                         try:
-                            order_date = datetime.fromisoformat(ord_time_str.replace("Z", "+00:00"))
+                            order_date = datetime.fromisoformat(str(ord_time_str).replace("Z", "+00:00"))
                         except Exception:
-                            pass
+                            order_date = datetime.now()
 
-                new_order = MarketOrderRaw(
+                if existing_raw:
+                    # MarketOrderRaw 업데이트
+                    existing_raw.order_status = order_status
+                    existing_raw.updated_at = datetime.now()
+                    existing_raw.raw_data = json.dumps(order_data, ensure_ascii=False)
+
+                    # 기존 Order도 업데이트
+                    if existing_raw.local_order_id:
+                        existing_order = session.query(Order).filter_by(id=existing_raw.local_order_id).first()
+                        if existing_order:
+                            existing_order.order_status = order_status
+                            existing_order.updated_at = datetime.now()
+
+                    print(f"[INFO] 주문 업데이트: {playauto_order_id}")
+                    return True
+
+                # ========================================
+                # 신규 주문 생성
+                # ========================================
+
+                # 1. MarketOrderRaw 생성
+                new_raw_order = MarketOrderRaw(
                     playauto_order_id=playauto_order_id,
                     market=market,
                     order_number=order_number,
-                    raw_data=json.dumps(order_data, ensure_ascii=False),  # 전체 JSON 저장 (80+ 필드)
+                    raw_data=json.dumps(order_data, ensure_ascii=False),
                     order_date=order_date,
                     created_at=datetime.now(),
                     updated_at=datetime.now()
                 )
+                session.add(new_raw_order)
+                session.flush()  # ID 확보
 
-                session.add(new_order)
-                print(f"[INFO] 신규 주문 저장: {playauto_order_id}")
+                # 2. Order 생성 (회계용)
+                # order_number 중복 체크 (bundle_no로 구분)
+                bundle_no = order_data.get("bundle_no", "")
+                unique_order_number = f"{order_number}_{bundle_no}" if bundle_no else order_number
 
-                # 주문-상품 매칭 시도 (shop_cd + shop_sale_no 기반)
-                self._match_order_to_product(order_data, playauto_order_id)
+                existing_order = session.query(Order).filter_by(order_number=unique_order_number).first()
+
+                if not existing_order:
+                    new_order = Order(
+                        order_number=unique_order_number,
+                        market=market,
+                        customer_name=customer_name or "고객",
+                        customer_phone=customer_phone,
+                        customer_address=customer_address or "주소 미입력",
+                        customer_zipcode=customer_zipcode,
+                        order_status=order_status,
+                        total_amount=total_amount,
+                        created_at=order_date or datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    session.add(new_order)
+                    session.flush()  # ID 확보
+                    order_id = new_order.id
+                    print(f"[INFO] Order 생성: {unique_order_number} (ID: {order_id})")
+                else:
+                    order_id = existing_order.id
+                    print(f"[INFO] 기존 Order 사용: {unique_order_number} (ID: {order_id})")
+
+                # MarketOrderRaw와 Order 연결
+                new_raw_order.local_order_id = order_id
+                new_raw_order.synced_to_local = True
+
+                # 3. OrderItem 생성 (회계용)
+                shop_cd = order_data.get("shop_cd", "")
+                shop_sale_no = order_data.get("shop_sale_no", "")
+                product_name = order_data.get("shop_sale_name") or order_data.get("prod_name", "상품명 없음")
+                quantity = order_data.get("sale_cnt") or 1
+                try:
+                    quantity = int(quantity)
+                except (ValueError, TypeError):
+                    quantity = 1
+
+                # 상품별 판매가 계산
+                selling_price = total_amount / quantity if quantity > 0 else total_amount
+
+                # 상품 매칭으로 sourcing_price 가져오기
+                sourcing_price = 0
+                sourcing_source = "unknown"
+                product_url = ""
+                matched_product = None
+
+                if shop_sale_no:
+                    # shop_cd + shop_sale_no로 매칭
+                    matched_product = self._find_product_for_order(session, shop_cd, shop_sale_no)
+
+                if matched_product:
+                    sourcing_price = float(matched_product.sourcing_price or 0)
+                    sourcing_source = matched_product.sourcing_source or "unknown"
+                    product_url = matched_product.sourcing_url or ""
+                    print(f"[OK] 상품 매칭: {product_name} → sourcing_price={sourcing_price}")
+                else:
+                    # 매칭 실패시 기본값 (판매가의 70%로 추정)
+                    sourcing_price = selling_price * 0.7
+                    print(f"[WARN] 상품 매칭 실패: {product_name} (shop_cd={shop_cd}, shop_sale_no={shop_sale_no})")
+
+                # 이익 계산
+                profit = (selling_price - sourcing_price) * quantity
+
+                # OrderItem 생성
+                new_order_item = OrderItem(
+                    order_id=order_id,
+                    product_name=product_name,
+                    product_url=product_url,
+                    source=sourcing_source,
+                    quantity=quantity,
+                    sourcing_price=sourcing_price,
+                    selling_price=selling_price,
+                    profit=profit,
+                    rpa_status="pending",
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+                session.add(new_order_item)
+
+                # Order의 total_profit 업데이트
+                if not existing_order:
+                    new_order.total_profit = profit
+                else:
+                    existing_order.total_profit = (existing_order.total_profit or 0) + profit
+
+                print(f"[INFO] OrderItem 생성: {product_name} x{quantity} (판매:{selling_price}, 매입:{sourcing_price}, 이익:{profit})")
+                print(f"[OK] 신규 주문 완전 동기화: {playauto_order_id}")
 
                 return True
 
@@ -980,6 +1117,53 @@ class DatabaseWrapper:
             import traceback
             traceback.print_exc()
             return False
+
+    def _find_product_for_order(self, session, shop_cd: str, shop_sale_no: str) -> Optional[MySellingProduct]:
+        """
+        주문의 shop_cd + shop_sale_no로 내 판매상품 찾기
+
+        Args:
+            session: DB 세션
+            shop_cd: 쇼핑몰 코드
+            shop_sale_no: 쇼핑몰 상품번호
+
+        Returns:
+            매칭된 MySellingProduct 또는 None
+        """
+        try:
+            # 1. ProductMarketplaceCode 테이블에서 매칭 시도
+            result = session.query(MySellingProduct).join(
+                ProductMarketplaceCode
+            ).filter(
+                ProductMarketplaceCode.shop_cd == shop_cd,
+                ProductMarketplaceCode.shop_sale_no == shop_sale_no
+            ).first()
+
+            if result:
+                return result
+
+            # 2. shop_sale_no만으로 매칭 시도 (shop_cd 무시)
+            result = session.query(MySellingProduct).join(
+                ProductMarketplaceCode
+            ).filter(
+                ProductMarketplaceCode.shop_sale_no == shop_sale_no
+            ).first()
+
+            if result:
+                return result
+
+            # 3. MySellingProduct의 레거시 필드로 매칭 시도
+            # c_sale_cd_gmk, c_sale_cd_smart 등
+            result = session.query(MySellingProduct).filter(
+                (MySellingProduct.c_sale_cd_gmk == shop_sale_no) |
+                (MySellingProduct.c_sale_cd_smart == shop_sale_no)
+            ).first()
+
+            return result
+
+        except Exception as e:
+            print(f"[ERROR] 상품 매칭 실패: {e}")
+            return None
 
     # ========================================
     # 상품별 마켓 코드 관리
@@ -1133,33 +1317,182 @@ class DatabaseWrapper:
 
             return [self._model_to_dict(p) for p in products]
 
-    def _match_order_to_product(self, order_data: Dict, playauto_order_id: str):
+    def _match_order_to_product_legacy(self, order_data: Dict, playauto_order_id: str):
         """
-        주문을 마켓 코드 기반으로 상품과 매칭
+        [DEPRECATED] 레거시 주문-상품 매칭 함수
+        새로운 로직은 sync_playauto_order_to_local 내의 _find_product_for_order 사용
+        """
+        pass
+
+    def migrate_raw_orders_to_accounting(self, limit: int = 100) -> Dict:
+        """
+        기존 MarketOrderRaw 데이터를 Order/OrderItem 테이블로 마이그레이션
 
         Args:
-            order_data: 주문 데이터
-            playauto_order_id: 플레이오토 주문 ID
+            limit: 한 번에 처리할 최대 주문 수
+
+        Returns:
+            결과 통계
         """
+        import json
+
+        stats = {
+            "total": 0,
+            "success": 0,
+            "failed": 0,
+            "skipped": 0,
+            "errors": []
+        }
+
         try:
-            shop_cd = order_data.get("shop_cd")
-            shop_sale_no = order_data.get("shop_sale_no")
+            with self.db_manager.get_session() as session:
+                # 아직 동기화되지 않은 주문 조회
+                raw_orders = session.query(MarketOrderRaw).filter(
+                    (MarketOrderRaw.synced_to_local == False) |
+                    (MarketOrderRaw.synced_to_local == None)
+                ).limit(limit).all()
 
-            if not shop_cd or not shop_sale_no:
-                print(f"[WARN] 주문 {playauto_order_id}: shop_cd 또는 shop_sale_no 없음 (매칭 불가)")
-                return
+                stats["total"] = len(raw_orders)
+                print(f"[INFO] 마이그레이션 대상: {stats['total']}건")
 
-            # 마켓 코드로 상품 조회
-            product = self.get_product_by_marketplace_code(shop_cd, shop_sale_no)
+                for raw_order in raw_orders:
+                    try:
+                        # raw_data JSON 파싱
+                        order_data = json.loads(raw_order.raw_data)
 
-            if product:
-                print(f"[OK] 주문 {playauto_order_id} 매칭 성공: 상품 ID {product['id']} ({product['product_name']})")
-                # TODO: 주문-상품 연결 테이블에 저장 (필요시 구현)
-            else:
-                print(f"[INFO] 주문 {playauto_order_id}: 매칭되는 상품 없음 (shop_cd={shop_cd}, shop_sale_no={shop_sale_no})")
+                        # 필드 추출
+                        market = raw_order.market or order_data.get("shop_name", "unknown")
+                        order_number = raw_order.order_number or order_data.get("shop_ord_no", "")
+                        bundle_no = order_data.get("bundle_no", "")
+                        unique_order_number = f"{order_number}_{bundle_no}" if bundle_no else order_number
+
+                        # 이미 Order가 존재하는지 확인
+                        existing_order = session.query(Order).filter_by(order_number=unique_order_number).first()
+                        if existing_order:
+                            # 연결만 업데이트
+                            raw_order.local_order_id = existing_order.id
+                            raw_order.synced_to_local = True
+                            stats["skipped"] += 1
+                            continue
+
+                        # 고객 정보
+                        receiver = order_data.get("receiver", {}) or {}
+                        customer_name = (
+                            receiver.get("to_name") or
+                            order_data.get("to_name") or
+                            order_data.get("customer_name", "고객")
+                        )
+                        customer_phone = (
+                            receiver.get("to_htel") or
+                            receiver.get("to_tel") or
+                            order_data.get("to_htel") or
+                            order_data.get("customer_phone", "")
+                        )
+                        customer_addr1 = receiver.get("to_addr1") or order_data.get("to_addr1", "")
+                        customer_addr2 = receiver.get("to_addr2") or order_data.get("to_addr2", "")
+                        customer_address = f"{customer_addr1} {customer_addr2}".strip() or order_data.get("customer_address", "주소 미입력")
+                        customer_zipcode = receiver.get("to_zipcd") or order_data.get("to_zipcd", "")
+
+                        # 금액 정보
+                        payment = order_data.get("payment", {}) or {}
+                        total_amount = (
+                            order_data.get("sales") or
+                            payment.get("pay_amt") or
+                            order_data.get("total_amount", 0)
+                        )
+                        try:
+                            total_amount = float(total_amount) if total_amount else 0
+                        except:
+                            total_amount = 0
+
+                        order_status = order_data.get("ord_status") or order_data.get("order_status", "pending")
+
+                        # Order 생성
+                        new_order = Order(
+                            order_number=unique_order_number,
+                            market=market,
+                            customer_name=customer_name or "고객",
+                            customer_phone=customer_phone,
+                            customer_address=customer_address,
+                            customer_zipcode=customer_zipcode,
+                            order_status=order_status,
+                            total_amount=total_amount,
+                            created_at=raw_order.order_date or raw_order.created_at,
+                            updated_at=datetime.now()
+                        )
+                        session.add(new_order)
+                        session.flush()
+
+                        # OrderItem 생성
+                        shop_cd = order_data.get("shop_cd", "")
+                        shop_sale_no = order_data.get("shop_sale_no", "")
+                        product_name = order_data.get("shop_sale_name") or order_data.get("prod_name", "상품명 없음")
+                        quantity = order_data.get("sale_cnt") or 1
+                        try:
+                            quantity = int(quantity)
+                        except:
+                            quantity = 1
+
+                        selling_price = total_amount / quantity if quantity > 0 else total_amount
+
+                        # 상품 매칭
+                        sourcing_price = 0
+                        sourcing_source = "unknown"
+                        product_url = ""
+
+                        if shop_sale_no:
+                            matched_product = self._find_product_for_order(session, shop_cd, shop_sale_no)
+                            if matched_product:
+                                sourcing_price = float(matched_product.sourcing_price or 0)
+                                sourcing_source = matched_product.sourcing_source or "unknown"
+                                product_url = matched_product.sourcing_url or ""
+                            else:
+                                sourcing_price = selling_price * 0.7
+
+                        profit = (selling_price - sourcing_price) * quantity
+
+                        new_order_item = OrderItem(
+                            order_id=new_order.id,
+                            product_name=product_name,
+                            product_url=product_url,
+                            source=sourcing_source,
+                            quantity=quantity,
+                            sourcing_price=sourcing_price,
+                            selling_price=selling_price,
+                            profit=profit,
+                            rpa_status="pending",
+                            created_at=raw_order.created_at,
+                            updated_at=datetime.now()
+                        )
+                        session.add(new_order_item)
+
+                        new_order.total_profit = profit
+
+                        # 연결 업데이트
+                        raw_order.local_order_id = new_order.id
+                        raw_order.synced_to_local = True
+
+                        stats["success"] += 1
+
+                    except Exception as e:
+                        stats["failed"] += 1
+                        stats["errors"].append({
+                            "order_id": raw_order.playauto_order_id,
+                            "error": str(e)
+                        })
+                        print(f"[ERROR] 주문 {raw_order.playauto_order_id} 마이그레이션 실패: {e}")
+
+                # 커밋은 session context manager에서 처리됨
+
+            print(f"[INFO] 마이그레이션 완료: 성공 {stats['success']}, 실패 {stats['failed']}, 건너뜀 {stats['skipped']}")
+            return stats
 
         except Exception as e:
-            print(f"[ERROR] 주문 매칭 실패: {e}")
+            print(f"[ERROR] 마이그레이션 실패: {e}")
+            import traceback
+            traceback.print_exc()
+            stats["errors"].append({"error": str(e)})
+            return stats
 
     # ========================================
     # 유틸리티 메서드
