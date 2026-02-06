@@ -109,48 +109,61 @@ async def sync_marketplace_codes_job():
         # PlayAuto API 클라이언트
         api = PlayautoProductAPI()
 
+        # c_sale_cd 수집 및 매핑
+        c_sale_cd_to_product = {}  # c_sale_cd -> product_id
+        c_sale_cd_list = []
+
+        for product in products:
+            product_id = product.get("id")
+            c_sale_cd_gmk = product.get("c_sale_cd_gmk") or product.get("playauto_product_no")
+            c_sale_cd_smart = product.get("c_sale_cd_smart")
+
+            if c_sale_cd_gmk:
+                c_sale_cd_list.append(c_sale_cd_gmk)
+                c_sale_cd_to_product[c_sale_cd_gmk] = product_id
+            if c_sale_cd_smart:
+                c_sale_cd_list.append(c_sale_cd_smart)
+                c_sale_cd_to_product[c_sale_cd_smart] = product_id
+
+        if not c_sale_cd_list:
+            print("[PLAYAUTO] c_sale_cd가 있는 상품이 없습니다")
+            return
+
         success_count = 0
         error_count = 0
 
-        for product in products:
-            try:
-                ol_shop_no = product.get("ol_shop_no")
-                product_id = product.get("id")
+        # 상품 리스트 API로 일괄 조회 (50개씩)
+        try:
+            for i in range(0, len(c_sale_cd_list), 50):
+                batch = c_sale_cd_list[i:i+50]
+                result = await api.search_products_by_c_sale_cd(batch)
+                results = result.get("results", {})
 
-                if not ol_shop_no:
-                    print(f"[WARN] 상품 {product_id}: ol_shop_no 없음")
-                    continue
+                for c_sale_cd, items in results.items():
+                    product_id = c_sale_cd_to_product.get(c_sale_cd)
+                    if not product_id:
+                        continue
 
-                # 상품 상세 정보 조회
-                detail = await api.get_product_detail(ol_shop_no)
+                    for item in items:
+                        shop_cd = item.get("shop_cd")
+                        shop_name = item.get("shop_name", "")
+                        shop_sale_no = item.get("shop_sale_no")
 
-                # shops 배열에서 마켓별 코드 추출
-                shops = detail.get("shops", [])
+                        # Z000(마스터)은 shop_sale_no가 없으므로 스킵
+                        if shop_cd and shop_cd != "Z000" and shop_sale_no:
+                            db.upsert_marketplace_code(
+                                product_id=product_id,
+                                shop_cd=shop_cd,
+                                shop_name=shop_name,
+                                shop_sale_no=shop_sale_no,
+                                transmitted_at=datetime.now()
+                            )
+                            print(f"[OK] 상품 {product_id}: {shop_name} ({shop_cd}) -> {shop_sale_no}")
+                            success_count += 1
 
-                if not shops:
-                    print(f"[INFO] 상품 {product_id}: 아직 마켓에 전송되지 않음")
-                    continue
-
-                # 각 마켓별로 저장
-                for shop in shops:
-                    shop_cd = shop.get("shop_cd")
-                    shop_sale_no = shop.get("shop_sale_no")
-
-                    if shop_cd and shop_sale_no:
-                        # DB에 저장/업데이트
-                        db.upsert_marketplace_code(
-                            product_id=product_id,
-                            shop_cd=shop_cd,
-                            shop_sale_no=shop_sale_no,
-                            transmitted_at=datetime.now()
-                        )
-                        print(f"[OK] 상품 {product_id}: {shop_cd} -> {shop_sale_no}")
-
-                success_count += 1
-
-            except Exception as e:
-                error_count += 1
-                print(f"[ERROR] 상품 {product.get('id')} 동기화 실패: {e}")
+        except Exception as e:
+            error_count += 1
+            print(f"[ERROR] API 조회 실패: {e}")
 
         print(f"[PLAYAUTO] 마켓 코드 동기화 완료: 성공 {success_count}개, 실패 {error_count}개")
 
