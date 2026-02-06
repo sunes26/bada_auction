@@ -372,6 +372,64 @@ class DatabaseWrapper:
 
             return results
 
+    def search_selling_products_by_name(self, query: str, limit: int = 10) -> List[Dict]:
+        """
+        상품명으로 판매 상품 검색 (DB LIKE 쿼리 사용, 인메모리 필터링 대체)
+
+        Args:
+            query: 검색어
+            limit: 최대 결과 수
+
+        Returns:
+            매칭된 상품 목록
+        """
+        with self.db_manager.get_session() as session:
+            from sqlalchemy import or_, func
+
+            # PostgreSQL/SQLite 모두 호환되는 대소문자 무시 검색
+            query_pattern = f"%{query}%"
+
+            results = session.query(
+                MySellingProduct,
+                MonitoredProduct.product_name.label('monitored_product_name'),
+                MonitoredProduct.product_url.label('monitored_product_url'),
+                MonitoredProduct.source.label('monitored_source'),
+                MonitoredProduct.current_price.label('monitored_price'),
+                MonitoredProduct.current_status.label('monitored_status'),
+                func.coalesce(MySellingProduct.sourcing_price, MonitoredProduct.current_price, 0).label('effective_sourcing_price')
+            ).outerjoin(MonitoredProduct, MySellingProduct.monitored_product_id == MonitoredProduct.id)\
+             .filter(
+                MySellingProduct.is_active == True,
+                or_(
+                    func.lower(MySellingProduct.product_name).like(func.lower(query_pattern)),
+                    func.lower(MySellingProduct.sourcing_product_name).like(func.lower(query_pattern))
+                )
+            ).limit(limit).all()
+
+            products = []
+            for row in results:
+                product_dict = self._model_to_dict(row[0])
+                product_dict['monitored_product_name'] = row[1]
+                product_dict['monitored_product_url'] = row[2]
+                product_dict['monitored_source'] = row[3]
+                product_dict['monitored_price'] = float(row[4]) if row[4] else None
+                product_dict['monitored_status'] = row[5]
+                product_dict['effective_sourcing_price'] = float(row[6])
+
+                # 마진 계산
+                sourcing_price = product_dict['effective_sourcing_price']
+                selling_price = float(product_dict['selling_price'])
+                if sourcing_price > 0:
+                    product_dict['margin'] = selling_price - sourcing_price
+                    product_dict['margin_rate'] = ((selling_price - sourcing_price) / sourcing_price) * 100
+                else:
+                    product_dict['margin'] = 0
+                    product_dict['margin_rate'] = 0
+
+                products.append(product_dict)
+
+            return products
+
     def get_selling_product(self, product_id: int) -> Optional[Dict]:
         """판매 상품 상세 조회"""
         with self.db_manager.get_session() as session:
@@ -641,6 +699,31 @@ class DatabaseWrapper:
         with self.db_manager.get_session() as session:
             items = session.query(OrderItem).filter_by(order_id=order_id).all()
             return [self._model_to_dict(i) for i in items]
+
+    def get_order_items_batch(self, order_ids: List[int]) -> Dict[int, List[Dict]]:
+        """
+        여러 주문의 상품을 한 번에 조회 (N+1 쿼리 방지)
+
+        Args:
+            order_ids: 주문 ID 목록
+
+        Returns:
+            {order_id: [item_dict, ...], ...} 형태의 딕셔너리
+        """
+        if not order_ids:
+            return {}
+
+        with self.db_manager.get_session() as session:
+            items = session.query(OrderItem)\
+                .filter(OrderItem.order_id.in_(order_ids))\
+                .all()
+
+            # order_id별로 그룹화
+            result = {order_id: [] for order_id in order_ids}
+            for item in items:
+                result[item.order_id].append(self._model_to_dict(item))
+
+            return result
 
     def get_pending_order_items(self, limit: int = 50) -> List[Dict]:
         """자동 발주 대기 중인 상품 목록 조회"""

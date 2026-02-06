@@ -258,11 +258,12 @@ async def get_orders_with_items(
                 order_dict[col] = value
             orders.append(order_dict)
 
-        # 각 주문의 상품 조회
+        # 각 주문의 상품 조회 (N+1 쿼리 방지 - 배치 조회)
         db = get_db()
+        order_ids = [order['id'] for order in orders]
+        all_items = db.get_order_items_batch(order_ids)
         for order in orders:
-            order_items = db.get_order_items(order['id'])
-            order['items'] = order_items
+            order['items'] = all_items.get(order['id'], [])
 
         conn.close()
 

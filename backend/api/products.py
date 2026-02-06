@@ -182,20 +182,9 @@ async def search_product_for_purchase(
                 matched_by = "shop_sale_no_only"
                 logger.info(f"[상품검색] 상품코드만으로 매칭 성공: shop_sale_no={shop_sale_no}")
 
-        # 3. 마켓 코드 매칭 실패 시 상품명으로 검색
+        # 3. 마켓 코드 매칭 실패 시 상품명으로 검색 (DB LIKE 쿼리 사용)
         if not products and query:
-            all_products = db.get_selling_products(is_active=True, limit=500)
-            query_lower = query.lower()
-
-            for product in all_products:
-                product_name = product.get("product_name", "").lower()
-                sourcing_product_name = (product.get("sourcing_product_name") or "").lower()
-
-                if query_lower in product_name or query_lower in sourcing_product_name:
-                    products.append(product)
-
-                if len(products) >= 10:  # 최대 10개까지만
-                    break
+            products = db.search_selling_products_by_name(query=query, limit=10)
 
             if products:
                 matched_by = "name"
