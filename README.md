@@ -684,7 +684,59 @@ python main.py  # 자동으로 새 DB 생성
 
 ## 📈 업데이트 히스토리
 
-### 2026-02-06 (최신): 주문-회계 자동 연동 + 주문 처리 시스템 📦💰✅
+### 2026-02-06 (최신): 자동가격조정 버그 수정 + 알림 시스템 개선 🔧💰🔔
+
+**자동가격조정 시스템 수정**:
+- 🐛 **SQLAlchemy ORM 호환성 수정** (`dynamic_pricing_service.py`):
+  - 기존: SQLite raw SQL (`cursor.execute()`, `?` placeholder)
+  - 수정: SQLAlchemy ORM (`db.update_selling_product()`, `session.query()`)
+  - PostgreSQL 환경에서 자동가격조정이 작동하지 않던 버그 수정
+- ✅ **모니터링 스케줄러 활성화** (`main.py`):
+  - 주석 처리되어 있던 `start_monitor_scheduler()` 활성화
+  - 자동가격조정 30분마다 실행
+- ✅ **불필요한 기능 비활성화**:
+  - `auto_check_products_job()` 비활성화 (경쟁사 가격 모니터링 - 현재 불필요)
+  - `update_selling_products_sourcing_price()` 유지 (자동가격조정 핵심 기능)
+
+**자동가격조정 작동 방식**:
+```
+30분마다 스케줄러 실행
+       ↓
+소싱 URL이 있는 활성 상품 조회 (최대 20개)
+       ↓
+소싱처 웹사이트에서 현재 가격 스크래핑
+       ↓
+가격 변동 감지 시
+       ↓
+새 판매가 계산 (소싱가 × 2 = 마진율 50%)
+       ↓
+로컬 DB 업데이트 + PlayAuto 가격 동기화
+```
+
+**송장 업로드 스케줄러 수정**:
+- 🐛 **SQLAlchemy 호환성 수정** (`tracking_scheduler.py`):
+  - `self.db.conn.cursor()` → SQLAlchemy ORM 사용
+  - `[ERROR] 설정 로드 실패: 'DatabaseWrapper' object has no attribute 'conn'` 에러 해결
+
+**알림 테스트 엔드포인트 수정**:
+- 🐛 **직접 발송 방식으로 변경** (`/api/notifications/test`):
+  - 기존: `send_notification()`으로 모든 활성 웹훅에 브로드캐스트
+  - 수정: 테스트 대상 웹훅에만 직접 발송
+  - 포맷 함수 직접 호출로 정확한 메시지 생성
+  - 테스트 발송 결과 로그 기록 추가
+- ✅ **누락 메서드 추가** (`db_wrapper.py`):
+  - `add_webhook_log()` 메서드 추가
+
+**커밋 해시**:
+- `def07fd`: 알림 테스트 엔드포인트 직접 발송 방식으로 수정
+- `2b81284`: add_webhook_log 메서드 추가
+- `099ad85`: 동적가격조정 서비스 SQLAlchemy ORM으로 수정
+- `53f2826`: 모니터링 스케줄러 활성화 및 SQLAlchemy 호환성 수정
+- `5058b91`: 모니터링 상품 체크 기능 비활성화
+
+---
+
+### 2026-02-06: 주문-회계 자동 연동 + 주문 처리 시스템 📦💰✅
 
 **회계 시스템 자동 연동 구현**:
 - ✅ **PlayAuto 주문 → 회계 테이블 자동 동기화**:
