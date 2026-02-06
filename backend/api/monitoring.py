@@ -540,13 +540,11 @@ async def extract_url_info(request: dict):
             # 사이트별 대기 시간 조정 (최적화됨)
             if 'smartstore.naver.com' in product_url:
                 time.sleep(3)  # 스마트스토어 (7초 → 3초)
-                if not flaresolverr_cookies:  # FlareSolverr 쿠키 없을 때만
-                    wait_for_cloudflare()
+                wait_for_cloudflare()
             elif 'gmarket.co.kr' in product_url or 'auction.co.kr' in product_url:
                 # G마켓/옥션: Cloudflare 보호 사용
                 time.sleep(2)
-                if not flaresolverr_cookies:  # FlareSolverr 쿠키 없을 때만
-                    wait_for_cloudflare()
+                wait_for_cloudflare()
                 time.sleep(1)  # 추가 안정화
             elif 'homeplus.co.kr' in product_url:
                 # 홈플러스: DOM 완전히 로드될 때까지 명시적 대기 (최적화)
