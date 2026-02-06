@@ -5,7 +5,8 @@
 """
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from typing import Optional
+from pydantic import BaseModel
+from typing import Optional, List
 from datetime import datetime
 import json
 
@@ -36,6 +37,26 @@ from playauto.exceptions import PlayautoAPIError
 from database.db_wrapper import get_db
 
 router = APIRouter(prefix="/api/playauto", tags=["Playauto"])
+
+
+# ========================================
+# Request Models
+# ========================================
+
+class InvoiceOrderItem(BaseModel):
+    """송장 업데이트 주문 항목"""
+    bundle_no: str
+    carr_no: str
+    invoice_no: str
+
+
+class InvoiceUpdateRequest(BaseModel):
+    """송장 업데이트 요청"""
+    orders: List[InvoiceOrderItem]
+    overwrite: bool = False
+    change_complete: bool = True
+    dupl_doubt_except_yn: str = "N"
+
 
 # Debug: Print when module is loaded
 import sys
@@ -703,23 +724,17 @@ async def send_order_instruction(
 
 
 @router.put("/orders/invoice")
-async def update_order_invoice(
-    orders: list,
-    overwrite: bool = False,
-    change_complete: bool = True,
-    dupl_doubt_except_yn: str = "N"
-):
+async def update_order_invoice(request: InvoiceUpdateRequest):
     """
     배송정보 업데이트 (송장번호 입력 → 출고완료)
 
     Args:
-        orders: 변경할 주문 데이터 리스트
-                [{"bundle_no": "묶음번호", "carr_no": "택배사코드", "invoice_no": "송장번호"}]
-        overwrite: 이미 송장번호가 입력되어있는 주문일경우 덮어쓸지 여부
-        change_complete: 출고완료로 변경할지 여부
-                       - true: 출고완료 상태로 변경 (기본값)
-                       - false: 운송장출력 상태로 변경
-        dupl_doubt_except_yn: 중복의심주문 제외 여부 ('Y' or 'N')
+        request: InvoiceUpdateRequest
+            - orders: 변경할 주문 데이터 리스트
+                    [{"bundle_no": "묶음번호", "carr_no": "택배사코드", "invoice_no": "송장번호"}]
+            - overwrite: 이미 송장번호가 입력되어있는 주문일경우 덮어쓸지 여부
+            - change_complete: 출고완료로 변경할지 여부
+            - dupl_doubt_except_yn: 중복의심주문 제외 여부 ('Y' or 'N')
 
     Returns:
         [{"bundle_no": "묶음번호", "result": "성공", "message": ""}] 배열
@@ -733,11 +748,13 @@ async def update_order_invoice(
     """
     try:
         orders_api = PlayautoOrdersAPI()
+        # Pydantic 모델을 dict로 변환
+        orders_data = [order.dict() for order in request.orders]
         result = await orders_api.update_invoice(
-            orders=orders,
-            overwrite=overwrite,
-            change_complete=change_complete,
-            dupl_doubt_except_yn=dupl_doubt_except_yn
+            orders=orders_data,
+            overwrite=request.overwrite,
+            change_complete=request.change_complete,
+            dupl_doubt_except_yn=request.dupl_doubt_except_yn
         )
 
         return {
