@@ -380,35 +380,40 @@ class PlayautoOrdersAPI:
                 items=[]
             )
 
-    async def update_order_status(
+    async def order_instruction(
         self,
-        bundle_codes: Optional[List[str]] = None,
-        unliqs: Optional[List[str]] = None,
-        status: str = "신규주문"
+        bundle_codes: List[str],
+        auto_bundle: bool = False,
+        dupl_doubt_except_yn: str = "N"
     ) -> Dict:
         """
-        주문 상태 변경
+        출고 지시 (신규주문 → 출고대기 상태 변경)
+        PUT /api/order/instruction
 
         Args:
             bundle_codes: 묶음 번호 리스트
-            unliqs: 주문 고유번호 리스트
-            status: 변경할 상태 (신규주문, 배송중, 배송완료, 고취소 등)
+            auto_bundle: 주문 묶음 여부 (true로 설정시 동일 묶음기준 주문 자동 묶음)
+            dupl_doubt_except_yn: 중복의심주문 제외 여부 ('Y': 제외, 'N': 제외안함)
 
         Returns:
-            상태 변경 결과
+            출고 지시 결과 {"results": "성공"} 또는 에러
         """
-        data = {"status": status}
-        if bundle_codes:
-            data["bundle_codes"] = bundle_codes
-        if unliqs:
-            data["unlqs"] = unliqs
+        data = {
+            "bundle_codes": bundle_codes,
+            "auto_bundle": auto_bundle,
+            "dupl_doubt_except_yn": dupl_doubt_except_yn
+        }
+
+        print(f"[DEBUG] 출고 지시 API 호출: PUT /order/instruction")
+        print(f"[DEBUG] Request Body: {data}")
 
         if not self.client:
             async with PlayautoClient() as client:
-                response = await client.patch("/orders/status", data=data)
+                response = await client.put("/order/instruction", data=data)
         else:
-            response = await self.client.patch("/orders/status", data=data)
+            response = await self.client.put("/order/instruction", data=data)
 
+        print(f"[DEBUG] 출고 지시 응답: {response}")
         return response
 
     async def update_order(self, unliq: str, update_data: Dict) -> Dict:

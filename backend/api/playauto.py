@@ -765,18 +765,19 @@ async def update_order_invoice(request: InvoiceUpdateRequest):
                 orders_need_status_change.append(order.bundle_no)
                 print(f"[DEBUG] 주문 {order.bundle_no}의 상태가 '{order.ord_status}'이므로 출고대기로 변경 필요")
 
-        # 상태 변경이 필요한 주문이 있으면 먼저 출고대기로 변경
+        # 상태 변경이 필요한 주문이 있으면 먼저 출고지시 (신규주문 → 출고대기)
         if orders_need_status_change:
-            print(f"[DEBUG] {len(orders_need_status_change)}개 주문을 출고대기 상태로 변경 중...")
+            print(f"[DEBUG] {len(orders_need_status_change)}개 주문에 출고지시 중...")
             try:
-                status_result = await orders_api.update_order_status(
+                instruction_result = await orders_api.order_instruction(
                     bundle_codes=orders_need_status_change,
-                    status="출고대기"
+                    auto_bundle=False,
+                    dupl_doubt_except_yn="N"
                 )
-                print(f"[DEBUG] 상태 변경 결과: {status_result}")
-            except Exception as status_error:
-                print(f"[WARNING] 상태 변경 실패 (계속 진행): {status_error}")
-                # 상태 변경 실패해도 송장 업데이트는 시도
+                print(f"[DEBUG] 출고지시 결과: {instruction_result}")
+            except Exception as instruction_error:
+                print(f"[WARNING] 출고지시 실패 (계속 진행): {instruction_error}")
+                # 출고지시 실패해도 송장 업데이트는 시도
 
         # Pydantic 모델을 dict로 변환 (ord_status 제외)
         orders_data = [{
