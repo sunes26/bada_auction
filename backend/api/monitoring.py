@@ -437,6 +437,9 @@ async def extract_url_info(request: dict):
                     og_image = soup.select_one('meta[property="og:image"]')
                     if og_image and og_image.get('content'):
                         thumbnail_url = og_image.get('content')
+                        # 프로토콜 상대 URL 처리
+                        if thumbnail_url.startswith('//'):
+                            thumbnail_url = 'https:' + thumbnail_url
                         print(f"[FLARESOLVERR] og:image에서 썸네일 추출: {thumbnail_url}")
 
                     # 2. G마켓/옥션 전용: CDN 도메인에서 이미지 찾기
