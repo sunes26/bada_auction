@@ -220,12 +220,12 @@ export default function UnifiedOrderManagementPage() {
             customer_phone: o.customer_phone,
             customer_address: o.customer_address,
             total_amount: o.total_amount,
-            order_date: o.order_date || o.created_at,
+            order_date: o.ord_time || o.order_date || o.created_at,  // ord_time 우선 사용
             status: (o.order_status || o.status || 'pending') as 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled',
-            order_status: o.order_status || o.status || 'pending',
+            order_status: o.ord_status || o.order_status || o.status || 'pending',  // ord_status 우선 사용
             source: 'playauto' as const,
             order_source: 'playauto',
-            created_at: o.created_at,
+            created_at: o.ord_time || o.created_at,  // ord_time 우선 사용
             updated_at: o.updated_at || o.created_at,
             // PlayAuto 전용 필드 추가
             playauto_order_id: o.playauto_order_id || o.uniq,
@@ -236,6 +236,7 @@ export default function UnifiedOrderManagementPage() {
             shop_opt_name: o.shop_opt_name,
             sale_cnt: o.sale_cnt,
             sales: o.sales,
+            sales_unit: o.sales_unit,  // 단가
             prod_name: o.prod_name
           }));
         }
@@ -751,8 +752,15 @@ export default function UnifiedOrderManagementPage() {
   /**
    * 날짜 포맷 (한국 로케일)
    */
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ko-KR');
+  const formatDate = (dateString: string | undefined | null) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleString('ko-KR');
+    } catch {
+      return '-';
+    }
   };
 
   /**
@@ -1212,12 +1220,21 @@ export default function UnifiedOrderManagementPage() {
                           )}
                         </div>
                         <div className="text-right ml-4">
-                          <p className="font-bold text-purple-600">
-                            {formatCurrency((order as any).sales || order.total_amount || 0)}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            수량: {(order as any).sale_cnt ?? 1}개
-                          </p>
+                          {(() => {
+                            const saleCnt = (order as any).sale_cnt ?? 1;
+                            const totalSales = (order as any).sales || order.total_amount || 0;
+                            const unitPrice = saleCnt > 0 ? Math.round(totalSales / saleCnt) : totalSales;
+                            return (
+                              <>
+                                <p className="font-bold text-purple-600">
+                                  {formatCurrency(totalSales)}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  {saleCnt}개 × {formatCurrency(unitPrice)}
+                                </p>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -1237,7 +1254,7 @@ export default function UnifiedOrderManagementPage() {
                       </div>
                       <div>
                         <span className="text-gray-600">주문 일시:</span>
-                        <p className="text-gray-800">{formatDate(order.created_at)}</p>
+                        <p className="text-gray-800">{formatDate(order.order_date)}</p>
                       </div>
                     </div>
 
