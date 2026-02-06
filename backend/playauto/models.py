@@ -4,8 +4,8 @@
 요청/응답 데이터 검증 및 타입 안전성 제공
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List, Union
 from datetime import datetime
 
 
@@ -73,9 +73,17 @@ class DeliveryInfo(BaseModel):
     ship_method: Optional[str] = Field(None, description="배송 방법")
     ship_msg: Optional[str] = Field(None, description="배송 메시지")
     carr_name: Optional[str] = Field(None, max_length=30, description="택배사명")
-    carr_no: Optional[str] = Field(None, max_length=5, description="택배사 코드")
+    carr_no: Optional[Union[str, int]] = Field(None, description="택배사 코드")
     invoice_no: Optional[str] = Field(None, max_length=20, description="송장번호")
     invoice_send_time: Optional[datetime] = Field(None, description="송장 발송 시각")
+
+    @field_validator('carr_no', mode='before')
+    @classmethod
+    def convert_carr_no_to_str(cls, v):
+        """carr_no를 문자열로 변환 (API가 int로 반환할 수 있음)"""
+        if v is not None:
+            return str(v)
+        return v
 
 
 class PaymentInfo(BaseModel):

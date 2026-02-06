@@ -224,8 +224,8 @@ class PlayautoOrdersAPI:
             PlayautoOrder 인스턴스
         """
         try:
-            # 디버그: 주문 데이터의 금액/수량 관련 필드 확인
-            debug_fields = ['pay_amt', 'sales', 'sale_price', 'total_amount', 'sale_cnt', 'qty', 'quantity', 'ord_cnt', 'shop_sale_name', 'prod_name']
+            # 디버그: 주문 데이터의 금액/수량/상태 관련 필드 확인
+            debug_fields = ['pay_amt', 'sales', 'sale_price', 'total_amount', 'sale_cnt', 'qty', 'quantity', 'ord_cnt', 'shop_sale_name', 'prod_name', 'ord_status', 'carr_no']
             debug_values = {k: order_data.get(k) for k in debug_fields}
             print(f"[DEBUG] Order fields: {debug_values}")
             # 전체 키 목록도 출력 (어떤 필드가 있는지 확인)
