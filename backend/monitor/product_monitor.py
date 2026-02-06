@@ -16,7 +16,15 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
-# undetected-chromedriver (봇 감지 우회)
+# SeleniumBase (봇 감지 우회 - 최우선)
+try:
+    from seleniumbase import Driver
+    SB_AVAILABLE = True
+except ImportError:
+    SB_AVAILABLE = False
+    logger.warning("seleniumbase 미설치")
+
+# undetected-chromedriver (봇 감지 우회 - 대체)
 try:
     import undetected_chromedriver as uc
     UC_AVAILABLE = True
@@ -35,13 +43,38 @@ class ProductMonitor:
         """Selenium 드라이버 초기화
 
         Args:
-            use_undetected: undetected-chromedriver 사용 여부 (봇 감지 우회)
+            use_undetected: 봇 감지 우회 모드 사용 여부
         """
         if self.driver is None:
             import os
             import shutil
 
-            # undetected-chromedriver 사용 (봇 감지 우회)
+            # 1순위: SeleniumBase UC 모드 (가장 강력한 봇 감지 우회)
+            if use_undetected and SB_AVAILABLE:
+                logger.info("SeleniumBase UC 모드 사용 (봇 감지 우회)")
+
+                try:
+                    # SeleniumBase Driver with UC mode
+                    self.driver = Driver(
+                        browser="chrome",
+                        uc=True,  # Undetected Chrome 모드
+                        headless=True,  # Headless 모드 (서버 환경)
+                        locale_code="ko",  # 한국어
+                        # 추가 옵션
+                        no_sandbox=True,
+                        disable_gpu=True,
+                    )
+
+                    # 타임아웃 설정
+                    self.driver.set_page_load_timeout(30)
+                    self.driver.implicitly_wait(5)
+
+                    logger.info("SeleniumBase UC 모드 초기화 완료")
+                    return
+                except Exception as e:
+                    logger.warning(f"SeleniumBase 초기화 실패, undetected-chromedriver로 폴백: {e}")
+
+            # 2순위: undetected-chromedriver 사용 (폴백)
             if use_undetected and UC_AVAILABLE:
                 logger.info("undetected-chromedriver 사용 (봇 감지 우회)")
 
@@ -62,7 +95,6 @@ class ProductMonitor:
                 options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
                 # headless 모드 (undetected-chromedriver v3.5+)
-                # 주의: Cloudflare는 headless 모드를 감지할 수 있음
                 options.add_argument('--headless=new')
 
                 # ChromeDriver 경로 설정
@@ -79,7 +111,6 @@ class ProductMonitor:
                 # Chrome 버전 자동 감지
                 try:
                     import subprocess
-                    # Chrome 버전 확인 (Windows/Linux)
                     if os.name == 'nt':  # Windows
                         result = subprocess.run(
                             ['reg', 'query', 'HKEY_CURRENT_USER\\Software\\Google\\Chrome\\BLBeacon', '/v', 'version'],
@@ -104,8 +135,8 @@ class ProductMonitor:
                 self.driver = uc.Chrome(
                     options=options,
                     driver_executable_path=driver_executable_path,
-                    use_subprocess=True,  # subprocess로 실행 (안정성)
-                    version_main=chrome_version,  # 감지된 버전 사용
+                    use_subprocess=True,
+                    version_main=chrome_version,
                 )
 
                 # 타임아웃 설정
