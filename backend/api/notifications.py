@@ -6,7 +6,17 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional
 from database.db_wrapper import get_db
-from notifications.notifier import send_notification
+from notifications.notifier import (
+    send_notification,
+    send_slack_notification,
+    send_discord_notification,
+    send_with_retry,
+    format_margin_alert,
+    format_rpa_alert,
+    format_order_sync_alert,
+    format_inventory_alert,
+    format_new_order_alert
+)
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -204,7 +214,7 @@ async def delete_webhook(webhook_type: str):
 @router.post("/test")
 async def test_notification(request: TestNotificationRequest):
     """
-    테스트 알림 발송
+    테스트 알림 발송 - 특정 웹훅에 직접 발송
     """
     try:
         if request.webhook_type not in ['slack', 'discord']:
@@ -220,20 +230,20 @@ async def test_notification(request: TestNotificationRequest):
         if not webhook['enabled']:
             raise HTTPException(status_code=400, detail=f"{request.webhook_type.capitalize()} Webhook이 비활성화되어 있습니다")
 
-        # 테스트 알림 발송
+        webhook_url = webhook['webhook_url']
+
+        # 알림 유형별 메시지 포맷팅
+        formatted_messages = None
+
         if request.notification_type == 'margin_alert':
-            result = send_notification(
-                'margin_alert',
-                "테스트 역마진 경고",
+            formatted_messages = format_margin_alert(
                 product_name="테스트 상품",
                 sourcing_price=15000,
                 selling_price=12000,
                 loss=3000
             )
         elif request.notification_type == 'rpa_success':
-            result = send_notification(
-                'rpa_success',
-                "테스트 RPA 성공",
+            formatted_messages = format_rpa_alert(
                 order_number="TEST-001",
                 source="ssg",
                 status='success',
@@ -241,9 +251,7 @@ async def test_notification(request: TestNotificationRequest):
                 product_name="테스트 상품"
             )
         elif request.notification_type == 'rpa_failure':
-            result = send_notification(
-                'rpa_failure',
-                "테스트 RPA 실패",
+            formatted_messages = format_rpa_alert(
                 order_number="TEST-002",
                 source="ssg",
                 status='failed',
@@ -252,31 +260,25 @@ async def test_notification(request: TestNotificationRequest):
                 error="테스트 에러 메시지"
             )
         elif request.notification_type == 'order_sync':
-            result = send_notification(
-                'order_sync',
-                "테스트 주문 동기화",
+            formatted_messages = format_order_sync_alert(
                 market='전체',
                 collected_count=10,
                 success_count=8,
                 fail_count=2
             )
         elif request.notification_type == 'inventory_out_of_stock':
-            result = send_notification(
-                'inventory_out_of_stock',
-                "테스트 품절 감지",
-                product_name="테스트 상품"
+            formatted_messages = format_inventory_alert(
+                product_name="테스트 상품",
+                alert_type='out_of_stock'
             )
         elif request.notification_type == 'inventory_restock':
-            result = send_notification(
-                'inventory_restock',
-                "테스트 재입고 감지",
+            formatted_messages = format_inventory_alert(
                 product_name="테스트 상품",
+                alert_type='restock',
                 current_price=25000
             )
         elif request.notification_type == 'new_order':
-            result = send_notification(
-                'new_order',
-                "테스트 신규 주문",
+            formatted_messages = format_new_order_alert(
                 order_number="TEST-20260125-001",
                 market="coupang",
                 customer_name="홍길동",
@@ -289,13 +291,30 @@ async def test_notification(request: TestNotificationRequest):
         else:
             raise HTTPException(status_code=400, detail="지원하지 않는 notification_type입니다")
 
+        # 특정 웹훅에 직접 발송
+        msg = formatted_messages.get(request.webhook_type) if formatted_messages else "테스트 알림"
+
+        if request.webhook_type == 'slack':
+            result = send_with_retry(send_slack_notification, msg, webhook_url)
+        else:  # discord
+            result = send_with_retry(send_discord_notification, msg, webhook_url)
+
+        # 로그 기록
+        db.add_webhook_log(
+            webhook_id=webhook['id'],
+            notification_type=f"test_{request.notification_type}",
+            status='success' if result else 'failed',
+            message=f"테스트 알림: {request.notification_type}",
+            error_details=None if result else "Webhook 발송 실패"
+        )
+
         if result:
             return {
                 "success": True,
                 "message": f"테스트 알림이 {request.webhook_type.capitalize()}으로 발송되었습니다"
             }
         else:
-            raise HTTPException(status_code=500, detail="알림 발송에 실패했습니다")
+            raise HTTPException(status_code=500, detail="알림 발송에 실패했습니다. Webhook URL을 확인해주세요.")
 
     except HTTPException:
         raise
