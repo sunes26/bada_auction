@@ -1458,19 +1458,22 @@ async def recover_ol_shop_no():
         from playauto.products import PlayautoProductAPI
         api = PlayautoProductAPI()
 
-        # ol_shop_no가 없지만 c_sale_cd가 있는 상품 조회
-        query = """
-            SELECT id, product_name, c_sale_cd_gmk, c_sale_cd_smart,
-                   ol_shop_no, ol_shop_no_gmk, ol_shop_no_smart
-            FROM selling_products
-            WHERE is_active = true
-            AND (
-                (c_sale_cd_gmk IS NOT NULL AND c_sale_cd_gmk != '' AND (ol_shop_no_gmk IS NULL OR ol_shop_no_gmk = 0))
-                OR
-                (c_sale_cd_smart IS NOT NULL AND c_sale_cd_smart != '' AND (ol_shop_no_smart IS NULL OR ol_shop_no_smart = 0))
-            )
-        """
-        products = db.execute_query(query)
+        # 활성 상품 전체 조회
+        all_products = db.get_selling_products(is_active=True, limit=1000)
+
+        # ol_shop_no가 없지만 c_sale_cd가 있는 상품 필터링
+        products = []
+        for p in all_products:
+            c_sale_cd_gmk = p.get("c_sale_cd_gmk")
+            c_sale_cd_smart = p.get("c_sale_cd_smart")
+            ol_shop_no_gmk = p.get("ol_shop_no_gmk")
+            ol_shop_no_smart = p.get("ol_shop_no_smart")
+
+            needs_gmk = c_sale_cd_gmk and (not ol_shop_no_gmk or ol_shop_no_gmk == 0)
+            needs_smart = c_sale_cd_smart and (not ol_shop_no_smart or ol_shop_no_smart == 0)
+
+            if needs_gmk or needs_smart:
+                products.append(p)
 
         if not products:
             return {
@@ -1510,7 +1513,7 @@ async def recover_ol_shop_no():
         if gmk_c_sale_cds:
             logger.info(f"[ol_shop_no 복구] GMK 채널: {len(gmk_c_sale_cds)}개 조회")
             try:
-                # 최대 300개씩 나눠서 조회
+                # 최대 50개씩 나눠서 조회
                 for i in range(0, len(gmk_c_sale_cds), 50):
                     batch = gmk_c_sale_cds[i:i+50]
                     result = await api.search_products_by_c_sale_cd(batch)
@@ -1532,9 +1535,9 @@ async def recover_ol_shop_no():
                                 ol_shop_no = items[0].get("ol_shop_no")
 
                             if ol_shop_no:
-                                db.execute_query(
-                                    "UPDATE selling_products SET ol_shop_no_gmk = %s WHERE id = %s",
-                                    (ol_shop_no, product_id)
+                                db.update_selling_product(
+                                    product_id=product_id,
+                                    ol_shop_no_gmk=ol_shop_no
                                 )
                                 logger.info(f"[ol_shop_no 복구] 상품 {product_id}: GMK ol_shop_no={ol_shop_no} 복구")
                                 recovered_count += 1
@@ -1567,9 +1570,9 @@ async def recover_ol_shop_no():
                                 ol_shop_no = items[0].get("ol_shop_no")
 
                             if ol_shop_no:
-                                db.execute_query(
-                                    "UPDATE selling_products SET ol_shop_no_smart = %s WHERE id = %s",
-                                    (ol_shop_no, product_id)
+                                db.update_selling_product(
+                                    product_id=product_id,
+                                    ol_shop_no_smart=ol_shop_no
                                 )
                                 logger.info(f"[ol_shop_no 복구] 상품 {product_id}: SmartStore ol_shop_no={ol_shop_no} 복구")
                                 recovered_count += 1
