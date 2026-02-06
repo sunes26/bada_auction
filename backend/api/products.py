@@ -158,20 +158,31 @@ async def search_product_for_purchase(
 
     우선순위:
     1. shop_cd + shop_sale_no로 정확 매칭 (마켓 코드 기반)
-    2. query로 상품명 검색 (폴백)
+    2. shop_sale_no만으로 매칭 (shop_cd가 A000 등 알 수 없는 코드일 때)
+    3. query로 상품명 검색 (폴백)
     """
     try:
         db = get_db()
         products = []
+        matched_by = None
 
         # 1. 마켓 코드로 정확 매칭 시도
         if shop_cd and shop_sale_no:
             product = db.get_product_by_marketplace_code(shop_cd, shop_sale_no)
             if product:
                 products = [product]
+                matched_by = "marketplace_code"
                 logger.info(f"[상품검색] 마켓코드 매칭 성공: shop_cd={shop_cd}, shop_sale_no={shop_sale_no}")
 
-        # 2. 마켓 코드 매칭 실패 시 상품명으로 검색
+        # 2. 정확 매칭 실패 시, shop_sale_no만으로 매칭 시도
+        if not products and shop_sale_no:
+            product = db.get_product_by_shop_sale_no(shop_sale_no)
+            if product:
+                products = [product]
+                matched_by = "shop_sale_no_only"
+                logger.info(f"[상품검색] 상품코드만으로 매칭 성공: shop_sale_no={shop_sale_no}")
+
+        # 3. 마켓 코드 매칭 실패 시 상품명으로 검색
         if not products and query:
             all_products = db.get_selling_products(is_active=True, limit=500)
             query_lower = query.lower()
@@ -187,6 +198,7 @@ async def search_product_for_purchase(
                     break
 
             if products:
+                matched_by = "name"
                 logger.info(f"[상품검색] 상품명 매칭 성공: query={query}, 결과={len(products)}개")
             else:
                 logger.info(f"[상품검색] 매칭 실패: shop_cd={shop_cd}, shop_sale_no={shop_sale_no}, query={query}")
@@ -194,7 +206,7 @@ async def search_product_for_purchase(
         return {
             "success": True,
             "products": products,
-            "matched_by": "marketplace_code" if (shop_cd and shop_sale_no and products) else ("name" if products else None)
+            "matched_by": matched_by
         }
 
     except Exception as e:

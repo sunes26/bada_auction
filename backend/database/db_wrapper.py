@@ -1063,6 +1063,25 @@ class DatabaseWrapper:
                 return product_dict
             return None
 
+    def get_product_by_shop_sale_no(self, shop_sale_no: str) -> Optional[Dict]:
+        """상품코드(shop_sale_no)만으로 상품 조회 (shop_cd 무시)"""
+        from .models import MySellingProduct, ProductMarketplaceCode
+
+        with self.db_manager.get_session() as session:
+            result = session.query(MySellingProduct, ProductMarketplaceCode.shop_cd).join(
+                ProductMarketplaceCode
+            ).filter(
+                ProductMarketplaceCode.shop_sale_no == shop_sale_no
+            ).first()
+
+            if result:
+                product, shop_cd = result
+                product_dict = self._model_to_dict(product)
+                product_dict['shop_cd'] = shop_cd
+                product_dict['shop_sale_no'] = shop_sale_no
+                return product_dict
+            return None
+
     def get_products_without_marketplace_codes(self, limit: int = 100) -> List[Dict]:
         """마켓 코드가 없는 상품 조회 (동기화 대상)"""
         from .models import MySellingProduct, ProductMarketplaceCode
