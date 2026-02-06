@@ -892,7 +892,7 @@ class ProductMonitor:
         try:
             # JavaScript로 상태 및 가격 추출
             result = self.driver.execute_script("""
-                const result = { status: 'available', price: null, details: '정상' };
+                const result = { status: 'available', price: null, originalPrice: null, details: '정상', debug: [] };
 
                 // 1. 품절 상태 확인
                 const soldoutBtn = document.querySelector('.btn_soldout, [class*="soldout"], [class*="품절"]');
@@ -903,59 +903,108 @@ class ProductMonitor:
                     result.details = '품절';
                 }
 
-                // 2. 가격 추출 (롯데ON 전용 셀렉터)
-                // 판매가 셀렉터들
+                // 2. 롯데ON 가격 추출 (상세 페이지 구조)
+                // 롯데ON은 주로 .price_wrap, .product_price 등 사용
                 const priceSelectors = [
-                    '.price_area .final_price .num',
-                    '.price_area .sale_price .num',
-                    '.prd_price .price_val',
-                    '[class*="finalPrice"] [class*="num"]',
-                    '[class*="salePrice"]',
-                    '.price_info .price'
+                    // 판매가 (할인가)
+                    '.product_price .sale_price',
+                    '.product_price .final_price',
+                    '.price_wrap .sale_price',
+                    '.price_wrap .final_price',
+                    '.price_info .sale_price',
+                    '.price_info .final_price',
+                    '[class*="ProductPrice"] [class*="sale"]',
+                    '[class*="ProductPrice"] [class*="final"]',
+                    // 원가 (정가)
+                    '.product_price .origin_price',
+                    '.price_wrap .origin_price',
+                    '[class*="ProductPrice"] [class*="origin"]',
                 ];
+
+                // 판매가 먼저 찾기
+                let salePrice = null;
+                let originPrice = null;
 
                 for (let selector of priceSelectors) {
                     const el = document.querySelector(selector);
                     if (el) {
                         const text = el.textContent.trim();
                         const num = parseInt(text.replace(/[^0-9]/g, ''));
-                        if (num >= 100 && num < 10000000) {
-                            result.price = num;
-                            break;
-                        }
-                    }
-                }
-
-                // 3. og:price 메타 태그 폴백
-                if (!result.price) {
-                    const ogPrice = document.querySelector('meta[property="product:price:amount"]');
-                    if (ogPrice && ogPrice.content) {
-                        const num = parseInt(ogPrice.content);
-                        if (num >= 100 && num < 10000000) {
-                            result.price = num;
-                        }
-                    }
-                }
-
-                // 4. 페이지 전체에서 가격 패턴 찾기
-                if (!result.price) {
-                    const bodyText = document.body.innerText;
-                    const priceMatch = bodyText.match(/(\\d{1,3}(?:,\\d{3})+)\\s*원/);
-                    if (priceMatch) {
-                        const num = parseInt(priceMatch[1].replace(/,/g, ''));
+                        result.debug.push(`${selector}: "${text}" -> ${num}`);
                         if (num >= 1000 && num < 10000000) {
-                            result.price = num;
+                            if (selector.includes('origin')) {
+                                if (!originPrice) originPrice = num;
+                            } else {
+                                if (!salePrice) salePrice = num;
+                            }
                         }
                     }
                 }
+
+                // 3. data 속성에서 가격 찾기
+                const priceDataEl = document.querySelector('[data-price], [data-sale-price], [data-origin-price]');
+                if (priceDataEl) {
+                    const dataPrice = priceDataEl.getAttribute('data-price') || priceDataEl.getAttribute('data-sale-price');
+                    const dataOrigin = priceDataEl.getAttribute('data-origin-price');
+                    if (dataPrice) {
+                        const num = parseInt(dataPrice);
+                        if (num >= 1000 && num < 10000000 && !salePrice) {
+                            salePrice = num;
+                            result.debug.push(`data-price: ${num}`);
+                        }
+                    }
+                    if (dataOrigin) {
+                        const num = parseInt(dataOrigin);
+                        if (num >= 1000 && num < 10000000 && !originPrice) {
+                            originPrice = num;
+                            result.debug.push(`data-origin-price: ${num}`);
+                        }
+                    }
+                }
+
+                // 4. og:price 메타 태그
+                const ogPrice = document.querySelector('meta[property="product:price:amount"]');
+                if (ogPrice && ogPrice.content) {
+                    const num = parseInt(ogPrice.content);
+                    result.debug.push(`og:price: ${num}`);
+                    if (num >= 1000 && num < 10000000) {
+                        if (!salePrice) salePrice = num;
+                    }
+                }
+
+                // 5. 페이지에서 가격 패턴 직접 찾기 (가장 큰 가격 = 원가)
+                if (!salePrice || !originPrice) {
+                    const priceArea = document.querySelector('.price_wrap, .product_price, .price_info, [class*="ProductPrice"]');
+                    if (priceArea) {
+                        const text = priceArea.textContent;
+                        const prices = text.match(/([0-9,]+)\\s*원/g);
+                        if (prices) {
+                            const nums = prices.map(p => parseInt(p.replace(/[^0-9]/g, ''))).filter(n => n >= 1000 && n < 10000000);
+                            result.debug.push(`priceArea prices: ${nums.join(', ')}`);
+                            if (nums.length >= 2) {
+                                // 가장 큰 값이 원가, 작은 값이 판매가
+                                originPrice = Math.max(...nums);
+                                salePrice = Math.min(...nums);
+                            } else if (nums.length === 1) {
+                                salePrice = nums[0];
+                            }
+                        }
+                    }
+                }
+
+                result.price = originPrice || salePrice;  // 원가 우선
+                result.originalPrice = originPrice;
+                result.salePrice = salePrice;
 
                 return result;
             """)
 
+            print(f"[LOTTEON DEBUG] 가격 추출 결과: {result}")
+
             return {
                 'status': result.get('status', 'available') if result else 'available',
                 'price': result.get('price') if result else None,
-                'original_price': None,
+                'original_price': result.get('originalPrice') if result else None,
                 'details': result.get('details', '정상') if result else '정상'
             }
 
