@@ -607,6 +607,26 @@ async def extract_url_info(request: dict):
                     print(f"[SMARTSTORE] 대기 중... ({i+1}/10초)")
                     time.sleep(1)
                 time.sleep(1)  # 추가 안정화
+            elif 'lotteon.com' in product_url:
+                # 롯데ON: React SPA - 가격 요소 로드 대기
+                print(f"[LOTTEON] React 콘텐츠 로딩 대기 중...")
+                for i in range(10):  # 최대 10초 대기
+                    try:
+                        has_price = monitor.driver.execute_script("""
+                            // 가격 텍스트가 있는지 확인
+                            const bodyText = document.body.innerText || '';
+                            // XX,XXX원 패턴 찾기
+                            if (/\\d{1,3}(,\\d{3})+\\s*원/.test(bodyText)) return true;
+                            return false;
+                        """)
+                        if has_price:
+                            print(f"[LOTTEON] 가격 콘텐츠 로드 완료 ({i+1}초)")
+                            break
+                    except:
+                        pass
+                    print(f"[LOTTEON] 대기 중... ({i+1}/10초)")
+                    time.sleep(1)
+                time.sleep(2)  # 추가 안정화
             elif 'gmarket.co.kr' in product_url or 'auction.co.kr' in product_url:
                 # G마켓/옥션: Cloudflare 보호 사용
                 time.sleep(2)
