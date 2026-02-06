@@ -88,16 +88,11 @@ class DynamicPricingService:
                     "message": "판매가 변경 불필요"
                 }
 
-            # 로컬 DB 업데이트
-            with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    UPDATE my_selling_products
-                    SET selling_price = ?,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                """, (new_selling_price, product_id))
-                conn.commit()
+            # 로컬 DB 업데이트 (SQLAlchemy ORM 사용)
+            self.db.update_selling_product(
+                product_id=product_id,
+                selling_price=new_selling_price
+            )
 
             # 마진 변동 로그
             old_margin = current_selling_price - old_sourcing_price
@@ -171,30 +166,27 @@ class DynamicPricingService:
             조정 결과
         """
         try:
-            # 활성 상품 조회
-            with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT
-                        id,
-                        product_name,
-                        selling_price,
-                        sourcing_price,
-                        playauto_product_no
-                    FROM my_selling_products
-                    WHERE is_active = 1
-                      AND sourcing_price IS NOT NULL
-                      AND sourcing_price > 0
-                """)
+            # 활성 상품 조회 (SQLAlchemy ORM 사용)
+            from database.models import MySellingProduct
+            from sqlalchemy import and_
+
+            with self.db.db_manager.get_session() as session:
+                query_results = session.query(MySellingProduct).filter(
+                    and_(
+                        MySellingProduct.is_active == True,
+                        MySellingProduct.sourcing_price.isnot(None),
+                        MySellingProduct.sourcing_price > 0
+                    )
+                ).all()
 
                 products = []
-                for row in cursor.fetchall():
+                for row in query_results:
                     products.append({
-                        'id': row[0],
-                        'product_name': row[1],
-                        'selling_price': row[2],
-                        'sourcing_price': row[3],
-                        'playauto_product_no': row[4]
+                        'id': row.id,
+                        'product_name': row.product_name,
+                        'selling_price': float(row.selling_price) if row.selling_price else 0,
+                        'sourcing_price': float(row.sourcing_price) if row.sourcing_price else 0,
+                        'playauto_product_no': row.playauto_product_no
                     })
 
             if not products:
@@ -215,16 +207,11 @@ class DynamicPricingService:
 
                 # 가격이 변경되었으면 업데이트
                 if new_selling_price != product['selling_price']:
-                    # 로컬 DB 업데이트
-                    with self.db.get_connection() as conn:
-                        cursor = conn.cursor()
-                        cursor.execute("""
-                            UPDATE my_selling_products
-                            SET selling_price = ?,
-                                updated_at = CURRENT_TIMESTAMP
-                            WHERE id = ?
-                        """, (new_selling_price, product['id']))
-                        conn.commit()
+                    # 로컬 DB 업데이트 (SQLAlchemy ORM 사용)
+                    self.db.update_selling_product(
+                        product_id=product['id'],
+                        selling_price=new_selling_price
+                    )
 
                     adjusted_count += 1
                     logger.info(
