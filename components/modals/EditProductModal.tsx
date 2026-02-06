@@ -815,7 +815,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                     >
                       <div className="flex-1">
                         <p className="text-xs font-semibold text-purple-900">
-                          {getMarketName(code.shop_cd)}
+                          {code.shop_name || getMarketName(code.shop_cd)}
                         </p>
                         <p className="text-xs text-gray-600 font-mono mt-0.5">
                           {code.shop_sale_no}

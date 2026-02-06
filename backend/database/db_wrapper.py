@@ -989,6 +989,7 @@ class DatabaseWrapper:
         self,
         product_id: int,
         shop_cd: str,
+        shop_name: Optional[str] = None,
         shop_sale_no: Optional[str] = None,
         transmitted_at: Optional[datetime] = None
     ) -> int:
@@ -1006,6 +1007,8 @@ class DatabaseWrapper:
 
             if existing:
                 # 업데이트
+                if shop_name:
+                    existing.shop_name = shop_name
                 existing.shop_sale_no = shop_sale_no
                 if transmitted_at:
                     existing.transmitted_at = transmitted_at
@@ -1018,6 +1021,7 @@ class DatabaseWrapper:
                 new_code = ProductMarketplaceCode(
                     product_id=product_id,
                     shop_cd=shop_cd,
+                    shop_name=shop_name,
                     shop_sale_no=shop_sale_no,
                     transmitted_at=transmitted_at,
                     last_checked_at=now,

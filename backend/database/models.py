@@ -358,6 +358,7 @@ class ProductMarketplaceCode(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     product_id = Column(BigInteger, ForeignKey('my_selling_products.id', ondelete='CASCADE'), nullable=False)
     shop_cd = Column(Text, nullable=False)
+    shop_name = Column(Text)  # 쇼핑몰 이름 (PlayAuto에서 제공)
     shop_sale_no = Column(Text)
     transmitted_at = Column(DateTime)
     last_checked_at = Column(DateTime)

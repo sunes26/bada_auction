@@ -1318,17 +1318,19 @@ async def sync_product_marketplace_codes(product_id: int):
 
         for shop in shops:
             shop_cd = shop.get("shop_cd")
+            shop_name = shop.get("shop_name")
             shop_sale_no = shop.get("shop_sale_no")
 
             if shop_cd and shop_sale_no:
                 db.upsert_marketplace_code(
                     product_id=product_id,
                     shop_cd=shop_cd,
+                    shop_name=shop_name,
                     shop_sale_no=shop_sale_no,
                     transmitted_at=datetime.now()
                 )
                 synced_count += 1
-                logger.info(f"[마켓코드동기화] {shop.get('shop_name')} ({shop_cd}): {shop_sale_no}")
+                logger.info(f"[마켓코드동기화] {shop_name} ({shop_cd}): {shop_sale_no}")
 
         # 동기화된 코드 조회
         codes = db.get_marketplace_codes_by_product(product_id)
@@ -1433,6 +1435,7 @@ async def sync_all_marketplace_codes():
                             db.upsert_marketplace_code(
                                 product_id=product_id,
                                 shop_cd=shop_cd,
+                                shop_name=shop_name,
                                 shop_sale_no=shop_sale_no,
                                 transmitted_at=datetime.now()
                             )
