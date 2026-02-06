@@ -31,24 +31,38 @@ async def get_all_dashboard_data():
         is_true = "TRUE" if not db_manager.is_sqlite else "1"
 
         # 1. RPA 통계 (기존 /api/orders/rpa/stats)
+        # 참고: rpa_orders 테이블이 없을 수 있음 (사용하지 않는 기능)
         try:
+            # 먼저 테이블 존재 여부 확인
             cursor.execute("""
-                SELECT
-                    COUNT(*) as total,
-                    SUM(CASE WHEN status = '대기' THEN 1 ELSE 0 END) as pending,
-                    SUM(CASE WHEN status = '완료' THEN 1 ELSE 0 END) as completed,
-                    SUM(CASE WHEN status = '실패' THEN 1 ELSE 0 END) as failed
-                FROM rpa_orders
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = 'rpa_orders'
+                )
             """)
-            rpa_row = cursor.fetchone()
-            rpa_stats = {
-                "total": int(rpa_row[0] or 0),
-                "pending": int(rpa_row[1] or 0),
-                "completed": int(rpa_row[2] or 0),
-                "failed": int(rpa_row[3] or 0)
-            }
+            table_exists = cursor.fetchone()[0]
+
+            if table_exists:
+                cursor.execute("""
+                    SELECT
+                        COUNT(*) as total,
+                        SUM(CASE WHEN status = '대기' THEN 1 ELSE 0 END) as pending,
+                        SUM(CASE WHEN status = '완료' THEN 1 ELSE 0 END) as completed,
+                        SUM(CASE WHEN status = '실패' THEN 1 ELSE 0 END) as failed
+                    FROM rpa_orders
+                """)
+                rpa_row = cursor.fetchone()
+                rpa_stats = {
+                    "total": int(rpa_row[0] or 0),
+                    "pending": int(rpa_row[1] or 0),
+                    "completed": int(rpa_row[2] or 0),
+                    "failed": int(rpa_row[3] or 0)
+                }
+            else:
+                rpa_stats = {"total": 0, "pending": 0, "completed": 0, "failed": 0}
         except Exception as e:
             logger.warning(f"[대시보드] RPA 통계 조회 실패: {e}")
+            conn.rollback()  # 트랜잭션 롤백하여 다음 쿼리 실행 가능하게
             rpa_stats = {"total": 0, "pending": 0, "completed": 0, "failed": 0}
 
         # 2. PlayAuto 통계 (기존 /api/playauto/stats)
@@ -67,6 +81,7 @@ async def get_all_dashboard_data():
             }
         except Exception as e:
             logger.warning(f"[대시보드] PlayAuto 통계 조회 실패: {e}")
+            conn.rollback()  # 트랜잭션 롤백
             playauto_stats = {"total_products": 0, "active_products": 0}
 
         # 3. 모니터링 통계 (기존 /api/monitor/dashboard/stats)
@@ -86,6 +101,7 @@ async def get_all_dashboard_data():
             }
         except Exception as e:
             logger.warning(f"[대시보드] 모니터링 통계 조회 실패: {e}")
+            conn.rollback()  # 트랜잭션 롤백
             monitor_stats = {"total": 0, "active": 0, "margin_issues": 0}
 
         # 4. 최근 주문 목록 (limit 10)
@@ -112,6 +128,7 @@ async def get_all_dashboard_data():
                 recent_orders.append(order_dict)
         except Exception as e:
             logger.warning(f"[대시보드] 최근 주문 조회 실패: {e}")
+            conn.rollback()  # 트랜잭션 롤백
             recent_orders = []
 
         # 5. 전체 주문 통계 (with items, limit 50)
@@ -165,6 +182,7 @@ async def get_all_dashboard_data():
             all_orders = list(orders_dict.values())
         except Exception as e:
             logger.warning(f"[대시보드] 전체 주문 조회 실패: {e}")
+            conn.rollback()  # 트랜잭션 롤백
             all_orders = []
 
         conn.close()
