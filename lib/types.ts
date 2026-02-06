@@ -101,6 +101,15 @@ export interface Order {
   playauto_order_id?: string;
   playauto_market?: string;
   original_order_data?: string;
+
+  // 마켓 코드 매칭용 필드
+  shop_cd?: string;        // 쇼핑몰 코드 (A001, A006, A077 등)
+  shop_sale_no?: string;   // 쇼핑몰 상품번호
+  shop_sale_name?: string; // 쇼핑몰 상품명
+  shop_opt_name?: string;  // 옵션명
+  sale_cnt?: number;       // 판매 수량
+  pay_amt?: number;        // 결제 금액
+  prod_name?: string;      // 상품명 (매칭용)
 }
 
 export interface Notification {

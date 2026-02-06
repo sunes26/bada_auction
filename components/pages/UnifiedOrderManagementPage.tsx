@@ -326,21 +326,38 @@ export default function UnifiedOrderManagementPage() {
 
   /**
    * 상품 매칭 (주문 상품 → 내 판매 상품 찾기)
+   *
+   * 우선순위:
+   * 1. shop_cd + shop_sale_no로 마켓 코드 매칭
+   * 2. 상품명으로 폴백 검색
    */
   const matchOrderWithProduct = async (order: Order) => {
     try {
-      // 주문의 상품명으로 내 상품 DB 검색
-      const res = await fetch(`${API_BASE_URL}/api/products/search?query=${encodeURIComponent(order.customer_name)}`);
+      // PlayAuto 주문에서 shop_cd, shop_sale_no 추출
+      const shopCd = (order as any).shop_cd;
+      const shopSaleNo = (order as any).shop_sale_no;
+      const shopSaleName = (order as any).shop_sale_name;
+
+      // 검색 파라미터 구성
+      const params = new URLSearchParams();
+      if (shopCd) params.append('shop_cd', shopCd);
+      if (shopSaleNo) params.append('shop_sale_no', shopSaleNo);
+      if (shopSaleName) params.append('query', shopSaleName);
+
+      const res = await fetch(`${API_BASE_URL}/api/products/search?${params.toString()}`);
       const data = await res.json();
 
       if (data.success && data.products && data.products.length > 0) {
         const matchedProduct = data.products[0];
+        console.log(`[상품매칭] 성공: ${data.matched_by}, shop_cd=${shopCd}, shop_sale_no=${shopSaleNo}`);
         return {
           sourcing_url: matchedProduct.sourcing_url,
           sourcing_source: matchedProduct.sourcing_source,
           product_id: matchedProduct.id
         };
       }
+
+      console.log(`[상품매칭] 실패: shop_cd=${shopCd}, shop_sale_no=${shopSaleNo}, shop_sale_name=${shopSaleName}`);
       return null;
     } catch (error) {
       console.error('상품 매칭 실패:', error);
@@ -356,8 +373,19 @@ export default function UnifiedOrderManagementPage() {
       // 상품 매칭
       const productMatch = await matchOrderWithProduct(order);
 
-      if (!productMatch || !productMatch.sourcing_url) {
-        toast.error('소싱처 정보가 없습니다. 상품 탭에서 소싱처 URL을 먼저 등록해주세요.');
+      if (!productMatch) {
+        const shopCd = (order as any).shop_cd;
+        const shopSaleNo = (order as any).shop_sale_no;
+        if (shopCd && shopSaleNo) {
+          toast.error(`상품을 찾을 수 없습니다. 상품 탭에서 [쇼핑몰 상품코드 수집]을 먼저 진행해주세요.\n\n마켓: ${shopCd}\n상품코드: ${shopSaleNo}`);
+        } else {
+          toast.error('주문에 마켓 코드 정보가 없습니다. 플레이오토에서 주문을 다시 동기화해주세요.');
+        }
+        return;
+      }
+
+      if (!productMatch.sourcing_url) {
+        toast.error('소싱처 URL이 등록되지 않았습니다. 상품 탭에서 소싱처 URL을 먼저 등록해주세요.');
         return;
       }
 
@@ -1160,10 +1188,32 @@ export default function UnifiedOrderManagementPage() {
                       </div>
                     </div>
 
+                    {/* 상품 정보 */}
+                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-800">
+                            {(order as any).shop_sale_name || (order as any).prod_name || '상품명 없음'}
+                          </p>
+                          {(order as any).shop_opt_name && (
+                            <p className="text-sm text-gray-500 mt-1">옵션: {(order as any).shop_opt_name}</p>
+                          )}
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="font-bold text-purple-600">
+                            {formatCurrency((order as any).pay_amt || (order as any).payment?.pay_amt || order.total_amount)}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            수량: {(order as any).sale_cnt || 1}개
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                       <div>
                         <span className="text-gray-600">주문 금액:</span>
-                        <p className="text-gray-800 font-bold">{formatCurrency(order.total_amount)}</p>
+                        <p className="text-gray-800 font-bold">{formatCurrency((order as any).pay_amt || (order as any).payment?.pay_amt || order.total_amount)}</p>
                       </div>
                       <div>
                         <span className="text-gray-600">배송지:</span>

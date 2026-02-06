@@ -147,6 +147,61 @@ async def get_products(is_active: Optional[bool] = None, limit: int = 100):
         raise HTTPException(status_code=500, detail=f"상품 조회 실패: {str(e)}")
 
 
+@router.get("/search")
+async def search_product_for_purchase(
+    shop_cd: Optional[str] = None,
+    shop_sale_no: Optional[str] = None,
+    query: Optional[str] = None
+):
+    """
+    주문 매칭용 상품 검색
+
+    우선순위:
+    1. shop_cd + shop_sale_no로 정확 매칭 (마켓 코드 기반)
+    2. query로 상품명 검색 (폴백)
+    """
+    try:
+        db = get_db()
+        products = []
+
+        # 1. 마켓 코드로 정확 매칭 시도
+        if shop_cd and shop_sale_no:
+            product = db.get_product_by_marketplace_code(shop_cd, shop_sale_no)
+            if product:
+                products = [product]
+                logger.info(f"[상품검색] 마켓코드 매칭 성공: shop_cd={shop_cd}, shop_sale_no={shop_sale_no}")
+
+        # 2. 마켓 코드 매칭 실패 시 상품명으로 검색
+        if not products and query:
+            all_products = db.get_selling_products(is_active=True, limit=500)
+            query_lower = query.lower()
+
+            for product in all_products:
+                product_name = product.get("product_name", "").lower()
+                sourcing_product_name = (product.get("sourcing_product_name") or "").lower()
+
+                if query_lower in product_name or query_lower in sourcing_product_name:
+                    products.append(product)
+
+                if len(products) >= 10:  # 최대 10개까지만
+                    break
+
+            if products:
+                logger.info(f"[상품검색] 상품명 매칭 성공: query={query}, 결과={len(products)}개")
+            else:
+                logger.info(f"[상품검색] 매칭 실패: shop_cd={shop_cd}, shop_sale_no={shop_sale_no}, query={query}")
+
+        return {
+            "success": True,
+            "products": products,
+            "matched_by": "marketplace_code" if (shop_cd and shop_sale_no and products) else ("name" if products else None)
+        }
+
+    except Exception as e:
+        logger.error(f"[상품검색] 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"상품 검색 실패: {str(e)}")
+
+
 @router.get("/margin/logs")
 async def get_margin_logs(product_id: Optional[int] = None, limit: int = 50):
     """마진 변동 이력 조회"""

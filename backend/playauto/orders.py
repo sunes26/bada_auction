@@ -224,6 +224,11 @@ class PlayautoOrdersAPI:
             PlayautoOrder 인스턴스
         """
         try:
+            # 디버그: 주문 데이터의 금액/수량 관련 필드 확인
+            debug_fields = ['pay_amt', 'sales', 'sale_price', 'total_amount', 'sale_cnt', 'shop_sale_name', 'prod_name']
+            debug_values = {k: order_data.get(k) for k in debug_fields}
+            print(f"[DEBUG] Order fields: {debug_values}")
+
             # 1. 주문 상품 목록 파싱
             items_data = order_data.get("items", [])
             items = []
@@ -294,7 +299,13 @@ class PlayautoOrdersAPI:
             customer_phone = order_data.get("to_htel") or order_data.get("customer_phone")
             customer_address = f"{order_data.get('to_addr1', '')} {order_data.get('to_addr2', '')}".strip() or order_data.get("customer_address", "")
             customer_zipcode = order_data.get("to_zipcd") or order_data.get("customer_zipcode")
-            total_amount = float(order_data.get("pay_amt") or order_data.get("total_amount", 0))
+            # 금액 필드 우선순위: pay_amt > sales > total_amount
+            total_amount = float(
+                order_data.get("pay_amt") or
+                order_data.get("sales") or
+                order_data.get("sale_price") or
+                order_data.get("total_amount", 0)
+            )
             order_status = order_data.get("ord_status") or order_data.get("order_status", "pending")
 
             order = PlayautoOrder(
