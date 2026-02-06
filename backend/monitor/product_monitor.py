@@ -16,6 +16,14 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
+# undetected-chromedriver (봇 감지 우회)
+try:
+    import undetected_chromedriver as uc
+    UC_AVAILABLE = True
+except ImportError:
+    UC_AVAILABLE = False
+    logger.warning("undetected-chromedriver 미설치 - 일반 selenium 사용")
+
 
 class ProductMonitor:
     """상품 상태 모니터링"""
@@ -23,11 +31,88 @@ class ProductMonitor:
     def __init__(self):
         self.driver = None
 
-    def _init_driver(self):
-        """Selenium 드라이버 초기화"""
+    def _init_driver(self, use_undetected: bool = True):
+        """Selenium 드라이버 초기화
+
+        Args:
+            use_undetected: undetected-chromedriver 사용 여부 (봇 감지 우회)
+        """
         if self.driver is None:
+            import os
+            import shutil
+
+            # undetected-chromedriver 사용 (봇 감지 우회)
+            if use_undetected and UC_AVAILABLE:
+                logger.info("undetected-chromedriver 사용 (봇 감지 우회)")
+
+                options = uc.ChromeOptions()
+                options.add_argument('--no-sandbox')
+                options.add_argument('--disable-dev-shm-usage')
+                options.add_argument('--disable-gpu')
+                options.add_argument('--window-size=1920,1080')
+
+                # 속도 향상 옵션
+                options.add_argument('--disable-extensions')
+                options.add_argument('--disable-plugins')
+
+                # headless 모드 (undetected-chromedriver v3.5+)
+                options.add_argument('--headless=new')
+
+                # ChromeDriver 경로 설정
+                chromedriver_path = '/usr/local/bin/chromedriver'
+                driver_executable_path = None
+
+                if os.path.exists(chromedriver_path):
+                    driver_executable_path = chromedriver_path
+                    logger.info("프로덕션 ChromeDriver 사용")
+                elif shutil.which('chromedriver'):
+                    driver_executable_path = shutil.which('chromedriver')
+                    logger.info(f"시스템 ChromeDriver 사용: {driver_executable_path}")
+
+                # Chrome 버전 자동 감지
+                try:
+                    import subprocess
+                    # Chrome 버전 확인 (Windows/Linux)
+                    if os.name == 'nt':  # Windows
+                        result = subprocess.run(
+                            ['reg', 'query', 'HKEY_CURRENT_USER\\Software\\Google\\Chrome\\BLBeacon', '/v', 'version'],
+                            capture_output=True, text=True
+                        )
+                        if result.returncode == 0:
+                            version_match = re.search(r'(\d+)\.', result.stdout)
+                            chrome_version = int(version_match.group(1)) if version_match else None
+                        else:
+                            chrome_version = None
+                    else:  # Linux/Docker
+                        result = subprocess.run(['google-chrome', '--version'], capture_output=True, text=True)
+                        version_match = re.search(r'(\d+)\.', result.stdout)
+                        chrome_version = int(version_match.group(1)) if version_match else None
+
+                    logger.info(f"감지된 Chrome 버전: {chrome_version}")
+                except Exception as e:
+                    logger.warning(f"Chrome 버전 감지 실패: {e}")
+                    chrome_version = None
+
+                # undetected-chromedriver 초기화
+                self.driver = uc.Chrome(
+                    options=options,
+                    driver_executable_path=driver_executable_path,
+                    use_subprocess=True,  # subprocess로 실행 (안정성)
+                    version_main=chrome_version,  # 감지된 버전 사용
+                )
+
+                # 타임아웃 설정
+                self.driver.set_page_load_timeout(30)
+                self.driver.implicitly_wait(5)
+
+                logger.info("undetected-chromedriver 초기화 완료")
+                return
+
+            # 일반 selenium 사용 (fallback)
+            logger.info("일반 selenium 사용")
+
             chrome_options = Options()
-            chrome_options.add_argument('--headless=new')  # 새로운 headless 모드 사용
+            chrome_options.add_argument('--headless=new')
             chrome_options.add_argument('--no-sandbox')
             chrome_options.add_argument('--disable-dev-shm-usage')
             chrome_options.add_argument('--disable-gpu')
@@ -38,10 +123,9 @@ class ProductMonitor:
             chrome_options.add_argument('--disable-plugins')
             chrome_options.add_argument('--disable-software-rasterizer')
             chrome_options.add_argument('--disable-web-security')
-            chrome_options.add_argument('--blink-settings=imagesEnabled=false')  # 이미지 로딩 차단
-            chrome_options.page_load_strategy = 'eager'  # DOM 로드 완료 시 바로 진행
+            chrome_options.page_load_strategy = 'eager'
 
-            # 더 실제적인 User Agent
+            # User Agent
             chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
             # 자동화 감지 방지
@@ -49,38 +133,23 @@ class ProductMonitor:
             chrome_options.add_experimental_option('useAutomationExtension', False)
             chrome_options.add_argument('--disable-blink-features=AutomationControlled')
 
-            # 리소스 차단 설정
-            prefs = {
-                'profile.managed_default_content_settings.images': 2,  # 이미지 차단
-                'profile.managed_default_content_settings.stylesheets': 2,  # CSS 차단 (선택적)
-            }
-            chrome_options.add_experimental_option('prefs', prefs)
-
             # ChromeDriver 경로 설정
-            # 프로덕션 환경: /usr/local/bin/chromedriver (Dockerfile에서 설치)
-            # 개발 환경: ChromeDriverManager 자동 다운로드
-            import os
-            import shutil
-
             chromedriver_path = '/usr/local/bin/chromedriver'
             if os.path.exists(chromedriver_path):
-                # 프로덕션 환경 (Docker)
                 service = Service(chromedriver_path)
                 logger.info("프로덕션 ChromeDriver 사용: /usr/local/bin/chromedriver")
             elif shutil.which('chromedriver'):
-                # 시스템 PATH에 있는 경우
                 service = Service(shutil.which('chromedriver'))
                 logger.info(f"시스템 ChromeDriver 사용: {shutil.which('chromedriver')}")
             else:
-                # 개발 환경 - 자동 다운로드 (fallback)
                 service = Service(ChromeDriverManager().install())
                 logger.info("ChromeDriverManager로 자동 다운로드")
 
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
-            # 타임아웃 설정 (Railway 환경 고려하여 증가)
-            self.driver.set_page_load_timeout(30)  # 15초 → 30초
-            self.driver.implicitly_wait(5)  # 3초 → 5초
+            # 타임아웃 설정
+            self.driver.set_page_load_timeout(30)
+            self.driver.implicitly_wait(5)
 
             # navigator.webdriver 속성 제거
             self.driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
@@ -848,7 +917,7 @@ class ProductMonitor:
                 details.append("판매종료")
 
             # 가격 추출 (개선된 로직 - 동적 클래스명 대응)
-            price_data = self.driver.execute_script("""
+            price_data = self.driver.execute_script(r"""
                 const prices = [];
                 const debugInfo = [];
 
@@ -974,7 +1043,7 @@ class ProductMonitor:
             details = [status_info.get('details', '')]
 
             # 가격 추출 (개선된 로직)
-            price_data = self.driver.execute_script("""
+            price_data = self.driver.execute_script(r"""
                 const result = {
                     prices: [],
                     debug_info: []
@@ -1117,7 +1186,7 @@ class ProductMonitor:
             details = [status_info.get('details', '')]
 
             # 가격 추출 (옥션 - G마켓과 유사)
-            price_data = self.driver.execute_script("""
+            price_data = self.driver.execute_script(r"""
                 const result = {
                     prices: [],
                     debug_info: []
