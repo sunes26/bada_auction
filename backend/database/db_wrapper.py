@@ -750,6 +750,25 @@ class DatabaseWrapper:
                 results.append(log_dict)
             return results
 
+    def add_webhook_log(
+        self,
+        webhook_id: int,
+        notification_type: str,
+        status: str,
+        message: Optional[str] = None,
+        error_details: Optional[str] = None
+    ):
+        """Webhook 로그 추가"""
+        with self.db_manager.get_session() as session:
+            log = WebhookLog(
+                webhook_id=webhook_id,
+                notification_type=notification_type,
+                status=status,
+                message=message,
+                error_details=error_details
+            )
+            session.add(log)
+
     # ========================================
     # 소싱 계정 관리
     # ========================================
