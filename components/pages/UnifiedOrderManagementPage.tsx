@@ -226,7 +226,16 @@ export default function UnifiedOrderManagementPage() {
             source: 'playauto' as const,
             order_source: 'playauto',
             created_at: o.created_at,
-            updated_at: o.updated_at || o.created_at
+            updated_at: o.updated_at || o.created_at,
+            // PlayAuto 전용 필드 추가
+            playauto_order_id: o.playauto_order_id || o.uniq,
+            shop_cd: o.shop_cd,
+            shop_sale_no: o.shop_sale_no,
+            shop_sale_name: o.shop_sale_name,
+            shop_opt_name: o.shop_opt_name,
+            sale_cnt: o.sale_cnt,
+            sales: o.sales,
+            prod_name: o.prod_name
           }));
         }
       } catch (error) {
