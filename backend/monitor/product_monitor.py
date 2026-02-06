@@ -901,33 +901,36 @@ class ProductMonitor:
                     result.details = '품절';
                 }
 
-                // 2. 페이지 전체에서 가격 패턴 찾기 (가장 확실한 방법)
-                const priceMatches = pageText.match(/(\d{1,3}(?:,\d{3})+)\s*원/g);
-                result.debug.push(`Found price patterns: ${priceMatches ? priceMatches.length : 0}`);
+                // 2. 상품 상세 영역에서 가격 찾기 (롯데ON 구조)
+                // 상품 상세 영역 찾기
+                const productArea = document.querySelector('[class*="ProductDetail"], [class*="product-detail"], [class*="prd_detail"], .product_detail, #prdDetail, main, article')
+                                 || document.body;
+
+                // 상품 영역의 상단 부분만 추출 (처음 2000자)
+                const productText = productArea.innerText.substring(0, 2000);
+                result.debug.push(`Product area text length: ${productText.length}`);
+
+                // 가격 패턴 찾기
+                const priceMatches = productText.match(/(\d{1,3}(?:,\d{3})+)\s*원/g);
+                result.debug.push(`Found price patterns in product area: ${priceMatches ? priceMatches.length : 0}`);
 
                 if (priceMatches) {
-                    // 모든 가격 추출
-                    const allPrices = priceMatches.map(p => {
+                    // 처음 나오는 가격들 추출 (상품 가격이 먼저 나옴)
+                    const firstPrices = priceMatches.slice(0, 5).map(p => {
                         const num = parseInt(p.replace(/[^0-9]/g, ''));
                         return num;
-                    }).filter(n => n >= 10000 && n < 10000000);  // 1만원 이상 ~ 1000만원 미만
+                    }).filter(n => n >= 10000 && n < 500000);  // 1만원 ~ 50만원 (합리적인 상품 가격 범위)
 
-                    result.debug.push(`Filtered prices: ${allPrices.join(', ')}`);
+                    result.debug.push(`First 5 prices: ${firstPrices.join(', ')}`);
 
-                    if (allPrices.length > 0) {
-                        // 중복 제거
-                        const uniquePrices = [...new Set(allPrices)].sort((a, b) => b - a);
-                        result.debug.push(`Unique prices (desc): ${uniquePrices.join(', ')}`);
+                    if (firstPrices.length > 0) {
+                        // 중복 제거하고 큰 순으로 정렬
+                        const uniquePrices = [...new Set(firstPrices)].sort((a, b) => b - a);
+                        result.debug.push(`Unique first prices (desc): ${uniquePrices.join(', ')}`);
 
-                        if (uniquePrices.length >= 2) {
-                            // 가장 큰 값이 원가
-                            result.originalPrice = uniquePrices[0];
-                            // 두 번째로 큰 값이 판매가 (할인가)
-                            result.price = uniquePrices[0];  // 원가 반환
-                        } else {
-                            result.price = uniquePrices[0];
-                            result.originalPrice = uniquePrices[0];
-                        }
+                        // 가장 큰 값이 원가, 작은 값이 할인가
+                        result.originalPrice = uniquePrices[0];
+                        result.price = uniquePrices[0];  // 원가 반환
                     }
                 }
 
@@ -937,7 +940,7 @@ class ProductMonitor:
                     if (ogPrice && ogPrice.content) {
                         const num = parseInt(ogPrice.content);
                         result.debug.push(`og:price: ${num}`);
-                        if (num >= 10000 && num < 10000000) {
+                        if (num >= 10000 && num < 500000) {
                             result.price = num;
                             result.originalPrice = num;
                         }
