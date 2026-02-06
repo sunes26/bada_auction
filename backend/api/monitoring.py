@@ -387,6 +387,17 @@ async def extract_url_info(request: dict):
             print(f"[DEBUG] 페이지 타이틀: {page_title}")
             print(f"[DEBUG] 현재 URL: {monitor.driver.current_url}")
 
+            # 봇 탐지 확인
+            if '서비스접속불가' in page_title or '차단' in page_title or 'blocked' in page_title.lower():
+                print(f"[DEBUG] 봇 탐지 의심: 페이지 타이틀 = {page_title}")
+
+            # 페이지 소스 일부 확인 (디버깅용)
+            try:
+                page_source_preview = monitor.driver.page_source[:500]
+                print(f"[DEBUG] 페이지 소스 미리보기: {page_source_preview}")
+            except Exception as e:
+                print(f"[DEBUG] 페이지 소스 가져오기 실패: {e}")
+
             # 상품명 추출 (페이지가 로드된 상태에서)
             try:
                 product_name = monitor.extract_product_name(product_url, source)
@@ -489,15 +500,18 @@ async def extract_url_info(request: dict):
 
                     return null;
                 """)
+                print(f"[DEBUG] 썸네일 URL 추출 결과: {thumbnail_url}")
                 logger.debug(f"썸네일 URL: {thumbnail_url}")
 
                 # 썸네일 다운로드
                 if thumbnail_url:
                     from utils.image_downloader import download_thumbnail
                     thumbnail_path = download_thumbnail(thumbnail_url)
+                    print(f"[DEBUG] 썸네일 저장 경로: {thumbnail_path}")
                     logger.info(f"썸네일 저장 완료: {thumbnail_path}")
 
             except Exception as e:
+                print(f"[DEBUG] 썸네일 추출 에러: {str(e)}")
                 logger.warning(f"썸네일 추출 실패: {str(e)}")
                 thumbnail_url = None
                 thumbnail_path = None
@@ -657,10 +671,20 @@ async def save_thumbnail(request: SaveThumbnailRequest):
         from datetime import datetime
         from utils.supabase_storage import upload_image_from_bytes, supabase
 
+        print(f"[DEBUG] save-thumbnail 요청: URL={request.image_url[:100]}...")
+        print(f"[DEBUG] save-thumbnail 요청: product_name={request.product_name}")
+
         # 이미지 다운로드 (Railway 환경 고려하여 타임아웃 증가)
-        response = requests.get(request.image_url, timeout=20)  # 10초 → 20초
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+            'Referer': 'https://www.gmarket.co.kr/',
+        }
+        response = requests.get(request.image_url, timeout=20, headers=headers)
+        print(f"[DEBUG] 이미지 다운로드 응답: status={response.status_code}, size={len(response.content)}")
+
         if not response.ok:
-            raise HTTPException(status_code=400, detail="이미지 다운로드 실패")
+            raise HTTPException(status_code=400, detail=f"이미지 다운로드 실패: HTTP {response.status_code}")
 
         # 파일명 생성 (상품명 해시 + 타임스탬프)
         name_hash = hashlib.md5(request.product_name.encode()).hexdigest()[:8]
@@ -697,14 +721,21 @@ async def save_thumbnail(request: SaveThumbnailRequest):
 
         # Supabase Storage에 업로드
         storage_path = f"thumbnails/{filename}"
-        public_url = upload_image_from_bytes(
-            response.content,
-            storage_path,
-            content_type=content_type or "image/jpeg"
-        )
+        print(f"[DEBUG] Supabase 업로드 시작: path={storage_path}, content_type={content_type}")
+
+        try:
+            public_url = upload_image_from_bytes(
+                response.content,
+                storage_path,
+                content_type=content_type or "image/jpeg"
+            )
+            print(f"[DEBUG] Supabase 업로드 결과: {public_url}")
+        except Exception as upload_err:
+            print(f"[DEBUG] Supabase 업로드 에러: {upload_err}")
+            raise HTTPException(status_code=500, detail=f"Supabase Storage 업로드 실패: {str(upload_err)}")
 
         if not public_url:
-            raise HTTPException(status_code=500, detail="Supabase Storage 업로드 실패")
+            raise HTTPException(status_code=500, detail="Supabase Storage 업로드 실패: 빈 URL 반환")
 
         return {
             "success": True,
@@ -712,6 +743,11 @@ async def save_thumbnail(request: SaveThumbnailRequest):
             "message": "썸네일이 Supabase Storage에 저장되었습니다."
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
+        import traceback
+        print(f"[DEBUG] save-thumbnail 예외: {str(e)}")
+        print(f"[DEBUG] 스택 트레이스:\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"썸네일 저장 실패: {str(e)}")
 

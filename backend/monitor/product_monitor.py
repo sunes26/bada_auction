@@ -459,6 +459,7 @@ class ProductMonitor:
                 return null;
             """)
 
+            print(f"[DEBUG] 상품명 추출 결과: {product_name}")
             logger.debug(f"추출된 상품명: {product_name}")
 
             # 빈 문자열이면 None 반환
@@ -468,7 +469,7 @@ class ProductMonitor:
             return product_name
 
         except Exception as e:
-            print(f"상품명 추출 오류: {str(e)}")
+            print(f"[DEBUG] 상품명 추출 오류: {str(e)}")
             return None
 
     def check_product_status(self, product_url: str, source: str) -> Dict:
@@ -1129,9 +1130,37 @@ class ProductMonitor:
                     }
                 }
 
+                // og:price 메타 태그 확인
+                if (result.prices.length === 0) {
+                    const ogPrice = document.querySelector('meta[property="product:price:amount"]');
+                    if (ogPrice && ogPrice.content) {
+                        const num = parseInt(ogPrice.content);
+                        if (num > 100 && num < 10000000) {
+                            result.prices.push(num);
+                            result.debug_info.push(`og:price: ${num}원`);
+                        }
+                    }
+                }
+
+                // body 텍스트에서 가격 패턴 찾기
+                if (result.prices.length === 0) {
+                    const bodyText = document.body.innerText;
+                    const priceMatches = bodyText.match(/(\d{1,3}(,\d{3})+)\s*원/g);
+                    if (priceMatches) {
+                        priceMatches.slice(0, 10).forEach(match => {
+                            const num = parseInt(match.replace(/[^0-9]/g, ''));
+                            if (num > 1000 && num < 10000000) {
+                                result.prices.push(num);
+                                result.debug_info.push(`body: ${num}원`);
+                            }
+                        });
+                    }
+                }
+
                 return result;
             """)
 
+            print(f"[DEBUG] G마켓 가격 추출 정보: {price_data}")
             logger.debug(f"G마켓 가격 추출 정보: {price_data}")
 
             prices = price_data.get('prices', []) if price_data else []
@@ -1266,9 +1295,37 @@ class ProductMonitor:
                     }
                 }
 
+                // og:price 메타 태그 확인
+                if (result.prices.length === 0) {
+                    const ogPrice = document.querySelector('meta[property="product:price:amount"]');
+                    if (ogPrice && ogPrice.content) {
+                        const num = parseInt(ogPrice.content);
+                        if (num > 100 && num < 10000000) {
+                            result.prices.push(num);
+                            result.debug_info.push(`og:price: ${num}원`);
+                        }
+                    }
+                }
+
+                // body 텍스트에서 가격 패턴 찾기
+                if (result.prices.length === 0) {
+                    const bodyText = document.body.innerText;
+                    const priceMatches = bodyText.match(/(\\d{1,3}(,\\d{3})+)\\s*원/g);
+                    if (priceMatches) {
+                        priceMatches.slice(0, 10).forEach(match => {
+                            const num = parseInt(match.replace(/[^0-9]/g, ''));
+                            if (num > 1000 && num < 10000000) {
+                                result.prices.push(num);
+                                result.debug_info.push(`body: ${num}원`);
+                            }
+                        });
+                    }
+                }
+
                 return result;
             """)
 
+            print(f"[DEBUG] 옥션 가격 추출 정보: {price_data}")
             logger.debug(f"옥션 가격 추출 정보: {price_data}")
 
             prices = price_data.get('prices', []) if price_data else []
