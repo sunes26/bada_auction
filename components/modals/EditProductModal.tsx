@@ -21,14 +21,14 @@ interface Product {
   c_sale_cd_smart?: string;  // 스마트스토어용
 }
 
-// 마켓 코드 -> 한글 이름 변환
+// 마켓 코드 -> 한글 이름 변환 (PlayAuto 공식 코드)
 const getMarketName = (shopCd: string): string => {
   const marketNames: { [key: string]: string } = {
     'A001': '옥션',
-    'A006': '쿠팡',
-    'A112': '네이버 스마트스토어',
-    'A027': '11번가',
-    'A077': '지마켓',
+    'A006': '지마켓',
+    'A027': '스마트스토어',
+    'A077': '쿠팡',
+    'A112': '11번가',
     'A524': 'SSG.COM',
     'A113': '롯데ON',
     'A522': 'GS SHOP',
