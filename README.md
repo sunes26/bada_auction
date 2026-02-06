@@ -56,7 +56,8 @@ open https://badaauction-production.up.railway.app/docs
 ## ✨ 주요 기능
 
 ### 🛍️ 상품 수집 & 관리
-- **다채널 상품 수집**: 11번가, 홈플러스, SSG, G마켓, 스마트스토어
+- **다채널 상품 수집**: G마켓, 옥션, 11번가, SSG, 홈플러스/트레이더스, 롯데ON
+- **Cloudflare 우회**: FlareSolverr 연동으로 G마켓/옥션 자동 수집
 - **자동 이미지 다운로드**: 상품 이미지 자동 수집 및 저장
 - **카테고리 자동 매핑**: 138개 카테고리 계층 구조
 - **AI 상세페이지 생성**: GPT-4 기반 자동 상세페이지 작성
@@ -366,6 +367,9 @@ ENCRYPTION_KEY=***
 # External APIs (선택사항)
 OPENAI_API_KEY=sk-proj-...
 CAPTCHA_API_KEY=***
+
+# FlareSolverr (G마켓/옥션 Cloudflare 우회용)
+FLARESOLVERR_URL=https://your-flaresolverr.up.railway.app/v1
 
 # Environment (필수)
 ENVIRONMENT=production
@@ -684,7 +688,52 @@ python main.py  # 자동으로 새 DB 생성
 
 ## 📈 업데이트 히스토리
 
-### 2026-02-06 (최신): 자동가격조정 버그 수정 + 알림 시스템 개선 🔧💰🔔
+### 2026-02-06 (최신): FlareSolverr 연동 + 소싱 사이트 확장 🔓🛒
+
+**FlareSolverr 연동 (Cloudflare 우회)**:
+- ✅ **G마켓/옥션 자동 수집 지원**: FlareSolverr로 Cloudflare 보호 우회
+- ✅ **FlareSolverr 클라이언트 추가** (`backend/utils/flaresolverr.py`):
+  - 세션 관리 (브라우저 인스턴스 재사용)
+  - 페이지 요청 및 HTML 파싱
+  - 쿠키 추출 (requests/Selenium용)
+- ✅ **HTML 직접 파싱**: FlareSolverr 응답에서 BeautifulSoup으로 데이터 추출
+- ✅ **프로토콜 상대 URL 처리**: `//image.auction.co.kr/...` → `https://...` 변환
+
+**소싱 사이트 지원 현황**:
+| 사이트 | 방식 | 상품명 | 가격 | 썸네일 |
+|--------|------|--------|------|--------|
+| G마켓 | FlareSolverr | ✅ | ✅ | ✅ |
+| 옥션 | FlareSolverr | ✅ | ✅ | ✅ |
+| 11번가 | Selenium | ✅ | ✅ | ✅ |
+| SSG | Selenium | ✅ | ✅ | ✅ |
+| 홈플러스 | Selenium | ✅ | ✅ | ✅ |
+| 롯데ON | Selenium | ✅ | ✅ | ✅ |
+| ~~스마트스토어~~ | - | ❌ | ❌ | ❌ |
+
+**롯데ON 지원 추가**:
+- ✅ **롯데ON (lotteon.com) 소싱 지원**
+- ✅ **React SPA 대응**: 콘텐츠 로딩 대기 (최대 10초)
+- ✅ **가격 추출 최적화**: 상품 영역에서만 가격 패턴 추출
+
+**스마트스토어 지원 중단**:
+- ❌ **네이버 CAPTCHA 차단**: FlareSolverr로도 우회 불가
+- ❌ **대안 검토**: 네이버 쇼핑 API (무료) 또는 2captcha (유료)
+- 📝 **권장**: 스마트스토어 대신 롯데ON 사용
+
+**환경변수 추가**:
+```env
+FLARESOLVERR_URL=https://your-flaresolverr.up.railway.app/v1
+```
+
+**관련 파일**:
+- `backend/utils/flaresolverr.py` - FlareSolverr 클라이언트
+- `backend/api/monitoring.py` - 소싱 URL 정보 추출
+- `backend/monitor/product_monitor.py` - 사이트별 가격 체크
+- `docs/FLARESOLVERR_SETUP.md` - FlareSolverr 설정 가이드
+
+---
+
+### 2026-02-06: 자동가격조정 버그 수정 + 알림 시스템 개선 🔧💰🔔
 
 **자동가격조정 시스템 수정**:
 - 🐛 **SQLAlchemy ORM 호환성 수정** (`dynamic_pricing_service.py`):
@@ -839,7 +888,9 @@ python main.py  # 자동으로 새 DB 생성
   - 사용자가 소싱처에서 직접 구매 (상품 선택, 수량, 결제)
   - 시스템이 배송지 정보 준비 및 송장 자동 처리
 - 🎯 **소싱처 지원**:
-  - 쿠팡, 11번가, 네이버 스마트스토어, 지마켓, 옥션
+  - G마켓, 옥션 (FlareSolverr로 Cloudflare 우회)
+  - 11번가, SSG, 홈플러스/트레이더스, 롯데ON (Selenium)
+  - ~~스마트스토어~~ (네이버 CAPTCHA로 지원 중단)
   - 각 소싱처 URL 패턴 인식
 
 **UI/UX 설계**:
@@ -1629,12 +1680,14 @@ SUPABASE_SERVICE_ROLE_KEY=***
    - `PUT /api/playauto/invoice` - 송장 업데이트 (출고대기 → 출고완료)
    - 자동: 배송사 코드 매칭 (CJ대한통운=4, 한진택배=5 등)
 
-   **소싱처 지원**:
-   - ✅ 쿠팡 (coupang.com)
-   - ✅ 11번가 (11st.co.kr)
-   - ✅ 네이버 스마트스토어 (smartstore.naver.com)
-   - ✅ 지마켓 (gmarket.co.kr)
-   - ✅ 옥션 (auction.co.kr)
+   **소싱처 지원** (2026-02-06 업데이트):
+   - ✅ G마켓 (gmarket.co.kr) - FlareSolverr
+   - ✅ 옥션 (auction.co.kr) - FlareSolverr
+   - ✅ 11번가 (11st.co.kr) - Selenium
+   - ✅ SSG (ssg.com) - Selenium
+   - ✅ 홈플러스/트레이더스 (homeplus.co.kr) - Selenium
+   - ✅ 롯데ON (lotteon.com) - Selenium (NEW)
+   - ❌ ~~스마트스토어~~ (smartstore.naver.com) - 네이버 CAPTCHA로 지원 중단
 
 ### 선택사항
 
@@ -1651,6 +1704,62 @@ SUPABASE_SERVICE_ROLE_KEY=***
    - 사용자 인증 시스템
    - 이메일 알림
    - 모바일 앱 (React Native)
+
+---
+
+## 🔓 FlareSolverr 설정 (Cloudflare 우회)
+
+G마켓, 옥션 등 Cloudflare로 보호된 사이트에서 상품 정보를 수집하려면 FlareSolverr가 필요합니다.
+
+### Railway에서 FlareSolverr 배포
+
+1. **Railway 대시보드에서 새 프로젝트 생성**
+   - https://railway.app/dashboard 접속
+   - "New Project" → "Deploy from Docker Image" 선택
+
+2. **Docker 이미지 설정**
+   ```
+   ghcr.io/flaresolverr/flaresolverr:latest
+   ```
+
+3. **환경변수 설정**
+   ```env
+   LOG_LEVEL=info
+   LOG_HTML=false
+   CAPTCHA_SOLVER=none
+   TZ=Asia/Seoul
+   ```
+
+4. **배포 완료 후 URL 확인**
+   - 예: `https://flaresolverr-production-xxx.up.railway.app`
+
+5. **백엔드에 환경변수 추가**
+   ```env
+   FLARESOLVERR_URL=https://flaresolverr-production-xxx.up.railway.app/v1
+   ```
+
+### 지원 사이트별 수집 방식
+
+| 사이트 | 수집 방식 | 상태 |
+|--------|----------|------|
+| G마켓 | FlareSolverr | ✅ 상품명, 가격, 썸네일 |
+| 옥션 | FlareSolverr | ✅ 상품명, 가격, 썸네일 |
+| 11번가 | Selenium | ✅ 상품명, 가격, 썸네일 |
+| SSG | Selenium | ✅ 상품명, 가격, 썸네일 |
+| 홈플러스/트레이더스 | Selenium | ✅ 상품명, 가격, 썸네일 |
+| 롯데ON | Selenium | ✅ 상품명, 가격, 썸네일 |
+| ~~스마트스토어~~ | - | ❌ 네이버 CAPTCHA |
+
+### 리소스 요구사항
+
+- FlareSolverr: RAM 최소 512MB (권장 1GB)
+- 각 브라우저 인스턴스당 100-200MB 추가 사용
+
+### 문제 해결
+
+- **FlareSolverr 연결 실패**: Railway 서비스 실행 상태 및 URL 확인 (`/v1` 포함)
+- **Cloudflare 우회 실패**: FlareSolverr 버전 업데이트 확인
+- **타임아웃**: `maxTimeout` 값 증가 (기본 60000ms)
 
 ---
 
