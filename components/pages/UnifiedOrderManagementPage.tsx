@@ -823,30 +823,32 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
             <Package className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h2 className="text-3xl font-bold text-gray-800">통합 주문 관리</h2>
-            <p className="text-gray-600">플레이오토 연동 및 수동 주문 관리</p>
+            <h2 className={`font-bold text-gray-800 ${isMobile ? 'text-xl' : 'text-3xl'}`}>통합 주문 관리</h2>
+            {!isMobile && <p className="text-gray-600">플레이오토 연동 및 수동 주문 관리</p>}
           </div>
         </div>
 
         {/* 탭 네비게이션 */}
-        <div className="flex gap-2 border-b border-gray-200">
+        <div className={`flex border-b border-gray-200 ${isMobile ? 'overflow-x-auto gap-1' : 'gap-2'}`}>
           {[
-            { key: 'dashboard', label: '대시보드', icon: <BarChart3 className="w-4 h-4" /> },
-            { key: 'orders', label: '주문 목록', icon: <Package className="w-4 h-4" /> },
-            { key: 'auto-pricing', label: '자동 가격 조정', icon: <TrendingUp className="w-4 h-4" /> },
-            { key: 'tracking', label: '송장 관리', icon: <Truck className="w-4 h-4" /> }
+            { key: 'dashboard', label: '대시보드', shortLabel: '대시보드', icon: <BarChart3 className="w-4 h-4" /> },
+            { key: 'orders', label: '주문 목록', shortLabel: '주문', icon: <Package className="w-4 h-4" /> },
+            { key: 'auto-pricing', label: '자동 가격 조정', shortLabel: '가격조정', icon: <TrendingUp className="w-4 h-4" /> },
+            { key: 'tracking', label: '송장 관리', shortLabel: '송장', icon: <Truck className="w-4 h-4" /> }
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as TabType)}
-              className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+              className={`flex items-center gap-1 font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                isMobile ? 'px-3 py-2 text-sm' : 'px-6 py-3 gap-2'
+              } ${
                 activeTab === tab.key
                   ? 'text-purple-600 border-b-2 border-purple-600'
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
               {tab.icon}
-              {tab.label}
+              {isMobile ? tab.shortLabel : tab.label}
             </button>
           ))}
         </div>
@@ -1022,27 +1024,27 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
 
       {/* 주문 목록 탭 (통합) */}
       {activeTab === 'orders' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* 필터 섹션 */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/10 p-8 border border-white/20">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <div className={`bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 ${isMobile ? 'p-4' : 'rounded-3xl shadow-2xl shadow-black/10 p-8'}`}>
+            <h3 className={`font-bold text-gray-800 mb-4 flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'}`}>
               <Filter className="w-5 h-5" />
               주문 필터
             </h3>
 
             {/* 검색창 */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">🔍 빠른 검색</label>
+            <div className="mb-4">
+              {!isMobile && <label className="block text-sm font-medium text-gray-700 mb-2">🔍 빠른 검색</label>}
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="주문번호, 고객명, 전화번호, 마켓으로 검색..."
+                  placeholder={isMobile ? "주문번호, 고객명 검색..." : "주문번호, 고객명, 전화번호, 마켓으로 검색..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-3 pl-11 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  className={`w-full pl-10 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-3'}`}
                 />
                 <svg
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1059,7 +1061,7 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
                     onClick={() => setSearchQuery('')}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -1067,18 +1069,20 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
               </div>
               {searchQuery && (
                 <p className="mt-2 text-sm text-gray-600">
-                  "{searchQuery}" 검색 결과: <span className="font-bold text-purple-600">{filteredOrders.length}개</span>
+                  검색 결과: <span className="font-bold text-purple-600">{filteredOrders.length}개</span>
                 </p>
               )}
             </div>
 
             {/* 주문 소스 필터 */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">주문 소스</label>
-              <div className="flex gap-3">
+            <div className="mb-4">
+              {!isMobile && <label className="block text-sm font-medium text-gray-700 mb-2">주문 소스</label>}
+              <div className={`flex ${isMobile ? 'gap-2' : 'gap-3'}`}>
                 <button
                   onClick={() => setOrderSourceFilter('all')}
-                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                  className={`rounded-lg font-medium transition-colors ${
+                    isMobile ? 'px-3 py-1.5 text-sm' : 'px-6 py-2'
+                  } ${
                     orderSourceFilter === 'all'
                       ? 'bg-purple-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -1088,27 +1092,49 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
                 </button>
                 <button
                   onClick={() => setOrderSourceFilter('playauto')}
-                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                  className={`rounded-lg font-medium transition-colors ${
+                    isMobile ? 'px-3 py-1.5 text-sm' : 'px-6 py-2'
+                  } ${
                     orderSourceFilter === 'playauto'
                       ? 'bg-purple-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  플레이오토
+                  {isMobile ? '플레이오토' : '플레이오토'}
                 </button>
                 <button
                   onClick={() => setOrderSourceFilter('manual')}
-                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                  className={`rounded-lg font-medium transition-colors ${
+                    isMobile ? 'px-3 py-1.5 text-sm' : 'px-6 py-2'
+                  } ${
                     orderSourceFilter === 'manual'
                       ? 'bg-purple-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  수동입력
+                  수동
                 </button>
               </div>
             </div>
 
+            {/* 모바일에서는 날짜 필터 간소화 */}
+            {isMobile ? (
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={orderFilters.start_date}
+                  onChange={(e) => setOrderFilters({ ...orderFilters, start_date: e.target.value })}
+                  className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
+                />
+                <span className="text-gray-400 self-center">~</span>
+                <input
+                  type="date"
+                  value={orderFilters.end_date}
+                  onChange={(e) => setOrderFilters({ ...orderFilters, end_date: e.target.value })}
+                  className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
+                />
+              </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">시작 날짜</label>
@@ -1160,8 +1186,9 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
                 </select>
               </div>
             </div>
+            )}
 
-            <div className="flex gap-3 mt-6">
+            <div className={`flex gap-3 ${isMobile ? 'mt-4' : 'mt-6'}`}>
               <button
                 onClick={fetchOrders}
                 disabled={loading}
@@ -1235,87 +1262,91 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
             ) : (
               <div className="space-y-3">
                 {filteredOrders.map((order) => (
-                  <div key={order.id} className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="text-lg font-bold text-gray-800">{order.order_number}</h4>
-                        <p className="text-sm text-gray-600">
+                  <div key={order.id} className={`border border-gray-200 rounded-xl hover:shadow-lg transition-shadow ${isMobile ? 'p-3' : 'p-6'}`}>
+                    <div className={`flex justify-between items-start ${isMobile ? 'mb-2' : 'mb-4'}`}>
+                      <div className="min-w-0 flex-1">
+                        <h4 className={`font-bold text-gray-800 truncate ${isMobile ? 'text-sm' : 'text-lg'}`}>{order.order_number}</h4>
+                        <p className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {order.market} | {order.customer_name}
                         </p>
                       </div>
-                      <div className="flex gap-2 items-center">
+                      <div className={`flex items-center flex-shrink-0 ${isMobile ? 'gap-1 ml-2' : 'gap-2'}`}>
                         {getOrderStatusBadge(order.order_status)}
-                        {getOrderSourceBadge(order.order_source)}
+                        {!isMobile && getOrderSourceBadge(order.order_source)}
                         <button
                           onClick={() => handleDeleteOrder(order.id, order.order_number)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className={`text-red-600 hover:bg-red-50 rounded-lg transition-colors ${isMobile ? 'p-1' : 'p-2'}`}
                           title="주문 삭제"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className={isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                         </button>
                       </div>
                     </div>
 
                     {/* 상품 정보 */}
-                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                    <div className={`bg-gray-50 rounded-lg ${isMobile ? 'p-2 mb-2' : 'p-3 mb-4'}`}>
                       <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-800">
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-medium text-gray-800 ${isMobile ? 'text-sm truncate' : ''}`}>
                             {(order as any).shop_sale_name || (order as any).prod_name || '상품명 없음'}
                           </p>
                           {(order as any).shop_opt_name && (
-                            <p className="text-sm text-gray-500 mt-1">옵션: {(order as any).shop_opt_name}</p>
+                            <p className={`text-gray-500 mt-1 truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>옵션: {(order as any).shop_opt_name}</p>
                           )}
                         </div>
-                        <div className="text-right ml-4">
-                          <p className="text-sm text-gray-500">
-                            수량: {(order as any).sale_cnt ?? 1}개
+                        <div className="text-right ml-2 flex-shrink-0">
+                          <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                            x{(order as any).sale_cnt ?? 1}
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+                    <div className={`grid gap-2 text-sm ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4 gap-4 mb-4'}`}>
                       <div>
-                        <span className="text-gray-600">주문 금액:</span>
+                        <span className={`text-gray-600 ${isMobile ? 'text-xs' : ''}`}>금액:</span>
                         {(() => {
                           const saleCnt = (order as any).sale_cnt ?? 1;
                           const unitPrice = (order as any).sales || order.total_amount || 0;
                           const totalAmount = saleCnt * unitPrice;
                           return (
-                            <p className="text-gray-800 font-bold">
+                            <p className={`text-gray-800 font-bold ${isMobile ? 'text-sm' : ''}`}>
                               {formatCurrency(totalAmount)}
                             </p>
                           );
                         })()}
                       </div>
+                      {!isMobile && (
+                        <div>
+                          <span className="text-gray-600">배송지:</span>
+                          <p className="text-gray-800 truncate">{order.customer_address}</p>
+                        </div>
+                      )}
                       <div>
-                        <span className="text-gray-600">배송지:</span>
-                        <p className="text-gray-800 truncate">{order.customer_address}</p>
+                        <span className={`text-gray-600 ${isMobile ? 'text-xs' : ''}`}>연락처:</span>
+                        <p className={`text-gray-800 ${isMobile ? 'text-sm' : ''}`}>{order.customer_phone || '-'}</p>
                       </div>
-                      <div>
-                        <span className="text-gray-600">연락처:</span>
-                        <p className="text-gray-800">{order.customer_phone || '-'}</p>
-                      </div>
+                      {!isMobile && (
                       <div>
                         <span className="text-gray-600">주문 일시:</span>
                         <p className="text-gray-800">{formatDate(order.order_date)}</p>
                       </div>
+                      )}
                     </div>
 
                     {/* 주문 처리 버튼 */}
-                    <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
+                    <div className={`flex gap-2 border-t border-gray-200 ${isMobile ? 'mt-2 pt-2' : 'mt-4 pt-4'}`}>
                       <button
                         onClick={() => handlePurchase(order)}
-                        className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                        className={`flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center justify-center ${isMobile ? 'px-2 py-1.5 text-xs gap-1' : 'px-4 py-2 gap-2'}`}
                       >
-                        🛒 구매하기
+                        🛒 {isMobile ? '구매' : '구매하기'}
                       </button>
                       <button
                         onClick={() => openTrackingModal(order)}
-                        className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                        className={`flex-1 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center justify-center ${isMobile ? 'px-2 py-1.5 text-xs gap-1' : 'px-4 py-2 gap-2'}`}
                       >
-                        📝 송장 입력
+                        📝 {isMobile ? '송장' : '송장 입력'}
                       </button>
                     </div>
                   </div>
