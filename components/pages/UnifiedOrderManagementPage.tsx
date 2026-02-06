@@ -107,7 +107,11 @@ type OrderSourceFilter = 'all' | 'playauto' | 'manual';
 
 // ============= 메인 컴포넌트 =============
 
-export default function UnifiedOrderManagementPage() {
+interface UnifiedOrderManagementPageProps {
+  isMobile?: boolean;
+}
+
+export default function UnifiedOrderManagementPage({ isMobile = false }: UnifiedOrderManagementPageProps) {
   // 탭 관리
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [loading, setLoading] = useState(false);

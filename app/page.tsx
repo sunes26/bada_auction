@@ -22,6 +22,25 @@ export default function Main() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [rightClickCount, setRightClickCount] = useState(0);
   const [lastRightClickTime, setLastRightClickTime] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 모바일 감지
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // 모바일에서는 상품/주문관리만 접근 가능, 기본 페이지는 상품
+  useEffect(() => {
+    if (isMobile && !['sourcing', 'orders'].includes(currentPage)) {
+      setCurrentPage('sourcing');
+    }
+  }, [isMobile, currentPage]);
 
   // 인증 체크
   useEffect(() => {
@@ -150,57 +169,74 @@ export default function Main() {
         </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-6 py-12 relative z-10">
+      <div className={`container mx-auto relative z-10 ${isMobile ? 'px-3 py-4' : 'px-6 py-12'}`}>
         {/* Navigation */}
-        <div className="flex justify-between items-center mb-8">
+        <div className={`flex justify-between items-center mb-4 md:mb-8 ${isMobile ? 'flex-col gap-3' : ''}`}>
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-2 shadow-2xl shadow-black/10 border border-white/20">
             <div className="flex relative">
-              <NavButton
-                active={currentPage === 'home'}
-                onClick={() => setCurrentPage('home')}
-                icon={<Home className="w-5 h-5" />}
-                label="메인홈"
-              />
-              <NavButton
-                active={currentPage === 'detail'}
-                onClick={() => setCurrentPage('detail')}
-                icon={<FileText className="w-5 h-5" />}
-                label="상세페이지 생성기"
-              />
+              {/* 데스크톱: 전체 메뉴, 모바일: 상품/주문관리만 */}
+              {!isMobile && (
+                <>
+                  <NavButton
+                    active={currentPage === 'home'}
+                    onClick={() => setCurrentPage('home')}
+                    icon={<Home className="w-5 h-5" />}
+                    label="메인홈"
+                    isMobile={isMobile}
+                  />
+                  <NavButton
+                    active={currentPage === 'detail'}
+                    onClick={() => setCurrentPage('detail')}
+                    icon={<FileText className="w-5 h-5" />}
+                    label="상세페이지 생성기"
+                    isMobile={isMobile}
+                  />
+                </>
+              )}
               <NavButton
                 active={currentPage === 'sourcing'}
                 onClick={() => setCurrentPage('sourcing')}
                 icon={<ShoppingCart className="w-5 h-5" />}
                 label="상품"
+                isMobile={isMobile}
               />
               <NavButton
                 active={currentPage === 'orders'}
                 onClick={() => setCurrentPage('orders')}
                 icon={<Package className="w-5 h-5" />}
                 label="주문 관리"
+                isMobile={isMobile}
               />
-              <NavButton
-                active={currentPage === 'accounting'}
-                onClick={() => setCurrentPage('accounting')}
-                icon={<DollarSign className="w-5 h-5" />}
-                label="회계"
-              />
-              <NavButton
-                active={currentPage === 'settings'}
-                onClick={() => setCurrentPage('settings')}
-                icon={<Settings className="w-5 h-5" />}
-                label="설정"
-              />
+              {!isMobile && (
+                <>
+                  <NavButton
+                    active={currentPage === 'accounting'}
+                    onClick={() => setCurrentPage('accounting')}
+                    icon={<DollarSign className="w-5 h-5" />}
+                    label="회계"
+                    isMobile={isMobile}
+                  />
+                  <NavButton
+                    active={currentPage === 'settings'}
+                    onClick={() => setCurrentPage('settings')}
+                    icon={<Settings className="w-5 h-5" />}
+                    label="설정"
+                    isMobile={isMobile}
+                  />
+                </>
+              )}
             </div>
           </div>
-          <div className="flex-1 flex justify-end items-center gap-3">
-            <NotificationCenter />
+          <div className={`flex items-center gap-3 ${isMobile ? 'w-full justify-between' : 'flex-1 justify-end'}`}>
+            {!isMobile && <NotificationCenter />}
             <button
               onClick={handleLogout}
-              className="px-6 py-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 text-gray-700 hover:text-gray-900 font-semibold flex items-center gap-2"
+              className={`bg-white/80 backdrop-blur-xl rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 text-gray-700 hover:text-gray-900 font-semibold flex items-center gap-2 ${
+                isMobile ? 'px-4 py-2 text-sm' : 'px-6 py-3'
+              }`}
             >
               <Lock className="w-4 h-4" />
-              로그아웃
+              {!isMobile && '로그아웃'}
             </button>
           </div>
         </div>
@@ -223,8 +259,8 @@ export default function Main() {
         <div>
           {currentPage === 'home' && <HomePage />}
           {currentPage === 'detail' && <DetailPage />}
-          {currentPage === 'sourcing' && <ProductSourcingPage />}
-          {currentPage === 'orders' && <UnifiedOrderManagementPage />}
+          {currentPage === 'sourcing' && <ProductSourcingPage isMobile={isMobile} />}
+          {currentPage === 'orders' && <UnifiedOrderManagementPage isMobile={isMobile} />}
           {currentPage === 'accounting' && <AccountingPage />}
           {currentPage === 'settings' && <SettingsPage />}
           {currentPage === 'admin' && <AdminPage />}
@@ -235,23 +271,24 @@ export default function Main() {
   );
 }
 
-function NavButton({ active, onClick, icon, label }: {
+function NavButton({ active, onClick, icon, label, isMobile }: {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  isMobile?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`relative px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
+      className={`relative rounded-xl font-semibold transition-all duration-300 ${
         active ? 'text-white shadow-lg' : 'text-gray-600 hover:text-gray-800'
-      }`}
+      } ${isMobile ? 'px-4 py-3 text-sm' : 'px-8 py-4 text-lg'}`}
     >
       {active && (
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg" />
       )}
-      <span className="relative flex items-center gap-3">
+      <span className={`relative flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
         {icon}
         {label}
       </span>

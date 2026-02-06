@@ -46,7 +46,11 @@ interface PriceHistory {
   checked_at: string;
 }
 
-export default function ProductSourcingPage() {
+interface ProductSourcingPageProps {
+  isMobile?: boolean;
+}
+
+export default function ProductSourcingPage({ isMobile = false }: ProductSourcingPageProps) {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(null);
@@ -592,92 +596,101 @@ export default function ProductSourcingPage() {
           <h1 className="text-3xl font-bold text-gray-800">내 판매 상품</h1>
           <p className="text-gray-600 mt-1">판매 중인 상품과 소싱 정보를 관리하세요</p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={handleSyncAllMarketplaceCodes}
-            disabled={syncingMarketplaceCodes}
-            className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw className={`w-5 h-5 ${syncingMarketplaceCodes ? 'animate-spin' : ''}`} />
-            {syncingMarketplaceCodes ? '수집 중...' : '쇼핑몰 상품코드 수집'}
-          </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            상품 추가
-          </button>
-        </div>
+        {/* 모바일에서는 상품 추가 버튼 숨김 */}
+        {!isMobile && (
+          <div className="flex gap-3">
+            <button
+              onClick={handleSyncAllMarketplaceCodes}
+              disabled={syncingMarketplaceCodes}
+              className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-5 h-5 ${syncingMarketplaceCodes ? 'animate-spin' : ''}`} />
+              {syncingMarketplaceCodes ? '수집 중...' : '쇼핑몰 상품코드 수집'}
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              상품 추가
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 space-y-4">
+      <div className={`bg-white rounded-xl shadow-lg border border-gray-200 space-y-4 ${isMobile ? 'p-4' : 'p-6'}`}>
         {/* 검색 및 정렬 */}
-        <div className="flex gap-4 items-center flex-wrap">
+        <div className={`flex gap-4 items-center ${isMobile ? 'flex-col' : 'flex-wrap'}`}>
           {/* 검색 */}
-          <div className="flex-1 min-w-[300px]">
+          <div className={`${isMobile ? 'w-full' : 'flex-1 min-w-[300px]'}`}>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="상품명, 카테고리, 소싱처 검색..."
+              placeholder="상품명 검색..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
-          {/* 정렬 */}
-          <div className="flex gap-2 items-center">
-            <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">정렬:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="date">등록일</option>
-              <option value="name">상품명</option>
-              <option value="price">판매가</option>
-              <option value="margin">마진율</option>
-            </select>
-            <button
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-              title={sortOrder === 'asc' ? '오름차순' : '내림차순'}
-            >
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </button>
-          </div>
+          {/* 정렬 + 기타 버튼 */}
+          <div className={`flex gap-2 items-center ${isMobile ? 'w-full justify-between' : ''}`}>
+            <div className="flex gap-2 items-center">
+              {!isMobile && <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">정렬:</span>}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className={`border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${isMobile ? 'px-2 py-1.5 text-sm' : 'px-3 py-2'}`}
+              >
+                <option value="date">등록일</option>
+                <option value="name">상품명</option>
+                <option value="price">판매가</option>
+                <option value="margin">마진율</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className={`border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors ${isMobile ? 'p-1.5' : 'p-2'}`}
+                title={sortOrder === 'asc' ? '오름차순' : '내림차순'}
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </button>
+            </div>
 
-          {/* Excel 내보내기 */}
-          <button
-            onClick={handleExportExcel}
-            className="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors whitespace-nowrap"
-          >
-            Excel 내보내기
-          </button>
+            {/* Excel 내보내기 - 모바일에서는 숨김 */}
+            {!isMobile && (
+              <button
+                onClick={handleExportExcel}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors whitespace-nowrap"
+              >
+                Excel 내보내기
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 필터 및 일괄 작업 */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-sm font-semibold text-gray-700">필터:</span>
-          <div className="flex gap-2">
-            {(['all', 'active', 'inactive'] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  activeFilter === filter
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {filter === 'all' ? '전체' : filter === 'active' ? '판매중' : '중단'}
-              </button>
-            ))}
+        <div className={`flex items-center gap-4 ${isMobile ? 'flex-col items-start' : 'flex-wrap'}`}>
+          <div className="flex items-center gap-2">
+            {!isMobile && <span className="text-sm font-semibold text-gray-700">필터:</span>}
+            <div className="flex gap-2">
+              {(['all', 'active', 'inactive'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`rounded-lg font-medium transition-all ${
+                    activeFilter === filter
+                      ? 'bg-blue-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  } ${isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}
+                >
+                  {filter === 'all' ? '전체' : filter === 'active' ? '판매중' : '중단'}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* 일괄 작업 버튼 */}
-          {selectedIds.length > 0 && (() => {
+          {/* 일괄 작업 버튼 - 모바일에서는 숨김 */}
+          {!isMobile && selectedIds.length > 0 && (() => {
             // 선택된 상품들의 상태 확인
             const selectedProducts = products.filter(p => selectedIds.includes(p.id));
             const allActive = selectedProducts.every(p => p.is_active);
@@ -740,17 +753,102 @@ export default function ProductSourcingPage() {
         <div className="bg-white rounded-xl shadow-lg p-12 text-center border border-gray-200">
           <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-700 mb-2">등록된 상품이 없습니다</h3>
-          <p className="text-gray-500 mb-6">첫 상품을 추가해보세요!</p>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            상품 추가
-          </button>
+          <p className="text-gray-500 mb-6">
+            {isMobile ? '데스크톱에서 상품을 추가해주세요.' : '첫 상품을 추가해보세요!'}
+          </p>
+          {!isMobile && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              상품 추가
+            </button>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+          {/* 모바일: 카드 레이아웃 */}
+          {isMobile ? (
+            <div className="divide-y divide-gray-200">
+              {paginatedProducts.map((product) => {
+                const marginRate = product.margin_rate || 0;
+                const margin = product.margin || 0;
+                const sourcingPrice = product.sourcing_price || (product as any).effective_sourcing_price;
+
+                return (
+                  <div
+                    key={product.id}
+                    className="p-4 hover:bg-blue-50 transition-colors"
+                  >
+                    <div className="flex gap-3">
+                      {/* 썸네일 */}
+                      {product.thumbnail_url ? (
+                        <img
+                          src={product.thumbnail_url.startsWith('/static') ? `${API_BASE_URL}${product.thumbnail_url}` : product.thumbnail_url}
+                          alt={product.product_name}
+                          className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          <Package className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+
+                      {/* 상품 정보 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 text-sm truncate mb-1">
+                          {product.product_name}
+                        </div>
+
+                        {/* 가격 정보 */}
+                        <div className="flex items-center gap-2 text-xs mb-2">
+                          <span className="font-bold text-gray-900">{product.selling_price.toLocaleString()}원</span>
+                          <span className="text-gray-400">|</span>
+                          <span className="text-gray-600">{sourcingPrice ? `${sourcingPrice.toLocaleString()}원` : '-'}</span>
+                          <span className={`font-bold ${marginRate >= 50 ? 'text-green-600' : marginRate >= 30 ? 'text-blue-600' : marginRate >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
+                            ({marginRate.toFixed(0)}%)
+                          </span>
+                        </div>
+
+                        {/* 상태 + 액션 */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleToggleStatus(product.id, product.is_active, product.product_name)}
+                            className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              product.is_active
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            {product.is_active ? '판매중' : '중단'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setShowEditModal(true);
+                            }}
+                            className="p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors"
+                            title="수정"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleViewDetail(product)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                            title="상세보기"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+          /* 데스크톱: 테이블 레이아웃 */
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1200px]">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
@@ -929,6 +1027,7 @@ export default function ProductSourcingPage() {
               </tbody>
             </table>
           </div>
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && (
