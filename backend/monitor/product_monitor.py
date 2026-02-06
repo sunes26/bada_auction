@@ -16,15 +16,7 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
-# SeleniumBase (봇 감지 우회 - 최우선)
-try:
-    from seleniumbase import Driver
-    SB_AVAILABLE = True
-except ImportError:
-    SB_AVAILABLE = False
-    logger.warning("seleniumbase 미설치")
-
-# undetected-chromedriver (봇 감지 우회 - 대체)
+# undetected-chromedriver (봇 감지 우회)
 try:
     import undetected_chromedriver as uc
     UC_AVAILABLE = True
@@ -49,32 +41,7 @@ class ProductMonitor:
             import os
             import shutil
 
-            # 1순위: SeleniumBase UC 모드 (가장 강력한 봇 감지 우회)
-            if use_undetected and SB_AVAILABLE:
-                logger.info("SeleniumBase UC 모드 사용 (봇 감지 우회)")
-
-                try:
-                    # SeleniumBase Driver with UC mode
-                    self.driver = Driver(
-                        browser="chrome",
-                        uc=True,  # Undetected Chrome 모드
-                        headless=True,  # Headless 모드 (서버 환경)
-                        locale_code="ko",  # 한국어
-                        # 추가 옵션
-                        no_sandbox=True,
-                        disable_gpu=True,
-                    )
-
-                    # 타임아웃 설정
-                    self.driver.set_page_load_timeout(30)
-                    self.driver.implicitly_wait(5)
-
-                    logger.info("SeleniumBase UC 모드 초기화 완료")
-                    return
-                except Exception as e:
-                    logger.warning(f"SeleniumBase 초기화 실패, undetected-chromedriver로 폴백: {e}")
-
-            # 2순위: undetected-chromedriver 사용 (폴백)
+            # undetected-chromedriver 사용 (봇 감지 우회)
             if use_undetected and UC_AVAILABLE:
                 logger.info("undetected-chromedriver 사용 (봇 감지 우회)")
 
