@@ -229,6 +229,7 @@ export default function UnifiedOrderManagementPage() {
             updated_at: o.updated_at || o.created_at,
             // PlayAuto 전용 필드 추가
             playauto_order_id: o.playauto_order_id || o.uniq,
+            bundle_no: o.bundle_no,  // 송장 업데이트에 필요한 묶음번호
             shop_cd: o.shop_cd,
             shop_sale_no: o.shop_sale_no,
             shop_sale_name: o.shop_sale_name,
@@ -455,7 +456,9 @@ export default function UnifiedOrderManagementPage() {
       setActionLoading({ ...actionLoading, 'update-tracking': true });
 
       // PlayAuto API 호출 (송장 업데이트)
-      const bundle_no = selectedOrder.playauto_order_id || selectedOrder.order_number;
+      // bundle_no 필드 사용 (uniq가 아님!)
+      const bundle_no = (selectedOrder as any).bundle_no || selectedOrder.playauto_order_id || selectedOrder.order_number;
+      console.log('[DEBUG] 송장 업데이트 - bundle_no:', bundle_no);
 
       const res = await fetch(`${API_BASE_URL}/api/playauto/orders/invoice`, {
         method: 'PUT',

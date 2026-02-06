@@ -111,6 +111,7 @@ export interface Order {
   sales?: number;          // 판매 금액 (PlayAuto)
   pay_amt?: number;        // 결제 금액
   prod_name?: string;      // 상품명 (매칭용)
+  bundle_no?: string;      // 묶음번호 (송장 업데이트용)
 }
 
 export interface Notification {
