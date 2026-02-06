@@ -222,48 +222,35 @@ async def auto_check_products_job():
 
 
 def start_scheduler():
-    """모니터링 스케줄러 시작"""
+    """모니터링 스케줄러 시작 (자동가격조정만 활성화)"""
     try:
         db = get_db()
 
-        # 모니터링 상품 체크 주기: 15분
-        monitor_interval = 15
-
-        # 판매 상품 소싱가 업데이트 주기: 30분 (좀 더 긴 주기)
+        # 판매 상품 소싱가 업데이트 주기: 30분
         selling_product_interval = 30
 
-        # 1. 모니터링 상품 자동 체크 작업 등록
-        scheduler.add_job(
-            auto_check_products_job,
-            trigger=IntervalTrigger(minutes=monitor_interval),
-            id="monitor_auto_check_products",
-            name="모니터링 상품 자동 체크",
-            replace_existing=True,
-            misfire_grace_time=60
-        )
-        print(f"[MONITOR] 모니터링 상품 체크 작업 등록 ({monitor_interval}분마다)")
+        # 모니터링 상품 자동 체크는 비활성화 (필요 없음)
+        # scheduler.add_job(
+        #     auto_check_products_job,
+        #     trigger=IntervalTrigger(minutes=15),
+        #     id="monitor_auto_check_products",
+        #     ...
+        # )
 
-        # 2. 판매 상품 소싱가 업데이트 작업 등록
+        # 판매 상품 소싱가 업데이트 작업 등록 (자동가격조정)
         scheduler.add_job(
             update_selling_products_sourcing_price,
             trigger=IntervalTrigger(minutes=selling_product_interval),
             id="monitor_selling_products_sourcing",
-            name="판매 상품 소싱가 자동 업데이트",
+            name="판매 상품 소싱가 자동 업데이트 (자동가격조정)",
             replace_existing=True,
             misfire_grace_time=120
         )
-        print(f"[MONITOR] 판매 상품 소싱가 업데이트 작업 등록 ({selling_product_interval}분마다)")
+        print(f"[MONITOR] 판매 상품 자동가격조정 작업 등록 ({selling_product_interval}분마다)")
 
         # 스케줄러 시작
         scheduler.start()
         print("[MONITOR] 스케줄러 시작 완료")
-
-        # 즉시 첫 번째 체크 실행 (백그라운드)
-        # 모니터링 상품이 있으면 실행
-        products = db.get_all_monitored_products(active_only=True)
-        if products:
-            asyncio.create_task(auto_check_products_job())
-            print("[MONITOR] 모니터링 상품 첫 번째 체크 작업 시작")
 
         # 판매 상품 소싱가 업데이트 (5초 후 실행)
         async def delayed_selling_update():
@@ -271,7 +258,7 @@ def start_scheduler():
             await update_selling_products_sourcing_price()
 
         asyncio.create_task(delayed_selling_update())
-        print("[MONITOR] 판매 상품 소싱가 업데이트 작업 예약 (5초 후)")
+        print("[MONITOR] 판매 상품 자동가격조정 작업 예약 (5초 후)")
 
     except Exception as e:
         print(f"[ERROR] 모니터링 스케줄러 시작 실패: {e}")
