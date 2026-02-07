@@ -1,0 +1,92 @@
+-- PlayAuto 카테고리 매핑 업데이트 스크립트
+-- 생성일: 2026-02-08
+
+-- 기존 매핑 삭제
+DELETE FROM category_playauto_mapping;
+
+-- 새 매핑 삽입
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 갈비탕 > 갈비탕', 6256674, '음료/과자/가공식품 > 만두/탕/간편조리식 > 곰탕/추어탕/즉석탕');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 곰탕류 > 곰탕류', 6256674, '음료/과자/가공식품 > 만두/탕/간편조리식 > 곰탕/추어탕/즉석탕');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 무국 > 무국', 6256685, '음료/과자/가공식품 > 만두/탕/간편조리식 > 즉석국/찌개류 > 즉석국');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 미역국 > 미역국', 6256912, '음료/과자/가공식품 > 즉석/카레/덮밥 > 국');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 부대찌개 > 부대찌개', 6256685, '음료/과자/가공식품 > 만두/탕/간편조리식 > 즉석국/찌개류');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 삼계탕 > 삼계탕', 6256674, '음료/과자/가공식품 > 만두/탕/간편조리식 > 곰탕/추어탕/즉석탕');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 순두부찌개 > 순두부찌개', 6256685, '음료/과자/가공식품 > 만두/탕/간편조리식 > 즉석국/찌개류');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 육개장 > 육개장', 6256912, '음료/과자/가공식품 > 즉석/카레/덮밥 > 국');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 청국장 > 청국장', 6256912, '음료/과자/가공식품 > 즉석/카레/덮밥 > 국');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 추어탕 > 추어탕', 6256674, '음료/과자/가공식품 > 만두/탕/간편조리식 > 곰탕/추어탕/즉석탕');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 국/찌개 > 황태국 > 황태국', 6256685, '음료/과자/가공식품 > 만두/탕/간편조리식 > 즉석국/찌개류 > 즉석국');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 면 > 라면 > 라면', 6256655, '음료/과자/가공식품 > 라면/면류 > 봉지라면');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 면 > 물냉면 > 물냉면', 6256650, '음료/과자/가공식품 > 라면/면류 > 냉면');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 면 > 비빔냉면 > 비빔냉면', 6256650, '음료/과자/가공식품 > 라면/면류 > 냉면');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 면 > 비빔면 > 비빔면', 6256653, '음료/과자/가공식품 > 라면/면류 > 봉지라면 > 비빔면');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 면 > 소바 > 소바', 6256673, '음료/과자/가공식품 > 라면/면류 > 메밀/소바');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 면 > 우동 > 우동', 6256668, '음료/과자/가공식품 > 라면/면류 > 우동');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 면 > 짜파게티 > 짜파게티', 6256653, '음료/과자/가공식품 > 라면/면류 > 봉지라면 > 비빔면');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 면 > 칼국수 > 칼국수', 6256659, '음료/과자/가공식품 > 라면/면류 > 칼국수');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 덮밥 > 스팸김치', 6256902, '음료/과자/가공식품 > 즉석/카레/덮밥 > 덮밥/덮밥소스');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 덮밥 > 참치마요', 6256902, '음료/과자/가공식품 > 즉석/카레/덮밥 > 덮밥/덮밥소스');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 덮밥 > 치킨마요', 6256902, '음료/과자/가공식품 > 즉석/카레/덮밥 > 덮밥/덮밥소스');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 죽 > 소고기죽', 6256904, '음료/과자/가공식품 > 즉석/카레/덮밥 > 죽');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 죽 > 야채죽', 6256904, '음료/과자/가공식품 > 즉석/카레/덮밥 > 죽');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 죽 > 전복죽', 6256904, '음료/과자/가공식품 > 즉석/카레/덮밥 > 죽');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 죽 > 팥죽', 6256904, '음료/과자/가공식품 > 즉석/카레/덮밥 > 죽');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 즉석밥 > 렌틸콩현미', 6256907, '음료/과자/가공식품 > 즉석/카레/덮밥 > 즉석밥/누룽지');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 즉석밥 > 버섯영양', 6256907, '음료/과자/가공식품 > 즉석/카레/덮밥 > 즉석밥/누룽지');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 즉석밥 > 잡곡', 6256907, '음료/과자/가공식품 > 즉석/카레/덮밥 > 즉석밥/누룽지');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 즉석밥 > 채소영양', 6256907, '음료/과자/가공식품 > 즉석/카레/덮밥 > 즉석밥/누룽지');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 즉석밥 > 현미', 6256907, '음료/과자/가공식품 > 즉석/카레/덮밥 > 즉석밥/누룽지');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 즉석밥 > 흑미', 6256907, '음료/과자/가공식품 > 즉석/카레/덮밥 > 즉석밥/누룽지');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 밥류 > 즉석밥 > 흰밥', 6256907, '음료/과자/가공식품 > 즉석/카레/덮밥 > 즉석밥/누룽지');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 카레/짜장/덮밥 > 마파두부 > 마파두부', 6256902, '음료/과자/가공식품 > 즉석/카레/덮밥 > 덮밥/덮밥소스');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 카레/짜장/덮밥 > 짜장 > 짜장', 6256909, '음료/과자/가공식품 > 즉석/카레/덮밥 > 즉석카레/짜장');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 카레/짜장/덮밥 > 카레 > 카레', 6256909, '음료/과자/가공식품 > 즉석/카레/덮밥 > 즉석카레/짜장 > 카레');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 통조림 > 과일 > 스위트콘', 6256982, '음료/과자/가공식품 > 통조림/캔/잼 > 옥수수/콩/농산물');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 통조림 > 과일 > 파인애플', 6256978, '음료/과자/가공식품 > 통조림/캔/잼 > 과일통조림');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 통조림 > 과일 > 황도', 6256978, '음료/과자/가공식품 > 통조림/캔/잼 > 과일통조림');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 통조림 > 과일 > 후르츠칵테일', 6256989, '음료/과자/가공식품 > 통조림/캔/잼 > 프루트칵테일');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 통조림 > 참치 > 고등어', 6256986, '음료/과자/가공식품 > 통조림/캔/잼 > 통조림/캔류기타');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 통조림 > 참치 > 고추참치', 6256993, '음료/과자/가공식품 > 통조림/캔/잼 > 참치/연어통조림 > 참치 통조림');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 통조림 > 참치 > 꽁치', 6256986, '음료/과자/가공식품 > 통조림/캔/잼 > 통조림/캔류기타');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 통조림 > 참치 > 일반참치', 6256993, '음료/과자/가공식품 > 통조림/캔/잼 > 참치/연어통조림 > 참치 통조림');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 통조림 > 햄 > 닭', 6256986, '음료/과자/가공식품 > 통조림/캔/잼 > 통조림/캔류기타');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('간편식 > 통조림 > 햄 > 햄', 6256988, '음료/과자/가공식품 > 통조림/캔/잼 > 햄/축산통조림 > 햄통조림');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('냉동식 > 돈까스 > 돈까스 > 돈까스', 6256693, '음료/과자/가공식품 > 만두/탕/간편조리식 > 돈가스');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('냉동식 > 떡볶이 > 빨간떡볶이 > 빨간떡볶이', 6256677, '음료/과자/가공식품 > 만두/탕/간편조리식 > 떡볶이/라볶이');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('냉동식 > 떡볶이 > 짜장떡볶이 > 짜장떡볶이', 6256677, '음료/과자/가공식품 > 만두/탕/간편조리식 > 떡볶이/라볶이');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('냉동식 > 떡볶이 > 크림떡볶이 > 크림떡볶이', 6256677, '음료/과자/가공식품 > 만두/탕/간편조리식 > 떡볶이/라볶이');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('냉동식 > 만두 > 고기만두 > 고기만두', 6256678, '음료/과자/가공식품 > 만두/탕/간편조리식 > 만두/딤섬류');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('냉동식 > 만두 > 김치만두 > 김치만두', 6256678, '음료/과자/가공식품 > 만두/탕/간편조리식 > 만두/딤섬류');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('냉동식 > 만두 > 새우만두 > 새우만두', 6256678, '음료/과자/가공식품 > 만두/탕/간편조리식 > 만두/딤섬류');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('냉동식 > 치킨 > 양념치킨 > 양념치킨', 6257010, '음료/과자/가공식품 > 냉장/냉동식품 > 치킨/돈까스/튀김 > 치킨/너겟');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('냉동식 > 치킨 > 허니치킨 > 허니치킨', 6257010, '음료/과자/가공식품 > 냉장/냉동식품 > 치킨/돈까스/튀김 > 치킨/너겟');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('냉동식 > 피자 > 피자 > 피자', 6256688, '음료/과자/가공식품 > 만두/탕/간편조리식 > 피자 > 피자');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 구강케어 > 가글 > 가글', 33010100, '기타 재화');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 구강케어 > 치약 > 치약', 6255926, '세제/제지/일용잡화 > 구강용품/오랄케어 > 일반치약');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 구강케어 > 칫솔 > 칫솔', 6255929, '세제/제지/일용잡화 > 구강용품/오랄케어 > 치실/치간 > 치간칫솔');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 바디케어 > 바디워시/바디로션 > 바디워시/바디로션', 20020300, '기타 재화');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 바디케어 > 핸드워시/핸드크림 > 핸드워시/핸드크림', 6255990, '세제/제지/일용잡화 > 비누/세안/손세정제 > 핸드워시/케어');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 세제 > 섬유유연제 > 섬유유연제', 6255958, '세제/제지/일용잡화 > 대용량/번들/업소/반품 > 섬유유연제');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 세제 > 세탁세제 > 세탁세제', 6256028, '세제/제지/일용잡화 > 세탁세제 > 세탁세제 기타');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 세제 > 욕실세제 > 욕실세제', 33020301, '기타 재화');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 세제 > 주방세제 > 주방세제', 6255945, '세제/제지/일용잡화 > 대용량 공산품 > 세제/세정제 > 주방세제');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 위생용품 > 생리대 > 생리대', 34030100, '기타 재화');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 헤어케어 > 린스/트리트먼트 > 린스/트리트먼트', 20040201, '기타 재화');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 헤어케어 > 샴푸 > 샴푸', 20040200, '기타 재화');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 휴지/티슈 > 롤화장지 > 롤화장지', 6255951, '세제/제지/일용잡화 > 대용량 공산품 > 제지 > 롤화장지');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 휴지/티슈 > 물티슈 > 물티슈', 6255949, '세제/제지/일용잡화 > 대용량 공산품 > 제지 > 각티슈');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 휴지/티슈 > 키친타월 > 키친타월', 6256055, '세제/제지/일용잡화 > 화장지/제지류 > 키친타올');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('생활용품 > 휴지/티슈 > 티슈 > 티슈', 6255949, '세제/제지/일용잡화 > 대용량 공산품 > 제지 > 각티슈');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('음료 > 생수 > 생수 > 생수', 6256739, '음료/과자/가공식품 > 생수/탄산수 > 기타브랜드생수');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('음료 > 전통음료 > 수정과 > 수정과', 6256826, '음료/과자/가공식품 > 전통/건강음료 > 식혜/수정과 > 수정과');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('음료 > 전통음료 > 식혜 > 식혜', 6256825, '음료/과자/가공식품 > 전통/건강음료 > 식혜/수정과');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('음료 > 차류 > 녹차 > 녹차', 6256591, '음료/과자/가공식품 > 녹차/차음료/전통차 > 녹차 > 녹차음료');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('음료 > 차류 > 보리 > 보리', 6256606, '음료/과자/가공식품 > 녹차/차음료/전통차 > 티백-둥글레/보리차 > 보리차');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('음료 > 차류 > 유자 > 유자', 6256598, '음료/과자/가공식품 > 녹차/차음료/전통차 > 유자차/모과차/레몬차 > 유자차');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('음료 > 커피 > 라떼 > 라떼', 6256947, '음료/과자/가공식품 > 커피/코코아 > 캔커피/커피음료');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('음료 > 커피 > 블랙 > 블랙', 6256939, '음료/과자/가공식품 > 커피/코코아 > 원두커피');
+INSERT INTO category_playauto_mapping (our_category, sol_cate_no, playauto_category) VALUES ('음료 > 커피 > 아메리카노 > 아메리카노', 6256947, '음료/과자/가공식품 > 커피/코코아 > 캔커피/커피음료');
+
+-- 검증
+SELECT COUNT(*) as total_mappings FROM category_playauto_mapping;
+SELECT COUNT(DISTINCT sol_cate_no) as unique_sol_cate_no FROM category_playauto_mapping;
