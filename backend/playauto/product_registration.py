@@ -434,9 +434,10 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
                     "template_no": 템플릿번호
                 }
             ]
-        channel_type: 채널 타입 ("gmk_auction" 또는 "smartstore")
+        channel_type: 채널 타입 ("gmk_auction", "coupang", "smartstore")
             - "gmk_auction": 옥션/지마켓 (std_ol_yn="Y", opt_type="옵션없음", 단일상품)
-            - "smartstore": 스마트스토어/쿠팡 등 (std_ol_yn="N", opt_type="독립형", 일반상품)
+            - "coupang": 쿠팡 (std_ol_yn="N", opt_type="조립형", 일반상품)
+            - "smartstore": 스마트스토어 등 (std_ol_yn="N", opt_type="독립형", 일반상품)
 
     Returns:
         플레이오토 API 형식 데이터
@@ -480,21 +481,32 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
     image_fields = {"sale_img1": thumbnail_url}
 
     # 채널 타입에 따른 옵션 설정
+    product_name = product.get("product_name", "기본")
+    option_value = product_name.replace(",", " ").replace("  ", " ").strip()
+
     if channel_type == "gmk_auction":
         # 지마켓/옥션: 단일상품 필수, 옵션없음
         std_ol_yn = "Y"
         opt_type = "옵션없음"
         opts = []
         logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=옵션없음")
+    elif channel_type == "coupang":
+        # 쿠팡: 조립형 옵션 필수
+        std_ol_yn = "N"
+        opt_type = "조립형"
+        opts = [
+            {
+                "opt_sort1": "상품선택",
+                "opt_sort1_desc": option_value,
+                "stock_cnt": 999,
+                "status": "정상"
+            }
+        ]
+        logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조립형, 옵션값='{option_value}'")
     else:
-        # 스마트스토어 등: 단일상품 아님, 독립형 옵션
+        # 스마트스토어 등: 독립형 옵션
         std_ol_yn = "N"
         opt_type = "독립형"
-
-        # 옵션값에서 콤마 제거 (스마트스토어는 콤마 사용 불가)
-        product_name = product.get("product_name", "기본")
-        option_value = product_name.replace(",", " ").replace("  ", " ").strip()
-
         opts = [
             {
                 "opt_sort1": "상품선택",
