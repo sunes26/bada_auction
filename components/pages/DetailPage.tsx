@@ -287,7 +287,7 @@ JSON 객체를 생성:
 "point4Description": "특징 설명 300자",
 "productInfoLabel": "상품정보 라벨",
 "cautionLabel": "주의사항 라벨",
-"cautions": "주의사항 300자"
+"cautions": "이 상품을 사용할 때 주의해야 할 점들을 상세히 작성. 보관방법, 사용시 주의점, 부작용 가능성, 알레르기 유발 성분, 사용 금지 대상 등을 포함하여 300자 이상 작성"
 }`;
 
     try {
@@ -323,7 +323,7 @@ JSON 객체를 생성:
         point4Description: "친환경적인 소재를 사용하여 환경을 생각하는 제품입니다.",
         productInfoLabel: "상품정보",
         cautionLabel: "주의사항",
-        cautions: "직사광선을 피하고 서늘한 곳에 보관하세요."
+        cautions: "• 직사광선을 피하고 서늘하고 건조한 곳에 보관해주세요.\n• 개봉 후에는 밀봉하여 보관하시고 가능한 빨리 사용해주세요.\n• 본 제품은 사용 전 사용설명서를 반드시 읽어보시기 바랍니다.\n• 피부에 이상이 생길 경우 사용을 중단하고 전문의와 상담하세요.\n• 어린이 손이 닿지 않는 곳에 보관해주세요."
       };
     }
   };
@@ -348,7 +348,7 @@ JSON 객체를 생성:
 "review2": "고객 후기 2-3줄",
 "review3": "고객 후기 2-3줄",
 "productInfoLabel": "상품정보",
-"cautionContent": "주의사항 100자"
+"cautionContent": "식품 보관방법, 유통기한 확인사항, 알레르기 유발 성분(대두, 밀, 우유, 계란 등), 섭취 시 주의사항을 포함하여 150자 이상 작성"
 }`;
 
     try {
@@ -374,7 +374,7 @@ JSON 객체를 생성:
         reviewer2Name: "Wah5dr****",
         reviewer3Name: "Qhd3gh****",
         productInfoLabel: "상품 정보",
-        cautionContent: "상품정보 제품명을 꼭 확인해주세요.\n상품은 패키지가 다릅니다만 같은 품질을 수 있습니다."
+        cautionContent: "• 상품 수령 후 제품명과 수량을 꼭 확인해주세요.\n• 냉동/냉장 보관이 필요한 제품은 즉시 적정 온도에 보관하세요.\n• 유통기한을 확인하시고 기한 내 섭취해주세요.\n• 알레르기 유발 성분(대두, 밀, 우유 등)이 포함될 수 있으니 성분표를 확인하세요."
       };
     }
   };
@@ -404,7 +404,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
 "freshPoint3Title": "포인트3 제목",
 "freshPoint3Description": "포인트3 설명 150자",
 "cautionLabel": "주의사항",
-"cautionContent": "보관 주의사항 150자",
+"cautionContent": "신선식품 보관온도, 유통기한 및 소비기한, 해동방법, 조리 전 세척방법, 알레르기 주의사항을 포함하여 200자 이상 작성",
 "compositionTitle": "상품구성",
 "checkItem1": "구성1",
 "checkItem2": "구성2",
@@ -416,7 +416,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       if (!result) throw new Error('AI 응답 파싱 실패');
       return { productName, ...result };
     } catch (error) {
-      return { productName, subtitle: "산지직송", productDescription1: "자연이 키운 신선함", goldBadgeText: "100%", coreMessage1: "건강을 위한 최고의 선택", tag1: "#당일수확", tag2: "#친환경", tag3: "#영양만점", priceTitle: "노력대비행", price: "20,000원", rating: "평점 4.8점", advantageTitle: "장점", freshPoint1Title: "산지에서 바로 수확", freshPoint1Description: "새벽에 수확하여 당일 출고하는 신선함", freshPoint2Title: "친환경 재배", freshPoint2Description: "화학농약 없이 자연 그대로", freshPoint3Title: "영양 가득", freshPoint3Description: "비타민과 미네랄이 풍부", cautionLabel: "주의사항", cautionContent: "냉장보관하시고 일주일 이내 드세요.", compositionTitle: "상품 구성", checkItem1: "No.01내용", checkItem2: "No.02내용", checkItem3: "No.03내용" };
+      return { productName, subtitle: "산지직송", productDescription1: "자연이 키운 신선함", goldBadgeText: "100%", coreMessage1: "건강을 위한 최고의 선택", tag1: "#당일수확", tag2: "#친환경", tag3: "#영양만점", priceTitle: "노력대비행", price: "20,000원", rating: "평점 4.8점", advantageTitle: "장점", freshPoint1Title: "산지에서 바로 수확", freshPoint1Description: "새벽에 수확하여 당일 출고하는 신선함", freshPoint2Title: "친환경 재배", freshPoint2Description: "화학농약 없이 자연 그대로", freshPoint3Title: "영양 가득", freshPoint3Description: "비타민과 미네랄이 풍부", cautionLabel: "주의사항", cautionContent: "• 신선식품은 수령 즉시 냉장(0~5°C) 또는 냉동(-18°C 이하) 보관하세요.\n• 해동 시 냉장실에서 천천히 해동하시고, 재냉동은 삼가해주세요.\n• 조리 전 흐르는 물에 깨끗이 세척해주세요.\n• 소비기한 내 섭취를 권장합니다.", compositionTitle: "상품 구성", checkItem1: "No.01내용", checkItem2: "No.02내용", checkItem3: "No.03내용" };
     }
   };
 
@@ -426,14 +426,14 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
 상품명: "${productName}"
 
 JSON:
-{"copywriting": "한 줄 카피", "productInfoLabel": "상품정보 라벨", "productInfo": "상세 정보 300자", "cautionLabel": "주의사항 라벨", "cautionContent": "주의사항 100자"}`;
+{"copywriting": "한 줄 카피", "productInfoLabel": "상품정보 라벨", "productInfo": "상세 정보 300자", "cautionLabel": "주의사항 라벨", "cautionContent": "상품 사용 시 주의해야 할 점, 보관방법, 취급주의사항, 반품/교환 관련 안내를 포함하여 150자 이상 작성"}`;
 
     try {
       const result = await callOpenAI(prompt);
       if (!result) throw new Error('AI 응답 파싱 실패');
       return { productName, ...result };
     } catch (error) {
-      return { productName, copywriting: "일상을 특별하게", productInfoLabel: "상품정보", productInfo: `${productName}은 고객 만족을 최우선으로 개발된 제품입니다. 엄선된 재료와 까다로운 품질 관리를 통해 최고의 품질을 보장합니다.`, cautionLabel: "주의사항", cautionContent: "사용설명서를 확인하세요." };
+      return { productName, copywriting: "일상을 특별하게", productInfoLabel: "상품정보", productInfo: `${productName}은 고객 만족을 최우선으로 개발된 제품입니다. 엄선된 재료와 까다로운 품질 관리를 통해 최고의 품질을 보장합니다.`, cautionLabel: "주의사항", cautionContent: "• 사용 전 사용설명서를 반드시 확인해주세요.\n• 직사광선을 피하고 습기가 없는 서늘한 곳에 보관하세요.\n• 제품 하자 시 수령일로부터 7일 이내 교환/반품 가능합니다.\n• 고객 변심에 의한 반품 시 왕복 배송비가 발생할 수 있습니다." };
     }
   };
 
@@ -443,14 +443,14 @@ JSON:
 상품명: "${productName}"
 
 JSON:
-{"noticeTitle": "Notice 제목", "noticeText": "안내문구", "brandName": "브랜드", "seasonTitle": "시즌 문구", "mainProductName": "상품명", "copywriting1": "카피1", "productInfoLabel": "제품정보 라벨", "cautionLabel": "주의사항", "cautionContent": "주의사항 내용 100자"}`;
+{"noticeTitle": "Notice 제목", "noticeText": "안내문구", "brandName": "브랜드", "seasonTitle": "시즌 문구", "mainProductName": "상품명", "copywriting1": "카피1", "productInfoLabel": "제품정보 라벨", "cautionLabel": "주의사항", "cautionContent": "상품 수량 및 옵션 확인사항, 배송 관련 주의사항, 반품/교환 정책, 보관방법을 포함하여 150자 이상 작성"}`;
 
     try {
       const result = await callOpenAI(prompt);
       if (!result) throw new Error('AI 응답 파싱 실패');
       return { productName, ...result };
     } catch (error) {
-      return { productName, noticeTitle: "Notice", noticeText: "수량을 확인하세요", brandName: "브랜드", seasonTitle: "싱그러운", mainProductName: productName, copywriting1: "가장 맛있을때", productInfoLabel: "제품정보", cautionLabel: "주의사항", cautionContent: "상품 수량과 옵션을 꼭 확인해주세요." };
+      return { productName, noticeTitle: "Notice", noticeText: "수량을 확인하세요", brandName: "브랜드", seasonTitle: "싱그러운", mainProductName: productName, copywriting1: "가장 맛있을때", productInfoLabel: "제품정보", cautionLabel: "주의사항", cautionContent: "• 주문 전 상품명, 수량, 옵션을 반드시 확인해주세요.\n• 상품 이미지와 실제 상품이 다를 수 있습니다.\n• 배송 중 파손 시 수령 당일 고객센터로 연락해주세요.\n• 교환/반품은 수령일로부터 7일 이내 가능합니다." };
     }
   };
 
@@ -473,7 +473,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
 "brandProductName": "상품명",
 "productInfoLabel": "제품정보",
 "cautionLabel": "주의사항",
-"noticeText1": "안내1"
+"noticeText1": "구매 전 확인해야 할 중요사항 (상품명, 수량, 옵션 등) 50자 이내로 작성"
 }`;
 
     try {
@@ -481,7 +481,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       if (!result) throw new Error('AI 응답 파싱 실패');
       return { productName, ...result };
     } catch (error) {
-      return { productName, introTitle: productName, introCopy: "특별한 제품", reviewTitle: "고객만족우수", reviewHashtag: "#솔직후기", review1: "정말 좋아요!", review2: "추천합니다!", review3: "가성비 최고!", healthTitle: "자연의 힘으로 건강한 머릿결을", healthSubtitle: "자연 성분으로 가득한 샴푸, 당신의 머릿결을 부드럽게 돌이 아름다운 기분을 누려보세요", brandProductName: productName, productInfoLabel: "제품정보", cautionLabel: "주의사항", noticeText1: "수량 확인하세요" };
+      return { productName, introTitle: productName, introCopy: "특별한 제품", reviewTitle: "고객만족우수", reviewHashtag: "#솔직후기", review1: "정말 좋아요!", review2: "추천합니다!", review3: "가성비 최고!", healthTitle: "자연의 힘으로 건강한 머릿결을", healthSubtitle: "자연 성분으로 가득한 샴푸, 당신의 머릿결을 부드럽게 돌이 아름다운 기분을 누려보세요", brandProductName: productName, productInfoLabel: "제품정보", cautionLabel: "주의사항", noticeText1: "상품명의 제품명과 수량을 꼭 확인해주세요. 옵션 선택 시 주의하세요." };
     }
   };
 
@@ -1411,6 +1411,56 @@ function GeneratingScreen({ productName, loadingStep }: any) {
   );
 }
 
+// 이미지를 최소 600x600으로 리사이즈하는 함수
+async function resizeImageToMinimum(file: File, minSize: number = 600): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+
+      // 이미지가 이미 최소 크기 이상이면 원본 반환
+      if (width >= minSize && height >= minSize) {
+        resolve(file);
+        return;
+      }
+
+      // 비율을 유지하면서 최소 크기로 확대
+      const scale = Math.max(minSize / width, minSize / height);
+      const newWidth = Math.ceil(width * scale);
+      const newHeight = Math.ceil(height * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+
+      // 고품질 리사이즈 설정
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create blob'));
+          }
+        },
+        'image/jpeg',
+        0.95
+      );
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 // 상품 추가 모달 (상세페이지 생성기에서)
 function AddProductFromDetailPageModal({
   productName,
@@ -1457,6 +1507,45 @@ function AddProductFromDetailPageModal({
     notes: '',
   });
   const [loading, setLoading] = useState(false);
+  const [thumbnailPreview, setThumbnailPreview] = useState(extractedThumbnail);
+  const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
+  // 썸네일 이미지 업로드 핸들러
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingThumbnail(true);
+    try {
+      // 이미지를 최소 600x600으로 리사이즈
+      const resizedBlob = await resizeImageToMinimum(file, 600);
+
+      // FormData로 전송
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', resizedBlob, file.name);
+
+      const response = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      if (!response.ok) {
+        throw new Error('썸네일 업로드 실패');
+      }
+
+      const data = await response.json();
+      if (data.success && data.url) {
+        setThumbnailPreview(data.url);
+        setFormData(prev => ({ ...prev, thumbnail_url: data.url }));
+      }
+    } catch (error) {
+      console.error('썸네일 업로드 오류:', error);
+      alert('썸네일 업로드에 실패했습니다.');
+    } finally {
+      setIsUploadingThumbnail(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1552,15 +1641,17 @@ function AddProductFromDetailPageModal({
         createdAt: new Date().toISOString()
       });
 
-      // 썸네일 다운로드 및 서버에 저장
-      let thumbnailUrl = formData.thumbnail_url;
-      if (extractedThumbnail && extractedThumbnail.startsWith('http')) {
+      // 썸네일 URL 결정 (이미 업로드된 경우 그대로 사용)
+      let thumbnailUrl = thumbnailPreview || formData.thumbnail_url;
+
+      // 외부 URL인 경우에만 서버에 저장 (이미 supabase URL이면 스킵)
+      if (thumbnailUrl && thumbnailUrl.startsWith('http') && !thumbnailUrl.includes('supabase')) {
         try {
           const response = await fetch(`${API_BASE_URL}/api/monitor/save-thumbnail`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              image_url: extractedThumbnail,
+              image_url: thumbnailUrl,
               product_name: formData.product_name
             })
           });
@@ -1588,7 +1679,7 @@ function AddProductFromDetailPageModal({
           sourcing_price: formData.sourcing_price ? parseFloat(formData.sourcing_price) : undefined,
           sourcing_source: formData.sourcing_source || undefined,
           thumbnail_url: thumbnailUrl || undefined,
-          original_thumbnail_url: extractedThumbnail || undefined,  // 원본 외부 URL 저장
+          original_thumbnail_url: thumbnailPreview || extractedThumbnail || undefined,  // 원본 외부 URL 저장
           category: categoryString,
           detail_page_data: detailPageData,
           notes: formData.notes || undefined,
@@ -1634,17 +1725,54 @@ function AddProductFromDetailPageModal({
             </div>
           </div>
 
-          {/* 썸네일 미리보기 */}
-          {extractedThumbnail && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <div className="text-sm font-semibold text-gray-700 mb-2">썸네일</div>
-              <img
-                src={extractedThumbnail}
-                alt="상품 썸네일"
-                className="w-32 h-32 object-cover rounded-lg border border-gray-300"
-              />
+          {/* 썸네일 미리보기 및 편집 */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-semibold text-gray-700">썸네일</div>
+              <button
+                type="button"
+                onClick={() => thumbnailInputRef.current?.click()}
+                disabled={isUploadingThumbnail}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
+              >
+                {isUploadingThumbnail ? '업로드 중...' : '이미지 변경'}
+              </button>
             </div>
-          )}
+            <input
+              ref={thumbnailInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailUpload}
+              className="hidden"
+            />
+            {thumbnailPreview ? (
+              <div className="relative inline-block">
+                <img
+                  src={thumbnailPreview}
+                  alt="상품 썸네일"
+                  className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                />
+                {isUploadingThumbnail && (
+                  <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                    <RefreshCw className="w-6 h-6 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => thumbnailInputRef.current?.click()}
+                disabled={isUploadingThumbnail}
+                className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
+              >
+                <Plus className="w-6 h-6 mb-1" />
+                <span className="text-xs">썸네일 추가</span>
+              </button>
+            )}
+            <p className="text-xs text-gray-500 mt-2">
+              600x600 미만 이미지는 자동으로 확대됩니다
+            </p>
+          </div>
 
           {/* 상품명 */}
           <div>
