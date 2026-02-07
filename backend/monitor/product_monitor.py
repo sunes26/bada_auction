@@ -409,6 +409,36 @@ class ProductMonitor:
                     if (ogTitle && ogTitle.content) return ogTitle.content.trim();
                 }
 
+                // GS샵 선택자
+                if (window.location.hostname.includes('gsshop.com')) {
+                    // 1. 상품명 전용 선택자
+                    const prdName = document.querySelector('.prd-name, .product-name, .prd-title');
+                    if (prdName) return prdName.textContent.trim();
+
+                    // 2. h1 요소
+                    const h1 = document.querySelector('h1');
+                    if (h1 && h1.textContent.trim().length > 5) {
+                        return h1.textContent.trim();
+                    }
+
+                    // 3. og:title 메타 태그
+                    const ogTitle = document.querySelector('meta[property="og:title"]');
+                    if (ogTitle && ogTitle.content) {
+                        // "상품명 - GS SHOP" 형태에서 상품명만 추출
+                        const title = ogTitle.content;
+                        if (title.includes(' - ')) {
+                            return title.split(' - ')[0].trim();
+                        }
+                        return title.trim();
+                    }
+
+                    // 4. 페이지 타이틀에서 추출
+                    const title = document.title;
+                    if (title && title.length > 5) {
+                        return title.split(' - ')[0].split('|')[0].trim();
+                    }
+                }
+
                 // 홈플러스/Traders 선택자
                 if (window.location.hostname.includes('homeplus.co.kr')) {
                     // 1. 페이지 타이틀에서 추출 (가장 안정적)
@@ -615,6 +645,8 @@ class ProductMonitor:
                 result = self._check_gmarket_status()
             elif 'auction.co.kr' in product_url:
                 result = self._check_auction_status()
+            elif 'gsshop.com' in product_url:
+                result = self._check_gsshop_status()
             else:
                 result = self._check_generic_status()
 
@@ -1534,4 +1566,174 @@ class ProductMonitor:
                 'price': None,
                 'original_price': None,
                 'details': f"옥션 체크 오류: {str(e)}"
+            }
+
+    def _check_gsshop_status(self) -> Dict:
+        """GS샵 상품 상태 체크"""
+        try:
+            # JavaScript로 상태 체크
+            status_info = self.driver.execute_script("""
+                // 구매 버튼 영역에서 품절 확인
+                const buyBtn = document.querySelector('.btn-buy, .buy-btn, [class*="buy"][class*="btn"]');
+
+                if (buyBtn) {
+                    const text = buyBtn.textContent;
+                    if (text.includes('품절') || text.includes('SOLD OUT') || text.includes('일시품절')) {
+                        return { status: 'out_of_stock', details: '품절' };
+                    }
+                    if (text.includes('판매종료') || text.includes('판매중지') || text.includes('방송종료')) {
+                        return { status: 'discontinued', details: '판매종료' };
+                    }
+                }
+
+                // 품절 표시 확인
+                const soldoutEl = document.querySelector('.soldout, [class*="soldout"], .sold-out');
+
+                if (soldoutEl && soldoutEl.offsetParent !== null) {
+                    return { status: 'out_of_stock', details: '품절' };
+                }
+
+                // 방송종료 확인 (GS샵 특성)
+                const pageText = document.body.innerText || '';
+                if (pageText.includes('방송종료') || pageText.includes('판매종료')) {
+                    return { status: 'discontinued', details: '방송종료' };
+                }
+
+                return { status: 'available', details: '정상' };
+            """)
+
+            status = status_info.get('status', 'available')
+            details = [status_info.get('details', '')]
+
+            # 가격 추출 (GS샵)
+            price_data = self.driver.execute_script(r"""
+                const result = {
+                    prices: [],
+                    debug_info: []
+                };
+
+                // GS샵 주요 가격 선택자
+                const mainSelectors = [
+                    // 1. 주요 판매가 영역
+                    '.price-definition__amount',
+                    '.prd-price .price',
+                    '.price-amount',
+                    '.sale-price',
+                    // 2. 일반 가격 영역
+                    '[class*="price"] strong',
+                    '.price strong',
+                    '.prd-price strong'
+                ];
+
+                // 우선순위대로 시도
+                for (let selector of mainSelectors) {
+                    const elements = document.querySelectorAll(selector);
+                    if (elements.length > 0) {
+                        elements.forEach(el => {
+                            // 배송비, 적립금 영역 제외
+                            const parentText = el.closest('[class*="price"], .prd-price')?.textContent || '';
+                            const isDelivery = parentText.includes('배송비') || parentText.includes('배송');
+                            const isPoint = parentText.includes('포인트') || parentText.includes('적립');
+                            const isCoupon = el.closest('[class*="coupon"]') !== null;
+
+                            if (!isDelivery && !isPoint && !isCoupon) {
+                                const text = el.textContent.trim();
+                                const num = parseInt(text.replace(/[^0-9]/g, ''));
+                                if (num > 1000 && num < 10000000) {
+                                    result.prices.push(num);
+                                    result.debug_info.push(`${selector}: ${num}원`);
+                                }
+                            }
+                        });
+
+                        if (result.prices.length > 0) {
+                            break;
+                        }
+                    }
+                }
+
+                // 가격을 못 찾은 경우, 텍스트에서 "원" 패턴 찾기
+                if (result.prices.length === 0) {
+                    const priceSection = document.querySelector('.prd-price, [class*="price"]');
+                    if (priceSection) {
+                        const text = priceSection.textContent;
+                        const matches = text.match(/(\d{1,3}(,\d{3})*)\s*원/g);
+                        if (matches) {
+                            matches.forEach(match => {
+                                const num = parseInt(match.replace(/[^0-9]/g, ''));
+                                if (num > 1000 && num < 10000000) {
+                                    result.prices.push(num);
+                                    result.debug_info.push(`텍스트 추출: ${num}원`);
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // og:price 메타 태그 확인
+                if (result.prices.length === 0) {
+                    const ogPrice = document.querySelector('meta[property="product:price:amount"]');
+                    if (ogPrice && ogPrice.content) {
+                        const num = parseInt(ogPrice.content);
+                        if (num > 100 && num < 10000000) {
+                            result.prices.push(num);
+                            result.debug_info.push(`og:price: ${num}원`);
+                        }
+                    }
+                }
+
+                // body 텍스트에서 가격 패턴 찾기
+                if (result.prices.length === 0) {
+                    const bodyText = document.body.innerText;
+                    const priceMatches = bodyText.match(/(\d{1,3}(,\d{3})+)\s*원/g);
+                    if (priceMatches) {
+                        priceMatches.slice(0, 10).forEach(match => {
+                            const num = parseInt(match.replace(/[^0-9]/g, ''));
+                            if (num > 1000 && num < 10000000) {
+                                result.prices.push(num);
+                                result.debug_info.push(`body: ${num}원`);
+                            }
+                        });
+                    }
+                }
+
+                return result;
+            """)
+
+            print(f"[DEBUG] GS샵 가격 추출 정보: {price_data}")
+            logger.debug(f"GS샵 가격 추출 정보: {price_data}")
+
+            prices = price_data.get('prices', []) if price_data else []
+
+            if len(prices) > 0:
+                prices_sorted = sorted(prices)
+                if len(prices) == 1:
+                    price = prices_sorted[0]
+                elif len(prices) >= 3:
+                    # 3개 이상이면 중간값 선택
+                    price = prices_sorted[len(prices) // 2]
+                else:
+                    # 2개면 작은 값 선택 (할인가)
+                    price = prices_sorted[0]
+
+                logger.info(f"GS샵 추출된 모든 가격: {prices_sorted}")
+                logger.info(f"GS샵 선택된 가격: {price}원")
+            else:
+                price = None
+                logger.warning("GS샵 가격 추출 실패")
+
+            return {
+                'status': status,
+                'price': price,
+                'original_price': None,
+                'details': ', '.join(details) if details else '정상'
+            }
+
+        except Exception as e:
+            logger.error(f"GS샵 체크 오류: {str(e)}")
+            return {
+                'status': 'error',
+                'price': None,
+                'original_price': None,
+                'details': f"GS샵 체크 오류: {str(e)}"
             }

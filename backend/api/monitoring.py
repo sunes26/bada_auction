@@ -321,8 +321,10 @@ async def extract_url_info(request: dict):
             source = 'gmarket'
         elif 'auction.co.kr' in product_url:
             source = 'auction'
+        elif 'gsshop.com' in product_url:
+            source = 'gsshop'
         else:
-            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 롯데ON, G마켓, 옥션 URL을 입력해주세요.")
+            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 롯데ON, G마켓, 옥션, GS샵 URL을 입력해주세요.")
 
         # 봇 감지 보호 사이트 (FlareSolverr 사용)
         bot_protected_sites = ['gmarket.co.kr', 'auction.co.kr']
@@ -632,6 +634,27 @@ async def extract_url_info(request: dict):
                 time.sleep(2)
                 wait_for_cloudflare()
                 time.sleep(1)  # 추가 안정화
+            elif 'gsshop.com' in product_url:
+                # GS샵: 동적 콘텐츠 로드 대기
+                print(f"[GSSHOP] 콘텐츠 로딩 대기 중...")
+                for i in range(8):  # 최대 8초 대기
+                    try:
+                        has_price = monitor.driver.execute_script("""
+                            // 가격 텍스트가 있는지 확인
+                            const priceEl = document.querySelector('.price-definition__amount, .price-amount, [class*="price"] strong');
+                            if (priceEl) return true;
+                            const bodyText = document.body.innerText || '';
+                            if (/\\d{1,3}(,\\d{3})+\\s*원/.test(bodyText)) return true;
+                            return false;
+                        """)
+                        if has_price:
+                            print(f"[GSSHOP] 가격 콘텐츠 로드 완료 ({i+1}초)")
+                            break
+                    except:
+                        pass
+                    print(f"[GSSHOP] 대기 중... ({i+1}/8초)")
+                    time.sleep(1)
+                time.sleep(1)  # 추가 안정화
             elif 'homeplus.co.kr' in product_url:
                 # 홈플러스: DOM 완전히 로드될 때까지 명시적 대기 (최적화)
                 time.sleep(1)
@@ -718,6 +741,8 @@ async def extract_url_info(request: dict):
                 result = monitor._check_gmarket_status()
             elif 'auction.co.kr' in product_url:
                 result = monitor._check_auction_status()
+            elif 'gsshop.com' in product_url:
+                result = monitor._check_gsshop_status()
             else:
                 result = monitor._check_generic_status()
 
@@ -746,6 +771,15 @@ async def extract_url_info(request: dict):
                                        document.querySelector('.item-topimg img') ||
                                        document.querySelector('#mainImage') ||
                                        document.querySelector('.box-im img');
+                        if (mainImg && mainImg.src) return mainImg.src;
+                    }
+
+                    // 2-1. GS샵 전용 셀렉터
+                    if (window.location.hostname.includes('gsshop.com')) {
+                        const mainImg = document.querySelector('.prd-image img') ||
+                                       document.querySelector('.product-image img') ||
+                                       document.querySelector('.prd-img img') ||
+                                       document.querySelector('[class*="prd"][class*="img"] img');
                         if (mainImg && mainImg.src) return mainImg.src;
                     }
 
@@ -988,6 +1022,17 @@ async def save_thumbnail(request: SaveThumbnailRequest):
             high_res_url = re.sub(r'_(\d{2,3})\.(jpg|jpeg|png|webp)', r'_800.\2', image_url, flags=re.IGNORECASE)
             if high_res_url != image_url:
                 print(f"[DEBUG] SSG 고해상도 URL 시도: {high_res_url[:100]}...")
+                image_url = high_res_url
+
+        # GS샵: 이미지 크기 파라미터 확대
+        if 'gsshop.com' in image_url or 'gstatic.gsshop.com' in image_url:
+            import re
+            # width/height 파라미터 변경
+            high_res_url = re.sub(r'[?&](width|height)=\d+', r'?\1=800', image_url)
+            # /300/ → /800/ 패턴
+            high_res_url = re.sub(r'/(\d{2,3})/', r'/800/', high_res_url)
+            if high_res_url != image_url:
+                print(f"[DEBUG] GS샵 고해상도 URL 시도: {high_res_url[:100]}...")
                 image_url = high_res_url
 
         # 이미지 다운로드 (Railway 환경 고려하여 타임아웃 증가)
