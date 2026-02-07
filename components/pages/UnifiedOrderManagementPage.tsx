@@ -157,7 +157,8 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [trackingInfo, setTrackingInfo] = useState({
     carrier_code: '4', // 기본값: CJ대한통운
-    tracking_number: ''
+    tracking_number: '',
+    custom_carrier_name: '' // 직접 입력용
   });
 
   // 송장 관리 탭 상태
@@ -447,7 +448,8 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
     setSelectedOrder(order);
     setTrackingInfo({
       carrier_code: '4', // 기본값: CJ대한통운
-      tracking_number: ''
+      tracking_number: '',
+      custom_carrier_name: ''
     });
     setIsTrackingModalOpen(true);
   };
@@ -460,7 +462,8 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
     setSelectedOrder(null);
     setTrackingInfo({
       carrier_code: '4',
-      tracking_number: ''
+      tracking_number: '',
+      custom_carrier_name: ''
     });
   };
 
@@ -1819,16 +1822,56 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
               </label>
               <select
                 value={trackingInfo.carrier_code}
-                onChange={(e) => setTrackingInfo({ ...trackingInfo, carrier_code: e.target.value })}
+                onChange={(e) => setTrackingInfo({ ...trackingInfo, carrier_code: e.target.value, custom_carrier_name: '' })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="4">CJ대한통운</option>
-                <option value="5">한진택배</option>
-                <option value="8">롯데택배</option>
-                <option value="1">우체국택배</option>
-                <option value="6">로젠택배</option>
+                <optgroup label="주요 택배사">
+                  <option value="4">CJ대한통운</option>
+                  <option value="5">한진택배</option>
+                  <option value="8">롯데택배</option>
+                  <option value="1">우체국택배</option>
+                  <option value="6">로젠택배</option>
+                </optgroup>
+                <optgroup label="기타 택배사">
+                  <option value="11">일양로지스</option>
+                  <option value="12">EMS</option>
+                  <option value="13">DHL</option>
+                  <option value="14">UPS</option>
+                  <option value="15">FedEx</option>
+                  <option value="16">TNT</option>
+                  <option value="20">대신택배</option>
+                  <option value="21">경동택배</option>
+                  <option value="22">합동택배</option>
+                  <option value="23">CU편의점택배</option>
+                  <option value="24">GS편의점택배</option>
+                  <option value="25">홈픽택배</option>
+                  <option value="26">SLX택배</option>
+                  <option value="27">우리택배</option>
+                  <option value="28">천일택배</option>
+                  <option value="29">건영택배</option>
+                  <option value="30">GSMNtoN</option>
+                </optgroup>
+                <optgroup label="직접 입력">
+                  <option value="custom">직접 입력</option>
+                </optgroup>
               </select>
             </div>
+
+            {/* 직접 입력 시 배송사명 입력 필드 */}
+            {trackingInfo.carrier_code === 'custom' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  배송사명 직접 입력
+                </label>
+                <input
+                  type="text"
+                  value={trackingInfo.custom_carrier_name}
+                  onChange={(e) => setTrackingInfo({ ...trackingInfo, custom_carrier_name: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="배송사명을 입력하세요"
+                />
+              </div>
+            )}
 
             {/* 송장번호 입력 */}
             <div className="mb-6">
