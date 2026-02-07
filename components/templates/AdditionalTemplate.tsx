@@ -1,3 +1,4 @@
+import { AlertCircle } from 'lucide-react';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
 import { TemplateProps } from './TemplateProps';
@@ -261,6 +262,42 @@ export default function AdditionalTemplate(props: TemplateProps) {
               </button>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* 주의사항 Section */}
+      <div className="w-full bg-gray-100 py-16 px-10">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertCircle className="w-6 h-6 text-yellow-600" />
+              <h4 className="text-xl font-bold text-gray-800">
+                <EditableText
+                  field="cautionLabel"
+                  value={content.cautionLabel || '주의사항'}
+                  editingField={editingField}
+                  editingValue={editingValue}
+                  onEdit={onTextEdit}
+                  onSave={onTextSave}
+                  onCancel={onTextCancel}
+                  onValueChange={onValueChange}
+                />
+              </h4>
+            </div>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+              <EditableText
+                field="cautionContent"
+                value={content.cautionContent || '상품 수량과 옵션을 꼭 확인해주세요.'}
+                isTextarea
+                editingField={editingField}
+                editingValue={editingValue}
+                onEdit={onTextEdit}
+                onSave={onTextSave}
+                onCancel={onTextCancel}
+                onValueChange={onValueChange}
+              />
+            </p>
+          </div>
         </div>
       </div>
     </>

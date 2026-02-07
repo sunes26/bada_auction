@@ -229,6 +229,52 @@ export default function FreshTemplate(props: TemplateProps) {
           {/* 이미지 */}
           <EditableImage imageKey="fresh_template2_main" uploadedImages={uploadedImages} className="w-full h-[400px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+
+          {/* 추가 이미지 슬롯 */}
+          {Array.from({ length: additionalImageSlots }).map((_, index) => (
+            <div key={index} className="relative mt-6">
+              <EditableImage
+                imageKey={`additional_product_image_${index}`}
+                uploadedImages={uploadedImages}
+                className="w-full h-[400px] rounded-2xl shadow-xl"
+                onImageUpload={onImageUpload}
+                onImageRefresh={onImageRefresh}
+                onImageDrop={onImageDrop}
+                onImageClick={onImageClick}
+                editingImage={editingImage}
+                imageStyleSettings={imageStyleSettings}
+                onImageDelete={onImageDelete}
+                imageSizes={imageSizes}
+                onImageResize={onImageResize}
+                imagePositions={imagePositions}
+                onImageMove={onImageMove}
+                fillContainer={false}
+                isResizable={true}
+              />
+              {onRemoveImageSlot && (
+                <button
+                  onClick={() => onRemoveImageSlot(index)}
+                  className="absolute top-2 left-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg z-10"
+                  title="이미지 슬롯 삭제"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+
+          {/* + 버튼 */}
+          {onAddImageSlot && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={onAddImageSlot}
+                className="w-16 h-16 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors shadow-md"
+                title="이미지 추가"
+              >
+                <span className="text-4xl font-light">+</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>

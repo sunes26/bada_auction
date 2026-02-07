@@ -443,14 +443,14 @@ JSON:
 상품명: "${productName}"
 
 JSON:
-{"noticeTitle": "Notice 제목", "noticeText": "안내문구", "brandName": "브랜드", "seasonTitle": "시즌 문구", "mainProductName": "상품명", "copywriting1": "카피1", "productInfoLabel": "제품정보 라벨"}`;
+{"noticeTitle": "Notice 제목", "noticeText": "안내문구", "brandName": "브랜드", "seasonTitle": "시즌 문구", "mainProductName": "상품명", "copywriting1": "카피1", "productInfoLabel": "제품정보 라벨", "cautionLabel": "주의사항", "cautionContent": "주의사항 내용 100자"}`;
 
     try {
       const result = await callOpenAI(prompt);
       if (!result) throw new Error('AI 응답 파싱 실패');
       return { productName, ...result };
     } catch (error) {
-      return { productName, noticeTitle: "Notice", noticeText: "수량을 확인하세요", brandName: "브랜드", seasonTitle: "싱그러운", mainProductName: productName, copywriting1: "가장 맛있을때", productInfoLabel: "제품정보" };
+      return { productName, noticeTitle: "Notice", noticeText: "수량을 확인하세요", brandName: "브랜드", seasonTitle: "싱그러운", mainProductName: productName, copywriting1: "가장 맛있을때", productInfoLabel: "제품정보", cautionLabel: "주의사항", cautionContent: "상품 수량과 옵션을 꼭 확인해주세요." };
     }
   };
 
