@@ -19,7 +19,11 @@ DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 # 메인 로거 설정
 logger = logging.getLogger("onbaek-ai")
-logger.setLevel(logging.INFO)
+# 프로덕션: WARNING 이상만, 개발: INFO 이상
+if ENVIRONMENT == 'production':
+    logger.setLevel(logging.WARNING)
+else:
+    logger.setLevel(logging.INFO)
 
 # 기존 핸들러 제거 (중복 방지)
 if logger.hasHandlers():
@@ -27,7 +31,8 @@ if logger.hasHandlers():
 
 # 콘솔 핸들러 (stdout) - 모든 환경에서 사용
 console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
+# 프로덕션: WARNING 이상만, 개발: INFO 이상
+console_handler.setLevel(logging.WARNING if ENVIRONMENT == 'production' else logging.INFO)
 console_formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
 console_handler.setFormatter(console_formatter)
 logger.addHandler(console_handler)

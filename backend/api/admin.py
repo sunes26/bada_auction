@@ -77,6 +77,24 @@ def verify_admin_access(
 
     return True
 
+# 인증 없이 접근 가능한 라우터 (비밀번호 검증용)
+public_router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+from pydantic import BaseModel
+
+class PasswordVerifyRequest(BaseModel):
+    password: str
+
+@public_router.post("/verify-password")
+async def verify_password(request: PasswordVerifyRequest):
+    """비밀번호 검증 (프론트엔드 로그인용)"""
+    expected_password = os.getenv('ADMIN_PASSWORD', '8888')
+
+    if request.password == expected_password:
+        return {"authenticated": True}
+    else:
+        return {"authenticated": False}
+
 # Admin router with authentication
 # 프로덕션 환경에서는 모든 엔드포인트에 인증 필요
 router = APIRouter(

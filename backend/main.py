@@ -21,13 +21,14 @@ from api.auto_pricing import router as auto_pricing_router
 
 # Admin router import with error handling
 try:
-    from api.admin import router as admin_router
+    from api.admin import router as admin_router, public_router as admin_public_router
     print(f"[OK] Admin router imported: {len(admin_router.routes)} routes")
 except Exception as e:
     print(f"[ERROR] Failed to import admin router: {e}")
     import traceback
     traceback.print_exc()
     admin_router = None
+    admin_public_router = None
 from database.db_wrapper import get_db
 from playauto.scheduler import start_scheduler as start_playauto_scheduler, stop_scheduler as stop_playauto_scheduler
 from monitor.scheduler import start_scheduler as start_monitor_scheduler, stop_scheduler as stop_monitor_scheduler
@@ -513,6 +514,11 @@ if admin_router is not None:
     print(f"[OK] Admin router registered")
 else:
     print(f"[ERROR] Admin router not registered")
+
+# Admin public router (비밀번호 검증용 - 인증 불필요)
+if admin_public_router is not None:
+    app.include_router(admin_public_router)
+    print(f"[OK] Admin public router registered")
 
 # 등록된 라우트 출력 (디버깅용)
 logger.debug("\n등록된 라우트:")

@@ -89,14 +89,24 @@ export default function AdminPage() {
   const [imageStats, setImageStats] = useState<ImageStats | null>(null);
   const [databaseStats, setDatabaseStats] = useState<DatabaseStats | null>(null);
 
-  const handleLogin = () => {
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || '8888';
-    if (password === adminPassword) {
-      setIsAuthenticated(true);
-      setPassword('');
-      loadDashboardData();
-    } else {
-      alert('비밀번호가 올바르지 않습니다.');
+  const handleLogin = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/verify-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const data = await response.json();
+
+      if (data.authenticated) {
+        setIsAuthenticated(true);
+        setPassword('');
+        loadDashboardData();
+      } else {
+        alert('비밀번호가 올바르지 않습니다.');
+      }
+    } catch (error) {
+      alert('인증 중 오류가 발생했습니다.');
     }
   };
 
