@@ -5,6 +5,7 @@
 from fastapi import APIRouter, HTTPException
 from database.database_manager import get_database_manager
 from logger import get_logger
+from utils.cache import async_cached
 
 logger = get_logger(__name__)
 
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
 @router.get("/all")
+@async_cached(ttl=30)  # 30초 캐싱
 async def get_all_dashboard_data():
     """
     대시보드에 필요한 모든 데이터를 한 번에 조회
