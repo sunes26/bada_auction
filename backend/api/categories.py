@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any, Optional
 from database.database_manager import get_database_manager
 from pydantic import BaseModel
+from utils.cache import async_cached
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
 
@@ -23,6 +24,7 @@ class CategoryUpdate(BaseModel):
     level4: Optional[str] = None
 
 @router.get("/")
+@async_cached(ttl=300)  # 5분 캐싱 (카테고리는 자주 안 바뀜)
 async def get_all_categories():
     """전체 카테고리 목록 조회"""
     try:
@@ -46,6 +48,7 @@ async def get_all_categories():
 
 
 @router.get("/structure")
+@async_cached(ttl=300)  # 5분 캐싱
 async def get_category_structure():
     """
     카테고리 계층 구조 조회 (상세페이지 생성기용)
@@ -94,6 +97,7 @@ async def get_category_structure():
 
 
 @router.get("/levels")
+@async_cached(ttl=300)  # 5분 캐싱
 async def get_category_levels(level1: Optional[str] = None, level2: Optional[str] = None, level3: Optional[str] = None):
     """
     카테고리 계층별 옵션 조회
@@ -168,6 +172,7 @@ async def create_category(category: CategoryCreate):
 
 
 @router.get("/next-number")
+@async_cached(ttl=60)  # 1분 캐싱
 async def get_next_folder_number():
     """다음 폴더 번호 조회 (자동 증가)"""
     try:
@@ -208,6 +213,7 @@ async def get_next_folder_number():
 
 
 @router.get("/distinct-values")
+@async_cached(ttl=300)  # 5분 캐싱
 async def get_distinct_category_values():
     """각 카테고리 레벨별 고유값 조회 (드롭다운용)"""
     try:

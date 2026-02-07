@@ -414,6 +414,7 @@ async def get_tracking_upload_history(limit: int = 50):
 # ========================================
 
 @router.get("/sync-logs")
+@async_cached(ttl=30)  # 30초 캐싱
 async def get_playauto_sync_logs(
     sync_type: Optional[str] = None,
     limit: int = 100
@@ -437,6 +438,7 @@ async def get_playauto_sync_logs(
 # ========================================
 
 @router.get("/stats/by-market")
+@async_cached(ttl=60)  # 1분 캐싱
 async def get_market_stats(days: int = 7):
     """마켓별 통계 조회"""
     try:
@@ -510,6 +512,7 @@ async def get_market_stats(days: int = 7):
 
 
 @router.get("/stats/by-status")
+@async_cached(ttl=60)  # 1분 캐싱
 async def get_status_stats():
     """주문 상태별 카운트 조회"""
     try:

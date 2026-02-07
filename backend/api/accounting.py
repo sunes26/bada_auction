@@ -14,6 +14,7 @@ from database.db_wrapper import get_db
 from database.models import (
     Order, OrderItem, Expense, Settlement, MarketOrderRaw
 )
+from utils.cache import async_cached
 
 router = APIRouter(prefix="/api/accounting", tags=["accounting"])
 
@@ -88,6 +89,7 @@ def model_to_dict(obj) -> Dict:
 # ==========================================
 
 @router.get("/dashboard/stats")
+@async_cached(ttl=60)  # 1분 캐싱
 async def get_accounting_dashboard_stats(period: str = "this_month"):
     """
     회계 대시보드 통계
@@ -258,6 +260,7 @@ async def get_accounting_dashboard_stats(period: str = "this_month"):
 # ==========================================
 
 @router.get("/profit-loss")
+@async_cached(ttl=60)  # 1분 캐싱
 async def get_profit_loss_statement(start_date: str, end_date: str):
     """
     손익계산서 조회
@@ -368,6 +371,7 @@ async def get_profit_loss_statement(start_date: str, end_date: str):
 # ==========================================
 
 @router.get("/expenses")
+@async_cached(ttl=30)  # 30초 캐싱
 async def get_expenses(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -495,6 +499,7 @@ async def delete_expense(expense_id: int):
 # ==========================================
 
 @router.get("/settlements")
+@async_cached(ttl=30)  # 30초 캐싱
 async def get_settlements(market: Optional[str] = None):
     """정산 목록 조회"""
     try:
@@ -605,6 +610,7 @@ async def delete_settlement(settlement_id: int):
 # ==========================================
 
 @router.get("/tax/vat")
+@async_cached(ttl=300)  # 5분 캐싱 (세금 계산은 자주 안 바뀜)
 async def get_vat_calculation(year: int, quarter: int):
     """
     부가세 계산 (분기별)
@@ -698,6 +704,7 @@ async def get_vat_calculation(year: int, quarter: int):
 
 
 @router.get("/tax/income")
+@async_cached(ttl=300)  # 5분 캐싱
 async def get_income_tax_estimate(year: int):
     """
     종합소득세 예상 계산 (연간)
@@ -804,6 +811,7 @@ async def get_income_tax_estimate(year: int):
 # ==========================================
 
 @router.get("/report/monthly")
+@async_cached(ttl=120)  # 2분 캐싱
 async def get_monthly_report(year: int, month: int):
     """
     월별 회계 리포트
@@ -937,6 +945,7 @@ async def get_monthly_report(year: int, month: int):
 # ==========================================
 
 @router.get("/expense-categories")
+@async_cached(ttl=3600)  # 1시간 캐싱 (카테고리는 거의 안 바뀜)
 async def get_expense_categories():
     """지출 카테고리 목록"""
     return {
