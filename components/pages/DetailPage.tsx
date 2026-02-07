@@ -77,22 +77,14 @@ export default function DetailPage() {
     });
   };
 
-  const handleTemplateSelect = async (templateKey: TemplateType) => {
+  const handleTemplateSelect = (templateKey: TemplateType) => {
     if (!category.level1 || !category.level2 || !category.level3 || !category.level4) {
       setShowError(true);
       return;
     }
     setSelectedTemplate(templateKey);
     setShowError(false);
-
-    try {
-      const images = await imageService.getAutoImages(category);
-      setUploadedImages(images);
-      console.log('✅ 자동 이미지 로딩 완료:', Object.keys(images).length, '개');
-    } catch (error) {
-      console.error('❌ 자동 이미지 로딩 실패:', error);
-    }
-
+    // 이미지 로딩은 생성 버튼 클릭 시 수행
     setScreen('product-input');
   };
 
@@ -494,6 +486,17 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
     setScreen('generating');
     setLoadingStep(0);
 
+    // 이미지 로딩 (병렬로 진행)
+    const imageLoadingPromise = (async () => {
+      try {
+        const images = await imageService.getAutoImages(category);
+        setUploadedImages(images);
+        console.log('✅ 자동 이미지 로딩 완료:', Object.keys(images).length, '개');
+      } catch (error) {
+        console.error('❌ 자동 이미지 로딩 실패:', error);
+      }
+    })();
+
     const steps = [
       { delay: 800, step: 0 },
       { delay: 1500, step: 1 },
@@ -505,6 +508,9 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       await new Promise(resolve => setTimeout(resolve, delay));
       setLoadingStep(step);
     }
+
+    // 이미지 로딩 완료 대기
+    await imageLoadingPromise;
 
     try {
       let content;
