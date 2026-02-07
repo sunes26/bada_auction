@@ -88,7 +88,27 @@ async def update_selling_products_sourcing_price():
                     source=source or 'unknown'
                 )
 
+                status = result.get('status', 'available')
                 new_price = result.get('price')
+                details = result.get('details', '')
+
+                # 판매종료/품절/삭제 상태 감지 시 알림
+                if status in ['discontinued', 'out_of_stock', 'unavailable']:
+                    print(f"[ALERT] ID#{product_id}: 상품 상태 이상 - {status} ({details})")
+                    try:
+                        from notifications.notifier import send_notification
+                        send_notification(
+                            notification_type='product_unavailable',
+                            message=f"소싱 상품 상태 이상: {product_name}",
+                            product_id=product_id,
+                            product_name=product_name,
+                            sourcing_url=sourcing_url,
+                            status=status,
+                            details=details
+                        )
+                        print(f"[ALERT] ID#{product_id}: 상품 상태 알림 발송됨")
+                    except Exception as notify_err:
+                        print(f"[WARN] 알림 발송 실패: {notify_err}")
 
                 if new_price and new_price > 0:
                     # 가격 추출 성공 - 실패 카운트 초기화

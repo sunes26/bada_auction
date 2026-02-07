@@ -530,6 +530,120 @@ def format_inventory_alert(
     return {"slack": slack_message, "discord": discord_message}
 
 
+def format_product_unavailable_alert(
+    product_id: int,
+    product_name: str,
+    sourcing_url: str,
+    status: str,
+    details: str
+) -> Dict:
+    """
+    소싱 상품 판매종료/삭제 알림 메시지 포맷팅
+    """
+    status_emoji = {
+        'discontinued': '🚫',
+        'out_of_stock': '📦',
+        'unavailable': '❌',
+        'error': '⚠️'
+    }
+    status_text = {
+        'discontinued': '판매종료',
+        'out_of_stock': '품절',
+        'unavailable': '접근불가',
+        'error': '오류'
+    }
+
+    emoji = status_emoji.get(status, '❓')
+    status_label = status_text.get(status, status)
+
+    # Slack Block Kit 형식
+    slack_message = {
+        "text": f"{emoji} 소싱 상품 {status_label}: {product_name}",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"{emoji} 소싱 상품 {status_label} 감지"
+                }
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*상품 ID:*\n#{product_id}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*상태:*\n{status_label}"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*상품명:*\n{product_name}"
+                }
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*소싱 URL:*\n{sourcing_url[:100]}..."
+                }
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*상세:*\n{details}"
+                }
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"감지 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    }
+                ]
+            }
+        ]
+    }
+
+    # 색상 설정
+    color_map = {
+        'discontinued': 15158332,  # Red
+        'out_of_stock': 15844367,  # Orange
+        'unavailable': 10038562,   # Gray
+        'error': 16776960          # Yellow
+    }
+    color = color_map.get(status, 8421504)
+
+    # Discord Embed 형식
+    discord_message = {
+        "embeds": [{
+            "title": f"{emoji} 소싱 상품 {status_label} 감지",
+            "color": color,
+            "fields": [
+                {"name": "상품 ID", "value": f"#{product_id}", "inline": True},
+                {"name": "상태", "value": status_label, "inline": True},
+                {"name": "상품명", "value": product_name, "inline": False},
+                {"name": "소싱 URL", "value": sourcing_url[:200], "inline": False},
+                {"name": "상세", "value": details, "inline": False}
+            ],
+            "footer": {
+                "text": "소싱처에서 상품이 삭제되었거나 판매가 종료되었을 수 있습니다. 대체 소싱처를 확인하세요."
+            },
+            "timestamp": datetime.now().isoformat()
+        }]
+    }
+
+    return {"slack": slack_message, "discord": discord_message}
+
+
 def format_price_fetch_fail_alert(
     product_id: int,
     product_name: str,
@@ -803,6 +917,14 @@ def send_notification(
                 product_name=kwargs.get('product_name', ''),
                 sourcing_url=kwargs.get('sourcing_url', ''),
                 fail_count=kwargs.get('fail_count', 0)
+            )
+        elif notification_type == 'product_unavailable':
+            formatted_messages = format_product_unavailable_alert(
+                product_id=kwargs.get('product_id', 0),
+                product_name=kwargs.get('product_name', ''),
+                sourcing_url=kwargs.get('sourcing_url', ''),
+                status=kwargs.get('status', 'unavailable'),
+                details=kwargs.get('details', '')
             )
 
         # Webhook 발송
