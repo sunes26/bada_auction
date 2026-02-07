@@ -14,6 +14,13 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from logger import get_logger
 
+# FlareSolverr 클라이언트 임포트
+try:
+    from utils.flaresolverr import solve_cloudflare
+    FLARESOLVERR_AVAILABLE = True
+except ImportError:
+    FLARESOLVERR_AVAILABLE = False
+
 logger = get_logger(__name__)
 
 # undetected-chromedriver (봇 감지 우회)
@@ -477,6 +484,109 @@ class ProductMonitor:
             print(f"[DEBUG] 상품명 추출 오류: {str(e)}")
             return None
 
+    def _try_flaresolverr(self, product_url: str) -> Optional[Dict]:
+        """
+        FlareSolverr로 페이지 내용 가져오기 및 가격 추출 시도
+
+        Returns:
+            성공 시 {'status', 'price', 'original_price', 'details'} 딕셔너리
+            실패 시 None (Selenium 폴백 필요)
+        """
+        if not FLARESOLVERR_AVAILABLE:
+            logger.debug("FlareSolverr 모듈을 사용할 수 없습니다")
+            return None
+
+        try:
+            logger.info(f"[FLARESOLVERR] G마켓/옥션 봇 보호 우회 시도: {product_url}")
+            flaresolverr_result = solve_cloudflare(product_url, max_timeout=60000)
+
+            if not flaresolverr_result or not flaresolverr_result.get('html'):
+                logger.warning("[FLARESOLVERR] 실패 또는 빈 응답")
+                return None
+
+            html_content = flaresolverr_result.get('html', '')
+            logger.info(f"[FLARESOLVERR] HTML 수신 완료 (길이: {len(html_content)})")
+
+            soup = BeautifulSoup(html_content, 'html.parser')
+
+            # 품절 상태 확인
+            status = 'available'
+            page_text = soup.get_text().lower()
+            if '품절' in page_text or 'sold out' in page_text:
+                status = 'out_of_stock'
+            elif '판매종료' in page_text or '판매중지' in page_text:
+                status = 'discontinued'
+
+            # 가격 추출
+            price = None
+            original_price = None
+
+            # 1. og:price 메타 태그
+            og_price = soup.select_one('meta[property="product:price:amount"]')
+            if og_price and og_price.get('content'):
+                try:
+                    price = int(og_price.get('content'))
+                    logger.debug(f"[FLARESOLVERR] og:price에서 가격 추출: {price}")
+                except:
+                    pass
+
+            # 2. 가격 선택자로 추출
+            if not price:
+                price_selectors = [
+                    '.price_sect .price strong',
+                    '.item_price .price strong',
+                    '.box__item-price .price strong',
+                    '.price strong'
+                ]
+                for selector in price_selectors:
+                    elements = soup.select(selector)
+                    for el in elements:
+                        text = el.get_text(strip=True)
+                        num = int(re.sub(r'[^0-9]', '', text) or '0')
+                        if 1000 < num < 10000000:
+                            price = num
+                            logger.debug(f"[FLARESOLVERR] 선택자 {selector}에서 가격 추출: {price}")
+                            break
+                    if price:
+                        break
+
+            # 3. 정규식으로 추출
+            if not price:
+                price_matches = re.findall(r'(\d{1,3}(?:,\d{3})+)\s*원', html_content)
+                valid_prices = []
+                for match in price_matches[:10]:
+                    try:
+                        num = int(match.replace(',', ''))
+                        if 1000 < num < 10000000:
+                            valid_prices.append(num)
+                    except:
+                        pass
+
+                if valid_prices:
+                    # 중간값 선택 (최소값은 배송비일 수 있음)
+                    valid_prices.sort()
+                    if len(valid_prices) >= 3:
+                        price = valid_prices[len(valid_prices) // 2]
+                    else:
+                        price = valid_prices[-1] if len(valid_prices) > 1 else valid_prices[0]
+                    logger.debug(f"[FLARESOLVERR] 정규식에서 가격 추출: {price}")
+
+            if price:
+                logger.info(f"[FLARESOLVERR] 성공! 가격: {price}원, 상태: {status}")
+                return {
+                    'status': status,
+                    'price': price,
+                    'original_price': original_price,
+                    'details': 'FlareSolverr로 추출'
+                }
+            else:
+                logger.warning("[FLARESOLVERR] 가격 추출 실패, Selenium으로 폴백")
+                return None
+
+        except Exception as e:
+            logger.error(f"[FLARESOLVERR] 오류: {str(e)}")
+            return None
+
     def check_product_status(self, product_url: str, source: str) -> Dict:
         """
         상품 페이지를 체크하여 상태 및 가격 정보 반환
@@ -490,6 +600,14 @@ class ProductMonitor:
             }
         """
         try:
+            # G마켓/옥션은 FlareSolverr 먼저 시도 (봇 감지 우회)
+            if 'gmarket.co.kr' in product_url or 'auction.co.kr' in product_url:
+                flaresolverr_result = self._try_flaresolverr(product_url)
+                if flaresolverr_result:
+                    return flaresolverr_result
+                # 실패 시 Selenium으로 폴백
+                logger.info("[SELENIUM] FlareSolverr 실패, Selenium으로 폴백")
+
             self._init_driver()
 
             print(f"모니터링: {product_url}")
