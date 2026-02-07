@@ -71,7 +71,7 @@ async def get_all_dashboard_data():
                 SELECT
                     COUNT(*) as total_products,
                     SUM(CASE WHEN is_active = {is_true} THEN 1 ELSE 0 END) as active_products
-                FROM selling_products
+                FROM my_selling_products
                 WHERE playauto_product_no IS NOT NULL
             """)
             playauto_row = cursor.fetchone()
@@ -90,8 +90,8 @@ async def get_all_dashboard_data():
                 SELECT
                     COUNT(*) as total,
                     SUM(CASE WHEN is_active = {is_true} THEN 1 ELSE 0 END) as active,
-                    SUM(CASE WHEN has_margin_issue = {is_true} THEN 1 ELSE 0 END) as margin_issues
-                FROM monitoring_products
+                    0 as margin_issues
+                FROM monitored_products
             """)
             monitor_row = cursor.fetchone()
             monitor_stats = {
@@ -108,7 +108,7 @@ async def get_all_dashboard_data():
         try:
             cursor.execute("""
                 SELECT id, order_number, market, customer_name, total_amount,
-                       status, created_at, updated_at
+                       order_status, created_at, updated_at
                 FROM orders
                 ORDER BY created_at DESC
                 LIMIT 10
@@ -135,7 +135,7 @@ async def get_all_dashboard_data():
         try:
             cursor.execute("""
                 SELECT o.id, o.order_number, o.market, o.customer_name,
-                       o.total_amount, o.status, o.created_at, o.updated_at,
+                       o.total_amount, o.order_status, o.created_at, o.updated_at,
                        oi.id as item_id, oi.product_name, oi.quantity,
                        oi.sourcing_price, oi.selling_price
                 FROM orders o

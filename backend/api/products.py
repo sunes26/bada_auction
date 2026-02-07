@@ -1104,7 +1104,7 @@ async def sync_product_to_playauto(product_id: int):
             SELECT id, product_name, selling_price, sourcing_price,
                    category, thumbnail_url, detail_page_data,
                    playauto_product_no, c_sale_cd
-            FROM selling_products
+            FROM my_selling_products
             WHERE id = ?
         """, (product_id,))
         product = cursor.fetchone()

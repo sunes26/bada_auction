@@ -215,7 +215,7 @@ async def get_orders_with_items(
 
         # 전체 개수 조회
         if status:
-            cursor.execute(f"SELECT COUNT(*) FROM orders WHERE status = {placeholder}", (status,))
+            cursor.execute(f"SELECT COUNT(*) FROM orders WHERE order_status = {placeholder}", (status,))
         else:
             cursor.execute("SELECT COUNT(*) FROM orders")
         total_count = cursor.fetchone()[0]
@@ -228,17 +228,17 @@ async def get_orders_with_items(
         if status:
             cursor.execute(f"""
                 SELECT id, order_number, market, customer_name, customer_phone,
-                       customer_address, total_amount, status, created_at, updated_at,
+                       customer_address, total_amount, order_status, created_at, updated_at,
                        tracking_number, order_date, sync_source, playauto_order_id
                 FROM orders
-                WHERE status = {placeholder}
+                WHERE order_status = {placeholder}
                 ORDER BY created_at DESC
                 LIMIT {placeholder} OFFSET {placeholder}
             """, (status, limit, offset))
         else:
             cursor.execute(f"""
                 SELECT id, order_number, market, customer_name, customer_phone,
-                       customer_address, total_amount, status, created_at, updated_at,
+                       customer_address, total_amount, order_status, created_at, updated_at,
                        tracking_number, order_date, sync_source, playauto_order_id
                 FROM orders
                 ORDER BY created_at DESC
