@@ -20,10 +20,10 @@ logger = get_logger(__name__)
 class DynamicPricingService:
     """동적 가격 조정 서비스"""
 
-    def __init__(self, target_margin_rate: float = 50.0):
+    def __init__(self, target_margin_rate: float = 30.0):
         """
         Args:
-            target_margin_rate: 목표 마진율 (%, 기본값 50%)
+            target_margin_rate: 목표 마진율 (%, 기본값 30%)
         """
         self.target_margin_rate = target_margin_rate
         self.playauto_api = PlayautoProductAPI()

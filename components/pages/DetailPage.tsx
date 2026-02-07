@@ -125,10 +125,10 @@ export default function DetailPage() {
           alert('상품명을 자동으로 감지할 수 없습니다. 직접 입력해주세요.');
         }
 
-        // 가격 설정 및 50% 마진 계산
+        // 가격 설정 및 30% 마진 계산
         if (current_price && current_price > 0) {
           setSourcingPrice(current_price);
-          const calculatedSellingPrice = Math.ceil(current_price * 1.5); // 50% 마진
+          const calculatedSellingPrice = Math.ceil(current_price * 1.3); // 30% 마진
           setSellingPrice(calculatedSellingPrice);
         }
 
@@ -852,7 +852,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
           current_price: sourcingPrice,
           original_price: sourcingPrice,
           check_interval: 15,
-          notes: `상세페이지 생성기에서 추가 | 판매가: ${sellingPrice?.toLocaleString()}원 (50% 마진)`
+          notes: `상세페이지 생성기에서 추가 | 판매가: ${sellingPrice?.toLocaleString()}원 (30% 마진)`
         })
       });
 
@@ -1249,7 +1249,7 @@ function ProductInputScreen({
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border-2 border-blue-200">
             <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-blue-600" />
-              가격 정보 (50% 마진 자동 계산)
+              가격 정보 (30% 마진 자동 계산)
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white rounded-lg p-4 border border-gray-200">
@@ -1259,7 +1259,7 @@ function ProductInputScreen({
                 </p>
               </div>
               <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 shadow-lg">
-                <p className="text-xs text-white/80 mb-1">판매가 (50% 마진)</p>
+                <p className="text-xs text-white/80 mb-1">판매가 (30% 마진)</p>
                 <p className="text-2xl font-bold text-white">
                   {sellingPrice ? `${sellingPrice.toLocaleString()}원` : '추출 대기 중...'}
                 </p>
@@ -1267,9 +1267,9 @@ function ProductInputScreen({
             </div>
             <div className="mt-3 bg-white rounded-lg p-3 border border-gray-200">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">순이익 (50% 마진)</span>
+                <span className="text-gray-600">순이익 (30% 마진)</span>
                 <span className="font-bold text-green-600">
-                  {sourcingPrice ? `+${Math.ceil(sourcingPrice * 0.5).toLocaleString()}원` : '-'}
+                  {sourcingPrice ? `+${Math.ceil(sourcingPrice * 0.3).toLocaleString()}원` : '-'}
                 </span>
               </div>
             </div>

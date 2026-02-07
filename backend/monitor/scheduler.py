@@ -34,7 +34,7 @@ async def update_selling_products_sourcing_price():
 
         # 동적 가격 조정 서비스 초기화
         from services.dynamic_pricing_service import DynamicPricingService
-        pricing_service = DynamicPricingService(target_margin_rate=50.0)
+        pricing_service = DynamicPricingService(target_margin_rate=30.0)
 
         # 소싱 URL이 있는 활성 판매 상품 조회 (업데이트가 오래된 순서대로)
         with db.db_manager.get_session() as session:
@@ -137,7 +137,7 @@ async def update_selling_products_sourcing_price():
                                 price_adjusted_count += 1
                                 print(f"[OK] 판매가 자동 조정: {adjust_result['old_selling_price']:,}원 → {adjust_result['new_selling_price']:,}원 (마진율 {adjust_result['new_margin_rate']}%)")
                             else:
-                                print(f"[OK] 판매가 유지 (마진율 50% 이미 적용)")
+                                print(f"[OK] 판매가 유지 (마진율 30% 이미 적용)")
 
                         except Exception as e:
                             print(f"[WARN] 판매가 자동 조정 실패: {str(e)}")
@@ -187,7 +187,7 @@ async def update_selling_products_sourcing_price():
         if updated_count > 0:
             print(f"[SELLING_MONITOR] [알림] {updated_count}개 상품의 소싱가가 업데이트되었습니다!")
         if price_adjusted_count > 0:
-            print(f"[SELLING_MONITOR] [알림] {price_adjusted_count}개 상품의 판매가가 자동 조정되었습니다! (마진율 50% 유지)")
+            print(f"[SELLING_MONITOR] [알림] {price_adjusted_count}개 상품의 판매가가 자동 조정되었습니다! (마진율 30% 유지)")
 
     except Exception as e:
         print(f"[ERROR] 판매 상품 소싱가 업데이트 중 오류: {e}")
