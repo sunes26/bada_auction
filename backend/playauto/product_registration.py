@@ -436,7 +436,7 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
             ]
         channel_type: 채널 타입 ("gmk_auction", "coupang", "smartstore")
             - "gmk_auction": 옥션/지마켓 (std_ol_yn="Y", opt_type="옵션없음", 단일상품)
-            - "coupang": 쿠팡 (std_ol_yn="N", opt_type="조립형", 일반상품)
+            - "coupang": 쿠팡 (std_ol_yn="N", opt_type="조합형", 일반상품)
             - "smartstore": 스마트스토어 등 (std_ol_yn="N", opt_type="독립형", 일반상품)
 
     Returns:
@@ -491,9 +491,9 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         opts = []
         logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=옵션없음")
     elif channel_type == "coupang":
-        # 쿠팡: 조립형 옵션 필수
+        # 쿠팡: 조합형 옵션 필수
         std_ol_yn = "N"
-        opt_type = "조립형"
+        opt_type = "조합형"
         opts = [
             {
                 "opt_sort1": "상품선택",
@@ -502,7 +502,7 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
                 "status": "정상"
             }
         ]
-        logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조립형, 옵션값='{option_value}'")
+        logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, 옵션값='{option_value}'")
     else:
         # 스마트스토어 등: 독립형 옵션
         std_ol_yn = "N"

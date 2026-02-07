@@ -837,7 +837,7 @@ async def register_products_to_playauto(request: dict):
                     "A001", "a001", "AUCTION", "auction",  # 옥션
                     "A006", "a006", "GMK", "gmk",  # 지마켓
                 ]
-                # 쿠팡은 조립형 옵션 필요
+                # 쿠팡은 조합형 옵션 필요
                 coupang_codes = ["A027", "a027", "CPM", "cpm", "COUPANG", "coupang"]
                 esm_codes = ["ESM", "esm", "Esm"]  # ESM은 제외
 
@@ -856,7 +856,7 @@ async def register_products_to_playauto(request: dict):
                         logger.info(f"[상품등록] '{shop_cd}' → 단일상품으로 분류")
                     elif shop_cd in coupang_codes:
                         coupang_sites.append(site)
-                        logger.info(f"[상품등록] '{shop_cd}' → 쿠팡(조립형)으로 분류")
+                        logger.info(f"[상품등록] '{shop_cd}' → 쿠팡(조합형)으로 분류")
                     else:
                         smartstore_sites.append(site)
                         logger.info(f"[상품등록] '{shop_cd}' → 스마트스토어(독립형)으로 분류")
@@ -868,7 +868,7 @@ async def register_products_to_playauto(request: dict):
 
                 logger.info(f"[상품등록] 채널 분리 완료:")
                 logger.info(f"  - 단일상품(옥션/지마켓): {len(single_product_sites)}개 {[s.get('shop_cd') for s in single_product_sites]}")
-                logger.info(f"  - 쿠팡(조립형): {len(coupang_sites)}개 {[s.get('shop_cd') for s in coupang_sites]}")
+                logger.info(f"  - 쿠팡(조합형): {len(coupang_sites)}개 {[s.get('shop_cd') for s in coupang_sites]}")
                 logger.info(f"  - 스마트스토어(독립형): {len(smartstore_sites)}개 {[s.get('shop_cd') for s in smartstore_sites]}")
                 logger.info(f"  - ESM 제외: {len(esm_sites)}개 {[s.get('shop_cd') for s in esm_sites]}")
 
@@ -898,11 +898,11 @@ async def register_products_to_playauto(request: dict):
                         logger.error(f"[상품등록] ✗ 단일상품 등록 실패: {result_single.get('error')}")
                         logger.error(f"[상품등록] 전체 응답: {result_single}")
 
-                # 2. 쿠팡 등록 (있는 경우) - 조립형 옵션
+                # 2. 쿠팡 등록 (있는 경우) - 조합형 옵션
                 if coupang_sites:
                     logger.info(f"[상품등록] ===== 쿠팡 등록 시작 =====")
                     logger.info(f"[상품등록] 채널 수: {len(coupang_sites)}개")
-                    logger.info(f"[상품등록] 설정: std_ol_yn=N, opt_type=조립형")
+                    logger.info(f"[상품등록] 설정: std_ol_yn=N, opt_type=조합형")
                     product_data_coupang = build_product_data_from_db(product, coupang_sites, channel_type="coupang")
                     result_coupang = await registration_api.register_product(product_data_coupang)
 
