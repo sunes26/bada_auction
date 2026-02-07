@@ -596,25 +596,16 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
           <h1 className="text-3xl font-bold text-gray-800">내 판매 상품</h1>
           <p className="text-gray-600 mt-1">판매 중인 상품과 소싱 정보를 관리하세요</p>
         </div>
-        {/* 모바일에서는 상품 추가 버튼 숨김 */}
+        {/* 쇼핑몰 상품코드 수집 버튼 */}
         {!isMobile && (
-          <div className="flex gap-3">
-            <button
-              onClick={handleSyncAllMarketplaceCodes}
-              disabled={syncingMarketplaceCodes}
-              className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw className={`w-5 h-5 ${syncingMarketplaceCodes ? 'animate-spin' : ''}`} />
-              {syncingMarketplaceCodes ? '수집 중...' : '쇼핑몰 상품코드 수집'}
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              상품 추가
-            </button>
-          </div>
+          <button
+            onClick={handleSyncAllMarketplaceCodes}
+            disabled={syncingMarketplaceCodes}
+            className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-5 h-5 ${syncingMarketplaceCodes ? 'animate-spin' : ''}`} />
+            {syncingMarketplaceCodes ? '수집 중...' : '쇼핑몰 상품코드 수집'}
+          </button>
         )}
       </div>
 
@@ -753,18 +744,9 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
         <div className="bg-white rounded-xl shadow-lg p-12 text-center border border-gray-200">
           <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-700 mb-2">등록된 상품이 없습니다</h3>
-          <p className="text-gray-500 mb-6">
-            {isMobile ? '데스크톱에서 상품을 추가해주세요.' : '첫 상품을 추가해보세요!'}
+          <p className="text-gray-500">
+            상세페이지 생성기에서 상품을 추가해주세요.
           </p>
-          {!isMobile && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              상품 추가
-            </button>
-          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
