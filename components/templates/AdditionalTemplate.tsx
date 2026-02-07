@@ -81,6 +81,8 @@ export default function AdditionalTemplate(props: TemplateProps) {
               onSave={onTextSave}
               onCancel={onTextCancel}
               onValueChange={onValueChange}
+              onStyleClick={onTextStyleClick}
+              textStyles={textStyles}
             />
           </p>
           <h2 className="text-5xl font-bold text-center text-gray-800 mb-12">
@@ -93,6 +95,8 @@ export default function AdditionalTemplate(props: TemplateProps) {
               onSave={onTextSave}
               onCancel={onTextCancel}
               onValueChange={onValueChange}
+              onStyleClick={onTextStyleClick}
+              textStyles={textStyles}
             />
           </h2>
 
@@ -131,6 +135,8 @@ export default function AdditionalTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </h3>
         <p className="text-lg leading-relaxed max-w-4xl mx-auto">
@@ -143,6 +149,8 @@ export default function AdditionalTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </p>
       </div>
@@ -159,6 +167,8 @@ export default function AdditionalTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </h2>
         <div className="max-w-3xl mx-auto">
@@ -195,6 +205,8 @@ export default function AdditionalTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </h2>
         <div className="max-w-4xl mx-auto">
@@ -281,6 +293,8 @@ export default function AdditionalTemplate(props: TemplateProps) {
                   onSave={onTextSave}
                   onCancel={onTextCancel}
                   onValueChange={onValueChange}
+                  onStyleClick={onTextStyleClick}
+                  textStyles={textStyles}
                 />
               </h4>
             </div>
@@ -295,6 +309,8 @@ export default function AdditionalTemplate(props: TemplateProps) {
                 onSave={onTextSave}
                 onCancel={onTextCancel}
                 onValueChange={onValueChange}
+                onStyleClick={onTextStyleClick}
+                textStyles={textStyles}
               />
             </p>
           </div>

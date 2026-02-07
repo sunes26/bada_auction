@@ -20,6 +20,8 @@ export default function SimpleTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </h1>
         <p className="text-3xl text-gray-600 font-light">
@@ -32,6 +34,8 @@ export default function SimpleTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </p>
       </div>
@@ -73,6 +77,8 @@ export default function SimpleTemplate(props: TemplateProps) {
               onSave={onTextSave}
               onCancel={onTextCancel}
               onValueChange={onValueChange}
+              onStyleClick={onTextStyleClick}
+              textStyles={textStyles}
             />
           </h2>
 
@@ -165,6 +171,8 @@ export default function SimpleTemplate(props: TemplateProps) {
                   onSave={onTextSave}
                   onCancel={onTextCancel}
                   onValueChange={onValueChange}
+                  onStyleClick={onTextStyleClick}
+                  textStyles={textStyles}
                 />
               </h3>
             </div>
@@ -179,6 +187,8 @@ export default function SimpleTemplate(props: TemplateProps) {
                 onSave={onTextSave}
                 onCancel={onTextCancel}
                 onValueChange={onValueChange}
+                onStyleClick={onTextStyleClick}
+                textStyles={textStyles}
               />
             </p>
           </div>

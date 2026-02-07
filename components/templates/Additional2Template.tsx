@@ -11,10 +11,10 @@ export default function Additional2Template(props: TemplateProps) {
       {/* Hero Section - 황금 비누방울 */}
       <div className="w-full bg-gradient-to-b from-amber-50 to-white py-20 px-10 text-center">
         <h1 className="text-6xl font-bold text-gray-800 mb-4">
-          <EditableText field="introTitle" value={content.introTitle} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+          <EditableText field="introTitle" value={content.introTitle} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
         </h1>
         <p className="text-3xl text-gray-600 mb-12 uppercase tracking-wider">
-          <EditableText field="introCopy" value={content.introCopy} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+          <EditableText field="introCopy" value={content.introCopy} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
         </p>
         <EditableImage imageKey="additional2_template1_main" uploadedImages={uploadedImages} className="w-full max-w-4xl mx-auto h-[600px] rounded-3xl shadow-2xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
@@ -23,16 +23,16 @@ export default function Additional2Template(props: TemplateProps) {
       {/* 고객만족우수 Section */}
       <div className="w-full bg-white py-20 px-10">
         <h2 className="text-4xl font-bold text-center text-gray-800 mb-4">
-          <EditableText field="reviewTitle" value={content.reviewTitle || "고객만족우수"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} className="text-gray-800" />
+          <EditableText field="reviewTitle" value={content.reviewTitle || "고객만족우수"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} className="text-gray-800" />
         </h2>
         <p className="text-center text-blue-600 text-xl mb-12">
-          <EditableText field="reviewHashtag" value={content.reviewHashtag || "#솔직후기"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} className="text-blue-600" />
+          <EditableText field="reviewHashtag" value={content.reviewHashtag || "#솔직후기"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} className="text-blue-600" />
         </p>
         <div className="max-w-4xl mx-auto space-y-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="bg-gray-50 rounded-2xl p-8 shadow-lg">
               <div className="flex mb-3">{[1, 2, 3, 4, 5].map((j) => (<Star key={j} className="w-5 h-5 fill-yellow-400 text-yellow-400" />))}</div>
-              <div className="text-lg text-gray-700"><EditableText field={`review${i}`} value={content[`review${i}`]} isTextarea editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} className="text-gray-700" /></div>
+              <div className="text-lg text-gray-700"><EditableText field={`review${i}`} value={content[`review${i}`]} isTextarea editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} className="text-gray-700" /></div>
             </div>
           ))}
         </div>
@@ -42,10 +42,10 @@ export default function Additional2Template(props: TemplateProps) {
       <div className="w-full bg-gray-50 py-20 px-10">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl font-bold text-center text-gray-800 mb-12">
-            <EditableText field="healthTitle" value={content.healthTitle || "자연의 힘으로 건강한 머릿결을"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="healthTitle" value={content.healthTitle || "자연의 힘으로 건강한 머릿결을"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </h2>
           <p className="text-center text-xl text-gray-600 mb-12">
-            <EditableText field="healthSubtitle" value={content.healthSubtitle || "자연 성분으로 가득한 샴푸, 당신의 머릿결을 부드럽게 돌이 아름다운 기분을 누려보세요"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="healthSubtitle" value={content.healthSubtitle || "자연 성분으로 가득한 샴푸, 당신의 머릿결을 부드럽게 돌이 아름다운 기분을 누려보세요"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
 
           {/* 2개 이미지: 큰 이미지 + 작은 이미지 */}
@@ -63,7 +63,7 @@ export default function Additional2Template(props: TemplateProps) {
       {/* 샴푸 Section - 제품명 + 이미지 */}
       <div className="w-full bg-white py-20 px-10 text-center">
         <h2 className="text-5xl font-bold text-gray-800 mb-12">
-          <EditableText field="brandProductName" value={content.brandProductName} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+          <EditableText field="brandProductName" value={content.brandProductName} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
         </h2>
         <div className="max-w-3xl mx-auto">
           <EditableImage imageKey="additional2_template3_product" uploadedImages={uploadedImages} className="w-full h-[600px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
@@ -83,6 +83,8 @@ export default function Additional2Template(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </h2>
         <div className="max-w-4xl mx-auto">
@@ -154,11 +156,13 @@ export default function Additional2Template(props: TemplateProps) {
                 onSave={onTextSave}
                 onCancel={onTextCancel}
                 onValueChange={onValueChange}
+                onStyleClick={onTextStyleClick}
+                textStyles={textStyles}
               />
             </h4>
           </div>
           <p className="text-base leading-relaxed">
-            <EditableText field="noticeText1" value={content.noticeText1 || "상품명의 제품명과 수량을 꼭! 확인해주세요."} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="noticeText1" value={content.noticeText1 || "상품명의 제품명과 수량을 꼭! 확인해주세요."} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
         </div>
       </div>

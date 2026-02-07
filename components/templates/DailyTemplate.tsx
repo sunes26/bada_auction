@@ -65,6 +65,8 @@ export default function DailyTemplate(props: TemplateProps) {
                   onSave={onTextSave}
                   onCancel={onTextCancel}
                   onValueChange={onValueChange}
+                  onStyleClick={onTextStyleClick}
+                  textStyles={textStyles}
                 />
               </p>
               <h2 className="text-7xl font-extrabold text-cyan-400 mt-2 drop-shadow-lg">
@@ -77,6 +79,8 @@ export default function DailyTemplate(props: TemplateProps) {
                   onSave={onTextSave}
                   onCancel={onTextCancel}
                   onValueChange={onValueChange}
+                  onStyleClick={onTextStyleClick}
+                  textStyles={textStyles}
                 />
               </h2>
             </div>
@@ -99,6 +103,8 @@ export default function DailyTemplate(props: TemplateProps) {
                       onSave={onTextSave}
                       onCancel={onTextCancel}
                       onValueChange={onValueChange}
+                      onStyleClick={onTextStyleClick}
+                      textStyles={textStyles}
                     />
                   </p>
                 </div>
@@ -120,6 +126,8 @@ export default function DailyTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </h3>
         <p className="text-lg text-gray-600 mt-4 mb-8">
@@ -132,6 +140,8 @@ export default function DailyTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </p>
 
@@ -149,6 +159,8 @@ export default function DailyTemplate(props: TemplateProps) {
                   onSave={onTextSave}
                   onCancel={onTextCancel}
                   onValueChange={onValueChange}
+                  onStyleClick={onTextStyleClick}
+                  textStyles={textStyles}
                 />
               </span>
             </div>
@@ -273,6 +285,8 @@ export default function DailyTemplate(props: TemplateProps) {
                   onSave={onTextSave}
                   onCancel={onTextCancel}
                   onValueChange={onValueChange}
+                  onStyleClick={onTextStyleClick}
+                  textStyles={textStyles}
                   className="text-white"
                 />
               </p>
@@ -286,6 +300,8 @@ export default function DailyTemplate(props: TemplateProps) {
                   onSave={onTextSave}
                   onCancel={onTextCancel}
                   onValueChange={onValueChange}
+                  onStyleClick={onTextStyleClick}
+                  textStyles={textStyles}
                   className="text-gray-500"
                 />님
               </p>
@@ -306,6 +322,8 @@ export default function DailyTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </h3>
         <p className="text-lg text-gray-600 mt-4 mb-8">
@@ -318,6 +336,8 @@ export default function DailyTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </p>
         <EditableImage
@@ -352,6 +372,8 @@ export default function DailyTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </div>
 
@@ -388,6 +410,8 @@ export default function DailyTemplate(props: TemplateProps) {
                     onSave={onTextSave}
                     onCancel={onTextCancel}
                     onValueChange={onValueChange}
+                    onStyleClick={onTextStyleClick}
+                    textStyles={textStyles}
                   />
                 </p>
               </div>
@@ -408,6 +432,8 @@ export default function DailyTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </div>
 
@@ -490,6 +516,8 @@ export default function DailyTemplate(props: TemplateProps) {
                   onSave={onTextSave}
                   onCancel={onTextCancel}
                   onValueChange={onValueChange}
+                  onStyleClick={onTextStyleClick}
+                  textStyles={textStyles}
                 />
               </h4>
             </div>
@@ -504,6 +532,8 @@ export default function DailyTemplate(props: TemplateProps) {
                 onSave={onTextSave}
                 onCancel={onTextCancel}
                 onValueChange={onValueChange}
+                onStyleClick={onTextStyleClick}
+                textStyles={textStyles}
               />
             </p>
           </div>

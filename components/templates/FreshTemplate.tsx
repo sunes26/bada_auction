@@ -17,7 +17,7 @@ export default function FreshTemplate(props: TemplateProps) {
 
         {/* 초록 배지 */}
         <div className="inline-block bg-green-500 text-white px-6 py-2 rounded-full text-lg font-bold mb-6">
-          <EditableText field="subtitle" value={content.subtitle} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+          <EditableText field="subtitle" value={content.subtitle} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
         </div>
 
         {/* 제품 이미지 */}
@@ -32,7 +32,7 @@ export default function FreshTemplate(props: TemplateProps) {
         <div className="max-w-5xl mx-auto">
           {/* 빨간 텍스트 */}
           <p className="text-center text-2xl text-red-500 font-semibold mb-12 leading-relaxed">
-            <EditableText field="productDescription1" value={content.productDescription1} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="productDescription1" value={content.productDescription1} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
 
           {/* 이미지 + 100% 황금 배지 */}
@@ -52,6 +52,8 @@ export default function FreshTemplate(props: TemplateProps) {
                   onSave={onTextSave}
                   onCancel={onTextCancel}
                   onValueChange={onValueChange}
+                  onStyleClick={onTextStyleClick}
+                  textStyles={textStyles}
                 />
               </div>
             </div>
@@ -63,7 +65,7 @@ export default function FreshTemplate(props: TemplateProps) {
               <div key={i} className="flex flex-col items-center">
                 <div className="w-24 h-24 rounded-full bg-white border-4 border-pink-400 flex items-center justify-center mb-4 shadow-lg">
                   <span className="text-3xl">
-                    <EditableText field={`tag${i}`} value={content[`tag${i}`]} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+                    <EditableText field={`tag${i}`} value={content[`tag${i}`]} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
                   </span>
                 </div>
               </div>
@@ -77,17 +79,17 @@ export default function FreshTemplate(props: TemplateProps) {
         {/* 황금 배지 */}
         <div className="inline-block relative mb-8">
           <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 text-black px-8 py-4 rounded-full font-bold text-2xl shadow-2xl">
-            <EditableText field="coreMessage1" value={content.coreMessage1 || "최고급 원유"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="coreMessage1" value={content.coreMessage1 || "최고급 원유"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </div>
         </div>
 
         {/* 가격 정보 */}
         <div className="max-w-md mx-auto bg-white text-black rounded-2xl p-8 mb-8">
           <h3 className="text-4xl font-bold mb-4">
-            <EditableText field="priceTitle" value={content.priceTitle || "노력대비행"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="priceTitle" value={content.priceTitle || "노력대비행"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </h3>
           <p className="text-5xl font-extrabold text-red-600">
-            <EditableText field="price" value={content.price || "20,000원"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="price" value={content.price || "20,000원"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
         </div>
 
@@ -99,7 +101,7 @@ export default function FreshTemplate(props: TemplateProps) {
             ))}
           </div>
           <p className="text-3xl font-bold">
-            <EditableText field="rating" value={content.rating || "평점 4.8점"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="rating" value={content.rating || "평점 4.8점"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
         </div>
       </div>
@@ -116,6 +118,8 @@ export default function FreshTemplate(props: TemplateProps) {
             onSave={onTextSave}
             onCancel={onTextCancel}
             onValueChange={onValueChange}
+            onStyleClick={onTextStyleClick}
+            textStyles={textStyles}
           />
         </h2>
         <div className="max-w-4xl mx-auto">
@@ -129,11 +133,11 @@ export default function FreshTemplate(props: TemplateProps) {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <span className="inline-block bg-pink-500 text-white px-8 py-3 rounded-full font-bold text-xl">
-              <EditableText field="freshPoint1Title" value={content.freshPoint1Title || "아침 커피의 단짝"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+              <EditableText field="freshPoint1Title" value={content.freshPoint1Title || "아침 커피의 단짝"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
             </span>
           </div>
           <p className="text-center text-xl text-gray-700 mb-8">
-            <EditableText field="freshPoint1Description" value={content.freshPoint1Description} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="freshPoint1Description" value={content.freshPoint1Description} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
           <EditableImage imageKey="fresh_point2" uploadedImages={uploadedImages} className="w-full h-[500px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
@@ -145,11 +149,11 @@ export default function FreshTemplate(props: TemplateProps) {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <span className="inline-block bg-pink-500 text-white px-8 py-3 rounded-full font-bold text-xl">
-              <EditableText field="freshPoint2Title" value={content.freshPoint2Title || "면역 개선에 탁월"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+              <EditableText field="freshPoint2Title" value={content.freshPoint2Title || "면역 개선에 탁월"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
             </span>
           </div>
           <p className="text-center text-xl text-gray-700 mb-8">
-            <EditableText field="freshPoint2Description" value={content.freshPoint2Description} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="freshPoint2Description" value={content.freshPoint2Description} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
           <EditableImage imageKey="fresh_point3" uploadedImages={uploadedImages} className="w-full h-[500px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
@@ -161,11 +165,11 @@ export default function FreshTemplate(props: TemplateProps) {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <span className="inline-block bg-pink-500 text-white px-8 py-3 rounded-full font-bold text-xl">
-              <EditableText field="freshPoint3Title" value={content.freshPoint3Title || "비타민 풍부 보장"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+              <EditableText field="freshPoint3Title" value={content.freshPoint3Title || "비타민 풍부 보장"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
             </span>
           </div>
           <p className="text-center text-xl text-gray-700 mb-8">
-            <EditableText field="freshPoint3Description" value={content.freshPoint3Description} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="freshPoint3Description" value={content.freshPoint3Description} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
           <EditableImage imageKey="fresh_composition_image" uploadedImages={uploadedImages} className="w-full h-[500px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
@@ -187,11 +191,13 @@ export default function FreshTemplate(props: TemplateProps) {
                 onSave={onTextSave}
                 onCancel={onTextCancel}
                 onValueChange={onValueChange}
+                onStyleClick={onTextStyleClick}
+                textStyles={textStyles}
               />
             </h3>
           </div>
           <p className="text-lg text-gray-700 leading-relaxed whitespace-pre-wrap">
-            <EditableText field="cautionContent" value={content.cautionContent} isTextarea editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+            <EditableText field="cautionContent" value={content.cautionContent} isTextarea editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
         </div>
       </div>
@@ -209,6 +215,8 @@ export default function FreshTemplate(props: TemplateProps) {
               onSave={onTextSave}
               onCancel={onTextCancel}
               onValueChange={onValueChange}
+              onStyleClick={onTextStyleClick}
+              textStyles={textStyles}
             />
           </h2>
 
@@ -219,7 +227,7 @@ export default function FreshTemplate(props: TemplateProps) {
                 <li key={i} className="flex items-center gap-3">
                   <span className="text-green-600 text-2xl">✓</span>
                   <span className="text-lg text-gray-700">
-                    <EditableText field={`checkItem${i}`} value={content[`checkItem${i}`] || `No.0${i}내용`} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} />
+                    <EditableText field={`checkItem${i}`} value={content[`checkItem${i}`] || `No.0${i}내용`} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
                   </span>
                 </li>
               ))}

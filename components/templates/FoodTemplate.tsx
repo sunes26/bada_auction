@@ -136,6 +136,8 @@ export default function FoodTemplate(props: TemplateProps) {
                 onSave={onTextSave}
                 onCancel={onTextCancel}
                 onValueChange={onValueChange}
+                onStyleClick={onTextStyleClick}
+                textStyles={textStyles}
               />
             </span>
           ))}
@@ -220,6 +222,8 @@ export default function FoodTemplate(props: TemplateProps) {
                     onSave={onTextSave}
                     onCancel={onTextCancel}
                     onValueChange={onValueChange}
+                    onStyleClick={onTextStyleClick}
+                    textStyles={textStyles}
                     className="text-gray-800"
                   />
                 </div>
@@ -233,6 +237,8 @@ export default function FoodTemplate(props: TemplateProps) {
                     onSave={onTextSave}
                     onCancel={onTextCancel}
                     onValueChange={onValueChange}
+                    onStyleClick={onTextStyleClick}
+                    textStyles={textStyles}
                     className="text-gray-500"
                   />님
                 </p>
@@ -256,6 +262,8 @@ export default function FoodTemplate(props: TemplateProps) {
               onSave={onTextSave}
               onCancel={onTextCancel}
               onValueChange={onValueChange}
+              onStyleClick={onTextStyleClick}
+              textStyles={textStyles}
             />
           </div>
 
@@ -347,6 +355,8 @@ export default function FoodTemplate(props: TemplateProps) {
                 onSave={onTextSave}
                 onCancel={onTextCancel}
                 onValueChange={onValueChange}
+                onStyleClick={onTextStyleClick}
+                textStyles={textStyles}
               />
             </p>
           </div>
