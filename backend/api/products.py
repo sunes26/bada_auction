@@ -828,17 +828,21 @@ async def register_products_to_playauto(request: dict):
                 for site in site_list:
                     logger.info(f"[상품등록] 채널 정보 - shop_cd: {site.get('shop_cd')}, shop_id: {site.get('shop_id')}, template_no: {site.get('template_no')}")
 
-                # 지마켓(GMK), 옥션(Auction) 관련 shop_cd
-                # A001: 지마켓(GMK), A006: 옥션(Auction)
-                gmk_auction_codes = ["GMK", "gmk", "A001", "a001", "A006", "a006", "AUCTION", "auction"]
+                # 단일상품으로 등록할 마켓 코드 (옵션없음 방식)
+                # A001: 옥션, A006: 지마켓, A027: 쿠팡
+                single_product_codes = [
+                    "GMK", "gmk", "A001", "a001",  # 옥션
+                    "A006", "a006", "AUCTION", "auction",  # 지마켓
+                    "A027", "a027", "COUPANG", "coupang"  # 쿠팡
+                ]
                 esm_codes = ["ESM", "esm", "Esm"]  # ESM은 제외
 
                 # ESM 제외하고 채널 분리
-                gmk_auction_sites = [site for site in site_list
-                                     if site.get("shop_cd") in gmk_auction_codes
-                                     and site.get("shop_cd") not in esm_codes]
+                single_product_sites = [site for site in site_list
+                                        if site.get("shop_cd") in single_product_codes
+                                        and site.get("shop_cd") not in esm_codes]
                 smartstore_sites = [site for site in site_list
-                                   if site.get("shop_cd") not in gmk_auction_codes
+                                   if site.get("shop_cd") not in single_product_codes
                                    and site.get("shop_cd") not in esm_codes]
 
                 # ESM 채널 확인 및 경고
@@ -847,8 +851,8 @@ async def register_products_to_playauto(request: dict):
                     logger.warning(f"[상품등록] ESM 채널 {len(esm_sites)}개 감지 - ESM은 단일상품 제약이 있어 자동 등록에서 제외됩니다")
 
                 logger.info(f"[상품등록] 채널 분리 완료:")
-                logger.info(f"  - 지마켓/옥션: {len(gmk_auction_sites)}개 {[s.get('shop_cd') for s in gmk_auction_sites]}")
-                logger.info(f"  - 스마트스토어 등: {len(smartstore_sites)}개 {[s.get('shop_cd') for s in smartstore_sites]}")
+                logger.info(f"  - 단일상품(옥션/지마켓/쿠팡): {len(single_product_sites)}개 {[s.get('shop_cd') for s in single_product_sites]}")
+                logger.info(f"  - 일반상품(스마트스토어 등): {len(smartstore_sites)}개 {[s.get('shop_cd') for s in smartstore_sites]}")
                 logger.info(f"  - ESM 제외: {len(esm_sites)}개 {[s.get('shop_cd') for s in esm_sites]}")
 
                 # 디버깅: 실제 전달 데이터 로그
@@ -859,23 +863,23 @@ async def register_products_to_playauto(request: dict):
                 c_sale_cd_gmk = None
                 c_sale_cd_smart = None
 
-                # 1. 지마켓/옥션 등록 (있는 경우)
-                if gmk_auction_sites:
-                    logger.info(f"[상품등록] ===== 지마켓/옥션 등록 시작 =====")
-                    logger.info(f"[상품등록] 채널 수: {len(gmk_auction_sites)}개")
+                # 1. 단일상품 등록 - 옥션/지마켓/쿠팡 (있는 경우)
+                if single_product_sites:
+                    logger.info(f"[상품등록] ===== 단일상품 등록 시작 (옥션/지마켓/쿠팡) =====")
+                    logger.info(f"[상품등록] 채널 수: {len(single_product_sites)}개")
                     logger.info(f"[상품등록] 설정: std_ol_yn=Y (단일상품), opt_type=옵션없음")
-                    product_data_gmk = build_product_data_from_db(product, gmk_auction_sites, channel_type="gmk_auction")
-                    result_gmk = await registration_api.register_product(product_data_gmk)
+                    product_data_single = build_product_data_from_db(product, single_product_sites, channel_type="gmk_auction")
+                    result_single = await registration_api.register_product(product_data_single)
 
-                    if result_gmk.get("success"):
-                        c_sale_cd_gmk = result_gmk.get("c_sale_cd")
-                        logger.info(f"[상품등록] ✓ 지마켓/옥션 등록 성공")
-                        logger.info(f"[상품등록] c_sale_cd_gmk: {c_sale_cd_gmk}")
-                        logger.info(f"[상품등록] 등록 결과: {result_gmk.get('site_list')}")
-                        result = result_gmk
+                    if result_single.get("success"):
+                        c_sale_cd_gmk = result_single.get("c_sale_cd")
+                        logger.info(f"[상품등록] ✓ 단일상품 등록 성공")
+                        logger.info(f"[상품등록] c_sale_cd: {c_sale_cd_gmk}")
+                        logger.info(f"[상품등록] 등록 결과: {result_single.get('site_list')}")
+                        result = result_single
                     else:
-                        logger.error(f"[상품등록] ✗ 지마켓/옥션 등록 실패: {result_gmk.get('error')}")
-                        logger.error(f"[상품등록] 전체 응답: {result_gmk}")
+                        logger.error(f"[상품등록] ✗ 단일상품 등록 실패: {result_single.get('error')}")
+                        logger.error(f"[상품등록] 전체 응답: {result_single}")
 
                 # 2. 스마트스토어 등 등록 (있는 경우)
                 if smartstore_sites:
