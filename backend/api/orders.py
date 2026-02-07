@@ -229,7 +229,7 @@ async def get_orders_with_items(
             cursor.execute(f"""
                 SELECT id, order_number, market, customer_name, customer_phone,
                        customer_address, total_amount, order_status, created_at, updated_at,
-                       tracking_number, order_date, sync_source, playauto_order_id
+                       completed_at, notes
                 FROM orders
                 WHERE order_status = {placeholder}
                 ORDER BY created_at DESC
@@ -239,7 +239,7 @@ async def get_orders_with_items(
             cursor.execute(f"""
                 SELECT id, order_number, market, customer_name, customer_phone,
                        customer_address, total_amount, order_status, created_at, updated_at,
-                       tracking_number, order_date, sync_source, playauto_order_id
+                       completed_at, notes
                 FROM orders
                 ORDER BY created_at DESC
                 LIMIT {placeholder} OFFSET {placeholder}
