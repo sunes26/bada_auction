@@ -26,8 +26,8 @@ async def auto_fetch_orders_job():
     try:
         # 설정 확인
         db = get_db()
-        enabled = db.get_playauto_setting("enabled") == "true"
-        auto_sync_enabled = db.get_playauto_setting("auto_sync_enabled") == "true"
+        enabled = (db.get_playauto_setting("enabled") or "").lower() == "true"
+        auto_sync_enabled = (db.get_playauto_setting("auto_sync_enabled") or "").lower() == "true"
 
         if not enabled or not auto_sync_enabled:
             print("[PLAYAUTO] 자동 동기화가 비활성화되어 있습니다")
@@ -68,7 +68,7 @@ async def auto_upload_tracking_job():
     try:
         # 설정 확인
         db = get_db()
-        enabled = db.get_playauto_setting("enabled") == "true"
+        enabled = (db.get_playauto_setting("enabled") or "").lower() == "true"
 
         if not enabled:
             print("[PLAYAUTO] 플레이오토가 비활성화되어 있습니다")
@@ -93,7 +93,7 @@ async def sync_marketplace_codes_job():
     try:
         # 설정 확인
         db = get_db()
-        enabled = db.get_playauto_setting("enabled") == "true"
+        enabled = (db.get_playauto_setting("enabled") or "").lower() == "true"
 
         if not enabled:
             print("[PLAYAUTO] 플레이오토가 비활성화되어 있습니다")

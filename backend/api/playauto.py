@@ -131,8 +131,8 @@ async def get_playauto_settings():
             api_key_masked = "설정되지 않음"
 
         api_base_url = db.get_playauto_setting("api_base_url") or "https://openapi.playauto.io/api"
-        enabled = db.get_playauto_setting("enabled") == "true"
-        auto_sync_enabled = db.get_playauto_setting("auto_sync_enabled") == "true"
+        enabled = (db.get_playauto_setting("enabled") or "").lower() == "true"
+        auto_sync_enabled = (db.get_playauto_setting("auto_sync_enabled") or "").lower() == "true"
         auto_sync_interval = int(db.get_playauto_setting("auto_sync_interval") or "30")
 
         # 마지막 동기화 시각

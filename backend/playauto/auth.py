@@ -46,19 +46,19 @@ def load_api_credentials() -> Tuple[str, str, str]:
         if not api_key:
             encrypted_api_key = db.get_playauto_setting("api_key")
             if encrypted_api_key:
-                is_encrypted = db.get_playauto_setting("api_key_encrypted") == "true"
+                is_encrypted = (db.get_playauto_setting("api_key_encrypted") or "").lower() == "true"
                 api_key = decrypt_api_key(encrypted_api_key) if is_encrypted else encrypted_api_key
 
         if not email:
             encrypted_email = db.get_playauto_setting("email")
             if encrypted_email:
-                is_encrypted = db.get_playauto_setting("email_encrypted") == "true"
+                is_encrypted = (db.get_playauto_setting("email_encrypted") or "").lower() == "true"
                 email = decrypt_api_key(encrypted_email) if is_encrypted else encrypted_email
 
         if not password:
             encrypted_password = db.get_playauto_setting("password")
             if encrypted_password:
-                is_encrypted = db.get_playauto_setting("password_encrypted") == "true"
+                is_encrypted = (db.get_playauto_setting("password_encrypted") or "").lower() == "true"
                 password = decrypt_api_key(encrypted_password) if is_encrypted else encrypted_password
 
         if api_key and email and password:
