@@ -411,31 +411,31 @@ class ProductMonitor:
 
                 // GS샵 선택자
                 if (window.location.hostname.includes('gsshop.com')) {
-                    // 1. 상품명 전용 선택자
-                    const prdName = document.querySelector('.prd-name, .product-name, .prd-title');
-                    if (prdName) return prdName.textContent.trim();
-
-                    // 2. h1 요소
-                    const h1 = document.querySelector('h1');
-                    if (h1 && h1.textContent.trim().length > 5) {
-                        return h1.textContent.trim();
-                    }
-
-                    // 3. og:title 메타 태그
+                    // 1. og:title 메타 태그 (가장 정확함)
                     const ogTitle = document.querySelector('meta[property="og:title"]');
                     if (ogTitle && ogTitle.content) {
                         // "상품명 - GS SHOP" 형태에서 상품명만 추출
                         const title = ogTitle.content;
-                        if (title.includes(' - ')) {
-                            return title.split(' - ')[0].trim();
+                        if (title.includes(' - GS')) {
+                            return title.split(' - GS')[0].trim();
                         }
                         return title.trim();
                     }
 
-                    // 4. 페이지 타이틀에서 추출
+                    // 2. 페이지 타이틀에서 추출 (두 번째로 정확)
                     const title = document.title;
-                    if (title && title.length > 5) {
-                        return title.split(' - ')[0].split('|')[0].trim();
+                    if (title && title.includes(' - GS')) {
+                        return title.split(' - GS')[0].trim();
+                    }
+
+                    // 3. 상품 상세 영역의 상품명 (prd-btns 영역 내의 h2)
+                    const prdTitle = document.querySelector('.prd-btns h2, .goods-header h2, .prd-info h2');
+                    if (prdTitle) return prdTitle.textContent.trim();
+
+                    // 4. h1 요소 (마지막 수단)
+                    const h1 = document.querySelector('h1');
+                    if (h1 && h1.textContent.trim().length > 5) {
+                        return h1.textContent.trim();
                     }
                 }
 
@@ -1612,88 +1612,75 @@ class ProductMonitor:
                     debug_info: []
                 };
 
-                // GS샵 주요 가격 선택자
-                const mainSelectors = [
-                    // 1. 주요 판매가 영역
-                    '.price-definition__amount',
-                    '.prd-price .price',
-                    '.price-amount',
-                    '.sale-price',
-                    // 2. 일반 가격 영역
-                    '[class*="price"] strong',
-                    '.price strong',
-                    '.prd-price strong'
-                ];
-
-                // 우선순위대로 시도
-                for (let selector of mainSelectors) {
-                    const elements = document.querySelectorAll(selector);
-                    if (elements.length > 0) {
-                        elements.forEach(el => {
-                            // 배송비, 적립금 영역 제외
-                            const parentText = el.closest('[class*="price"], .prd-price')?.textContent || '';
-                            const isDelivery = parentText.includes('배송비') || parentText.includes('배송');
-                            const isPoint = parentText.includes('포인트') || parentText.includes('적립');
-                            const isCoupon = el.closest('[class*="coupon"]') !== null;
-
-                            if (!isDelivery && !isPoint && !isCoupon) {
-                                const text = el.textContent.trim();
-                                const num = parseInt(text.replace(/[^0-9]/g, ''));
-                                if (num > 1000 && num < 10000000) {
-                                    result.prices.push(num);
-                                    result.debug_info.push(`${selector}: ${num}원`);
-                                }
-                            }
-                        });
-
-                        if (result.prices.length > 0) {
-                            break;
-                        }
+                // 1. og:price 메타 태그 (가장 정확)
+                const ogPrice = document.querySelector('meta[property="product:price:amount"]');
+                if (ogPrice && ogPrice.content) {
+                    const num = parseInt(ogPrice.content);
+                    if (num > 100 && num < 10000000) {
+                        result.prices.push(num);
+                        result.debug_info.push(`og:price: ${num}원`);
+                        return result;  // 바로 반환
                     }
                 }
 
-                // 가격을 못 찾은 경우, 텍스트에서 "원" 패턴 찾기
-                if (result.prices.length === 0) {
-                    const priceSection = document.querySelector('.prd-price, [class*="price"]');
-                    if (priceSection) {
-                        const text = priceSection.textContent;
-                        const matches = text.match(/(\d{1,3}(,\d{3})*)\s*원/g);
-                        if (matches) {
-                            matches.forEach(match => {
-                                const num = parseInt(match.replace(/[^0-9]/g, ''));
-                                if (num > 1000 && num < 10000000) {
-                                    result.prices.push(num);
-                                    result.debug_info.push(`텍스트 추출: ${num}원`);
-                                }
-                            });
-                        }
-                    }
-                }
-
-                // og:price 메타 태그 확인
-                if (result.prices.length === 0) {
-                    const ogPrice = document.querySelector('meta[property="product:price:amount"]');
-                    if (ogPrice && ogPrice.content) {
-                        const num = parseInt(ogPrice.content);
-                        if (num > 100 && num < 10000000) {
+                // 2. GS샵 메인 상품 가격 영역 (prd-btns 섹션)
+                const mainPriceArea = document.querySelector('.prd-btns, .goods-price, .prd-info');
+                if (mainPriceArea) {
+                    // 할인가 우선
+                    const salePrice = mainPriceArea.querySelector('.sale-price strong, .price-sale strong, .final-price');
+                    if (salePrice) {
+                        const num = parseInt(salePrice.textContent.replace(/[^0-9]/g, ''));
+                        if (num > 1000 && num < 10000000) {
                             result.prices.push(num);
-                            result.debug_info.push(`og:price: ${num}원`);
+                            result.debug_info.push(`메인영역 할인가: ${num}원`);
+                            return result;
+                        }
+                    }
+
+                    // 일반 가격
+                    const priceEl = mainPriceArea.querySelector('.price strong, strong.price');
+                    if (priceEl) {
+                        const num = parseInt(priceEl.textContent.replace(/[^0-9]/g, ''));
+                        if (num > 1000 && num < 10000000) {
+                            result.prices.push(num);
+                            result.debug_info.push(`메인영역 가격: ${num}원`);
+                            return result;
                         }
                     }
                 }
 
-                // body 텍스트에서 가격 패턴 찾기
-                if (result.prices.length === 0) {
-                    const bodyText = document.body.innerText;
-                    const priceMatches = bodyText.match(/(\d{1,3}(,\d{3})+)\s*원/g);
-                    if (priceMatches) {
-                        priceMatches.slice(0, 10).forEach(match => {
-                            const num = parseInt(match.replace(/[^0-9]/g, ''));
+                // 3. 상품 상세 헤더 영역에서 첫 번째 가격
+                const headerArea = document.querySelector('.prd-header, .goods-header, #prdDetail');
+                if (headerArea) {
+                    const text = headerArea.textContent;
+                    const matches = text.match(/(\d{1,3}(,\d{3})*)\s*원/g);
+                    if (matches && matches.length > 0) {
+                        // 첫 번째 가격 사용 (메인 상품 가격)
+                        const num = parseInt(matches[0].replace(/[^0-9]/g, ''));
+                        if (num > 1000 && num < 10000000) {
+                            result.prices.push(num);
+                            result.debug_info.push(`헤더영역: ${num}원`);
+                            return result;
+                        }
+                    }
+                }
+
+                // 4. 페이지 상단 500px 영역에서만 가격 찾기 (추천상품 제외)
+                const allElements = document.querySelectorAll('strong, span');
+                for (let el of allElements) {
+                    const rect = el.getBoundingClientRect();
+                    // 상단 500px 이내의 요소만 확인
+                    if (rect.top > 0 && rect.top < 500) {
+                        const text = el.textContent.trim();
+                        const match = text.match(/^(\d{1,3}(,\d{3})*)\s*원?$/);
+                        if (match) {
+                            const num = parseInt(match[1].replace(/,/g, ''));
                             if (num > 1000 && num < 10000000) {
                                 result.prices.push(num);
-                                result.debug_info.push(`body: ${num}원`);
+                                result.debug_info.push(`상단영역: ${num}원`);
+                                return result;
                             }
-                        });
+                        }
                     }
                 }
 

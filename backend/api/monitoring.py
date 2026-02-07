@@ -774,13 +774,17 @@ async def extract_url_info(request: dict):
                         if (mainImg && mainImg.src) return mainImg.src;
                     }
 
-                    // 2-1. GS샵 전용 셀렉터
+                    // 2-1. GS샵 전용 셀렉터 (og:image 우선)
                     if (window.location.hostname.includes('gsshop.com')) {
-                        const mainImg = document.querySelector('.prd-image img') ||
-                                       document.querySelector('.product-image img') ||
-                                       document.querySelector('.prd-img img') ||
-                                       document.querySelector('[class*="prd"][class*="img"] img');
-                        if (mainImg && mainImg.src) return mainImg.src;
+                        // og:image가 가장 정확
+                        const ogImage = document.querySelector('meta[property="og:image"]');
+                        if (ogImage && ogImage.content) return ogImage.content;
+
+                        // 메인 상품 이미지 영역
+                        const mainImg = document.querySelector('.prd-image img, .goods-image img, #mainImage img');
+                        if (mainImg && mainImg.src && !mainImg.src.includes('icon') && !mainImg.src.includes('logo')) {
+                            return mainImg.src;
+                        }
                     }
 
                     // 3. og:image 메타 태그 (가장 신뢰성 높음)
