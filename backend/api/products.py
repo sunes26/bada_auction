@@ -833,11 +833,10 @@ async def register_products_to_playauto(request: dict):
                 # 단일상품으로 등록할 마켓 코드 (옵션없음 방식)
                 # 옥션: A001, AUCTION
                 # 지마켓: A006, GMK
-                # 쿠팡: A027, CPM
+                # 쿠팡은 필수 구매 옵션이 필요하므로 스마트스토어 방식으로 처리
                 single_product_codes = [
                     "A001", "a001", "AUCTION", "auction",  # 옥션
                     "A006", "a006", "GMK", "gmk",  # 지마켓
-                    "A027", "a027", "CPM", "cpm", "COUPANG", "coupang"  # 쿠팡
                 ]
                 esm_codes = ["ESM", "esm", "Esm"]  # ESM은 제외
 
@@ -863,8 +862,8 @@ async def register_products_to_playauto(request: dict):
                     logger.warning(f"[상품등록] ESM 채널 {len(esm_sites)}개 감지 - ESM은 단일상품 제약이 있어 자동 등록에서 제외됩니다")
 
                 logger.info(f"[상품등록] 채널 분리 완료:")
-                logger.info(f"  - 단일상품(옥션/지마켓/쿠팡): {len(single_product_sites)}개 {[s.get('shop_cd') for s in single_product_sites]}")
-                logger.info(f"  - 일반상품(스마트스토어 등): {len(smartstore_sites)}개 {[s.get('shop_cd') for s in smartstore_sites]}")
+                logger.info(f"  - 단일상품(옥션/지마켓): {len(single_product_sites)}개 {[s.get('shop_cd') for s in single_product_sites]}")
+                logger.info(f"  - 일반상품(스마트스토어/쿠팡 등): {len(smartstore_sites)}개 {[s.get('shop_cd') for s in smartstore_sites]}")
                 logger.info(f"  - ESM 제외: {len(esm_sites)}개 {[s.get('shop_cd') for s in esm_sites]}")
 
                 # 디버깅: 실제 전달 데이터 로그
@@ -875,9 +874,9 @@ async def register_products_to_playauto(request: dict):
                 c_sale_cd_gmk = None
                 c_sale_cd_smart = None
 
-                # 1. 단일상품 등록 - 옥션/지마켓/쿠팡 (있는 경우)
+                # 1. 단일상품 등록 - 옥션/지마켓 (있는 경우)
                 if single_product_sites:
-                    logger.info(f"[상품등록] ===== 단일상품 등록 시작 (옥션/지마켓/쿠팡) =====")
+                    logger.info(f"[상품등록] ===== 단일상품 등록 시작 (옥션/지마켓) =====")
                     logger.info(f"[상품등록] 채널 수: {len(single_product_sites)}개")
                     logger.info(f"[상품등록] 설정: std_ol_yn=Y (단일상품), opt_type=옵션없음")
                     product_data_single = build_product_data_from_db(product, single_product_sites, channel_type="gmk_auction")

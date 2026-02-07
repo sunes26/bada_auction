@@ -435,8 +435,8 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
                 }
             ]
         channel_type: 채널 타입 ("gmk_auction" 또는 "smartstore")
-            - "gmk_auction": 옥션/지마켓/쿠팡 (std_ol_yn="Y", opt_type="옵션없음", 단일상품)
-            - "smartstore": 스마트스토어 등 (std_ol_yn="N", opt_type="독립형", 일반상품)
+            - "gmk_auction": 옥션/지마켓 (std_ol_yn="Y", opt_type="옵션없음", 단일상품)
+            - "smartstore": 스마트스토어/쿠팡 등 (std_ol_yn="N", opt_type="독립형", 일반상품)
 
     Returns:
         플레이오토 API 형식 데이터
