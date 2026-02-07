@@ -553,23 +553,15 @@ class ProductMonitor:
             # 3. 정규식으로 추출
             if not price:
                 price_matches = re.findall(r'(\d{1,3}(?:,\d{3})+)\s*원', html_content)
-                valid_prices = []
-                for match in price_matches[:10]:
+                for match in price_matches:
                     try:
                         num = int(match.replace(',', ''))
                         if 1000 < num < 10000000:
-                            valid_prices.append(num)
+                            price = num
+                            logger.debug(f"[FLARESOLVERR] 정규식에서 가격 추출: {price}")
+                            break  # 첫 번째 유효한 가격 사용
                     except:
                         pass
-
-                if valid_prices:
-                    # 중간값 선택 (최소값은 배송비일 수 있음)
-                    valid_prices.sort()
-                    if len(valid_prices) >= 3:
-                        price = valid_prices[len(valid_prices) // 2]
-                    else:
-                        price = valid_prices[-1] if len(valid_prices) > 1 else valid_prices[0]
-                    logger.debug(f"[FLARESOLVERR] 정규식에서 가격 추출: {price}")
 
             if price:
                 logger.info(f"[FLARESOLVERR] 성공! 가격: {price}원, 상태: {status}")
