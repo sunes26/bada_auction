@@ -970,13 +970,38 @@ async def save_thumbnail(request: SaveThumbnailRequest):
                 detail="유효한 이미지 URL이 아닙니다. Cloudflare 보호로 인해 실제 상품 이미지를 가져올 수 없습니다."
             )
 
+        # 고해상도 이미지 URL 변환 시도
+        image_url = request.image_url
+
+        # G마켓/옥션: 이미지 크기 파라미터 확대 (300 → 800)
+        if 'gmarket.co.kr' in image_url or 'auction.co.kr' in image_url:
+            import re
+            # /still/300 → /still/800, /300/ → /800/ 등
+            high_res_url = re.sub(r'/(\d{2,3})([/?]|$)', r'/800\2', image_url)
+            if high_res_url != image_url:
+                print(f"[DEBUG] 고해상도 URL 시도: {high_res_url[:100]}...")
+                image_url = high_res_url
+
+        # SSG/이마트: _300.jpg → _800.jpg
+        if 'ssgcdn.com' in image_url or 'ssg.com' in image_url:
+            import re
+            high_res_url = re.sub(r'_(\d{2,3})\.(jpg|jpeg|png|webp)', r'_800.\2', image_url, flags=re.IGNORECASE)
+            if high_res_url != image_url:
+                print(f"[DEBUG] SSG 고해상도 URL 시도: {high_res_url[:100]}...")
+                image_url = high_res_url
+
         # 이미지 다운로드 (Railway 환경 고려하여 타임아웃 증가)
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
             'Referer': 'https://www.gmarket.co.kr/',
         }
-        response = requests.get(request.image_url, timeout=20, headers=headers)
+
+        # 고해상도 URL 먼저 시도, 실패 시 원본 URL
+        response = requests.get(image_url, timeout=20, headers=headers)
+        if not response.ok and image_url != request.image_url:
+            print(f"[DEBUG] 고해상도 URL 실패, 원본 URL 시도")
+            response = requests.get(request.image_url, timeout=20, headers=headers)
         print(f"[DEBUG] 이미지 다운로드 응답: status={response.status_code}, size={len(response.content)}")
 
         if not response.ok:
@@ -985,6 +1010,8 @@ async def save_thumbnail(request: SaveThumbnailRequest):
         # 이미지 열기 및 리사이즈 (600x600 미만인 경우)
         image_data = response.content
         try:
+            from PIL import ImageFilter, ImageEnhance
+
             img = Image.open(BytesIO(image_data))
             width, height = img.size
             min_size = 600
@@ -997,18 +1024,28 @@ async def save_thumbnail(request: SaveThumbnailRequest):
                 new_width = int(width * scale)
                 new_height = int(height * scale)
 
-                print(f"[DEBUG] 이미지 리사이즈: {width}x{height} → {new_width}x{new_height}")
+                print(f"[DEBUG] 이미지 리사이즈: {width}x{height} → {new_width}x{new_height} (scale: {scale:.2f}x)")
+
+                # RGB 모드로 먼저 변환 (RGBA인 경우)
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
 
                 # 고품질 리사이즈 (LANCZOS 필터)
                 img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
-                # RGB 모드로 변환 (RGBA인 경우 JPEG 저장 불가)
-                if img.mode in ('RGBA', 'P'):
-                    img = img.convert('RGB')
+                # 확대 시 화질 개선: 언샤프 마스크 적용 (선명도 향상)
+                # radius=2, percent=150, threshold=3 - 자연스러운 선명화
+                img = img.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
 
-                # 리사이즈된 이미지를 바이트로 변환
+                # 대비 약간 증가 (1.05 = 5% 증가)
+                enhancer = ImageEnhance.Contrast(img)
+                img = enhancer.enhance(1.05)
+
+                print(f"[DEBUG] 이미지 선명화 및 대비 보정 적용")
+
+                # 리사이즈된 이미지를 바이트로 변환 (최고 품질)
                 output = BytesIO()
-                img.save(output, format='JPEG', quality=95)
+                img.save(output, format='JPEG', quality=98, subsampling=0)
                 image_data = output.getvalue()
                 print(f"[DEBUG] 리사이즈된 이미지 크기: {len(image_data)} bytes")
         except Exception as resize_err:
