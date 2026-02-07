@@ -530,27 +530,7 @@ class ProductMonitor:
                 except:
                     pass
 
-            # 2. 가격 선택자로 추출
-            if not price:
-                price_selectors = [
-                    '.price_sect .price strong',
-                    '.item_price .price strong',
-                    '.box__item-price .price strong',
-                    '.price strong'
-                ]
-                for selector in price_selectors:
-                    elements = soup.select(selector)
-                    for el in elements:
-                        text = el.get_text(strip=True)
-                        num = int(re.sub(r'[^0-9]', '', text) or '0')
-                        if 1000 < num < 10000000:
-                            price = num
-                            logger.debug(f"[FLARESOLVERR] 선택자 {selector}에서 가격 추출: {price}")
-                            break
-                    if price:
-                        break
-
-            # 3. 정규식으로 추출
+            # 2. 정규식으로 추출
             if not price:
                 price_matches = re.findall(r'(\d{1,3}(?:,\d{3})+)\s*원', html_content)
                 for match in price_matches:
