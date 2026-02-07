@@ -949,11 +949,14 @@ class SaveThumbnailRequest(BaseModel):
 async def save_thumbnail(request: SaveThumbnailRequest):
     """
     외부 URL의 썸네일 이미지를 다운로드하여 Supabase Storage에 저장
+    600x600 미만 이미지는 자동으로 리사이즈
     """
     try:
         import requests
         import hashlib
         from datetime import datetime
+        from io import BytesIO
+        from PIL import Image
         from utils.supabase_storage import upload_image_from_bytes, supabase
 
         print(f"[DEBUG] save-thumbnail 요청: URL={request.image_url[:100]}...")
@@ -979,17 +982,44 @@ async def save_thumbnail(request: SaveThumbnailRequest):
         if not response.ok:
             raise HTTPException(status_code=400, detail=f"이미지 다운로드 실패: HTTP {response.status_code}")
 
+        # 이미지 열기 및 리사이즈 (600x600 미만인 경우)
+        image_data = response.content
+        try:
+            img = Image.open(BytesIO(image_data))
+            width, height = img.size
+            min_size = 600
+
+            print(f"[DEBUG] 원본 이미지 크기: {width}x{height}")
+
+            if width < min_size or height < min_size:
+                # 비율 유지하면서 최소 600x600으로 확대
+                scale = max(min_size / width, min_size / height)
+                new_width = int(width * scale)
+                new_height = int(height * scale)
+
+                print(f"[DEBUG] 이미지 리사이즈: {width}x{height} → {new_width}x{new_height}")
+
+                # 고품질 리사이즈 (LANCZOS 필터)
+                img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+                # RGB 모드로 변환 (RGBA인 경우 JPEG 저장 불가)
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+
+                # 리사이즈된 이미지를 바이트로 변환
+                output = BytesIO()
+                img.save(output, format='JPEG', quality=95)
+                image_data = output.getvalue()
+                print(f"[DEBUG] 리사이즈된 이미지 크기: {len(image_data)} bytes")
+        except Exception as resize_err:
+            print(f"[DEBUG] 이미지 리사이즈 실패 (원본 사용): {resize_err}")
+
         # 파일명 생성 (상품명 해시 + 타임스탬프)
         name_hash = hashlib.md5(request.product_name.encode()).hexdigest()[:8]
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        extension = ".jpg"  # 기본값
-
-        # Content-Type에서 확장자 추출
-        content_type = response.headers.get('content-type', '')
-        if 'png' in content_type:
-            extension = '.png'
-        elif 'jpeg' in content_type or 'jpg' in content_type:
-            extension = '.jpg'
+        # 리사이즈된 경우 항상 JPEG
+        extension = ".jpg"
+        upload_content_type = "image/jpeg"
 
         filename = f"{name_hash}_{timestamp}{extension}"
 
@@ -1002,7 +1032,7 @@ async def save_thumbnail(request: SaveThumbnailRequest):
 
             file_path = static_dir / filename
             with open(file_path, 'wb') as f:
-                f.write(response.content)
+                f.write(image_data)
 
             thumbnail_path = f"/static/thumbnails/{filename}"
 
@@ -1014,13 +1044,13 @@ async def save_thumbnail(request: SaveThumbnailRequest):
 
         # Supabase Storage에 업로드
         storage_path = f"thumbnails/{filename}"
-        print(f"[DEBUG] Supabase 업로드 시작: path={storage_path}, content_type={content_type}")
+        print(f"[DEBUG] Supabase 업로드 시작: path={storage_path}, content_type={upload_content_type}")
 
         try:
             public_url = upload_image_from_bytes(
-                response.content,
+                image_data,
                 storage_path,
-                content_type=content_type or "image/jpeg"
+                content_type=upload_content_type
             )
             print(f"[DEBUG] Supabase 업로드 결과: {public_url}")
         except Exception as upload_err:
