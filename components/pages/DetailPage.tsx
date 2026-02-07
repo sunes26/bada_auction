@@ -1267,9 +1267,9 @@ function ProductInputScreen({
             </div>
             <div className="mt-3 bg-white rounded-lg p-3 border border-gray-200">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">순이익 (30% 보장)</span>
+                <span className="text-gray-600">순이익 (50% 마진)</span>
                 <span className="font-bold text-green-600">
-                  {sourcingPrice ? `+${Math.ceil(sourcingPrice * 0.3).toLocaleString()}원 (약 30%)` : '-'}
+                  {sourcingPrice ? `+${Math.ceil(sourcingPrice * 0.5).toLocaleString()}원` : '-'}
                 </span>
               </div>
             </div>
