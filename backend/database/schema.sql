@@ -270,7 +270,7 @@ CREATE TABLE IF NOT EXISTS my_selling_products (
 CREATE TABLE IF NOT EXISTS product_marketplace_codes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     product_id INTEGER NOT NULL,  -- my_selling_products.id
-    shop_cd TEXT NOT NULL,  -- 마켓 코드 (A001=옥션, A006=쿠팡, A112=스마트스토어 등)
+    shop_cd TEXT NOT NULL,  -- 마켓 코드 (A001=옥션, A006=지마켓, A027/CPM=쿠팡, A077=스마트스토어, A112=11번가 등)
     shop_sale_no TEXT,  -- 마켓별 상품번호 (쇼핑몰상품번호)
     transmitted_at DATETIME,  -- 상품 전송 일시
     last_checked_at DATETIME,  -- 마지막 확인 일시

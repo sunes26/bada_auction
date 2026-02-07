@@ -797,6 +797,8 @@ async def register_products_to_playauto(request: dict):
             ]
 
             logger.info(f"[상품등록] 기본 템플릿 사용: {len(site_list)}개 쇼핑몰 (ESM 제외)")
+            for t in site_list:
+                logger.info(f"[상품등록] 템플릿 정보 - shop_cd: '{t.get('shop_cd')}', shop_id: '{t.get('shop_id')}', template_no: {t.get('template_no')}")
 
         # 플레이오토 API 클라이언트
         from playauto.product_registration import PlayautoProductRegistration, build_product_data_from_db
@@ -829,21 +831,31 @@ async def register_products_to_playauto(request: dict):
                     logger.info(f"[상품등록] 채널 정보 - shop_cd: {site.get('shop_cd')}, shop_id: {site.get('shop_id')}, template_no: {site.get('template_no')}")
 
                 # 단일상품으로 등록할 마켓 코드 (옵션없음 방식)
-                # A001: 옥션, A006: 지마켓, A027: 쿠팡
+                # 옥션: A001, AUCTION
+                # 지마켓: A006, GMK
+                # 쿠팡: A027, CPM
                 single_product_codes = [
-                    "GMK", "gmk", "A001", "a001",  # 옥션
-                    "A006", "a006", "AUCTION", "auction",  # 지마켓
-                    "A027", "a027", "COUPANG", "coupang"  # 쿠팡
+                    "A001", "a001", "AUCTION", "auction",  # 옥션
+                    "A006", "a006", "GMK", "gmk",  # 지마켓
+                    "A027", "a027", "CPM", "cpm", "COUPANG", "coupang"  # 쿠팡
                 ]
                 esm_codes = ["ESM", "esm", "Esm"]  # ESM은 제외
 
                 # ESM 제외하고 채널 분리
-                single_product_sites = [site for site in site_list
-                                        if site.get("shop_cd") in single_product_codes
-                                        and site.get("shop_cd") not in esm_codes]
-                smartstore_sites = [site for site in site_list
-                                   if site.get("shop_cd") not in single_product_codes
-                                   and site.get("shop_cd") not in esm_codes]
+                single_product_sites = []
+                smartstore_sites = []
+
+                for site in site_list:
+                    shop_cd = site.get("shop_cd", "")
+                    if shop_cd in esm_codes:
+                        continue  # ESM 제외
+
+                    if shop_cd in single_product_codes:
+                        single_product_sites.append(site)
+                        logger.info(f"[상품등록] '{shop_cd}' → 단일상품으로 분류")
+                    else:
+                        smartstore_sites.append(site)
+                        logger.info(f"[상품등록] '{shop_cd}' → 일반상품으로 분류")
 
                 # ESM 채널 확인 및 경고
                 esm_sites = [site for site in site_list if site.get("shop_cd") in esm_codes]
