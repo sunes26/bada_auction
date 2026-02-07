@@ -530,6 +530,86 @@ def format_inventory_alert(
     return {"slack": slack_message, "discord": discord_message}
 
 
+def format_price_fetch_fail_alert(
+    product_id: int,
+    product_name: str,
+    sourcing_url: str,
+    fail_count: int
+) -> Dict:
+    """
+    가격 추출 연속 실패 알림 메시지 포맷팅
+    """
+    # Slack Block Kit 형식
+    slack_message = {
+        "text": f"⚠️ 가격 추출 {fail_count}회 연속 실패: {product_name}",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"⚠️ 가격 추출 연속 실패 경고"
+                }
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*상품 ID:*\n#{product_id}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*연속 실패:*\n{fail_count}회"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*상품명:*\n{product_name}"
+                }
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*소싱 URL:*\n{sourcing_url[:100]}..."
+                }
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"발생 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    }
+                ]
+            }
+        ]
+    }
+
+    # Discord Embed 형식
+    discord_message = {
+        "embeds": [{
+            "title": "⚠️ 가격 추출 연속 실패 경고",
+            "color": 15105570,  # Orange
+            "fields": [
+                {"name": "상품 ID", "value": f"#{product_id}", "inline": True},
+                {"name": "연속 실패", "value": f"{fail_count}회", "inline": True},
+                {"name": "상품명", "value": product_name, "inline": False},
+                {"name": "소싱 URL", "value": sourcing_url[:200], "inline": False}
+            ],
+            "footer": {
+                "text": "소싱처 페이지 구조 변경 또는 접근 차단 가능성이 있습니다."
+            },
+            "timestamp": datetime.now().isoformat()
+        }]
+    }
+
+    return {"slack": slack_message, "discord": discord_message}
+
+
 def format_new_order_alert(
     order_number: str,
     market: str,
@@ -716,6 +796,13 @@ def send_notification(
                 customer_name=kwargs.get('customer_name', ''),
                 total_amount=kwargs.get('total_amount', 0),
                 items=kwargs.get('items', [])
+            )
+        elif notification_type == 'price_fetch_fail':
+            formatted_messages = format_price_fetch_fail_alert(
+                product_id=kwargs.get('product_id', 0),
+                product_name=kwargs.get('product_name', ''),
+                sourcing_url=kwargs.get('sourcing_url', ''),
+                fail_count=kwargs.get('fail_count', 0)
             )
 
         # Webhook 발송

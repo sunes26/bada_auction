@@ -16,6 +16,12 @@ from monitor.product_monitor import ProductMonitor
 # 스케줄러 인스턴스
 scheduler = AsyncIOScheduler()
 
+# 상품별 연속 가격 추출 실패 횟수 추적
+price_fetch_fail_counts: dict[int, int] = {}
+
+# 연속 실패 알림 임계값
+CONSECUTIVE_FAIL_THRESHOLD = 5
+
 
 async def update_selling_products_sourcing_price():
     """
@@ -85,6 +91,10 @@ async def update_selling_products_sourcing_price():
                 new_price = result.get('price')
 
                 if new_price and new_price > 0:
+                    # 가격 추출 성공 - 실패 카운트 초기화
+                    if product_id in price_fetch_fail_counts:
+                        del price_fetch_fail_counts[product_id]
+
                     # 가격이 변경되었으면 업데이트
                     if old_price != new_price:
                         print(f"[SELLING_MONITOR] 가격 변동 감지: {old_price}원 → {new_price}원")
@@ -120,7 +130,28 @@ async def update_selling_products_sourcing_price():
 
                     success_count += 1
                 else:
-                    print(f"[WARN] ID#{product_id}: 가격 정보를 가져올 수 없습니다")
+                    # 가격 추출 실패 - 실패 카운트 증가
+                    price_fetch_fail_counts[product_id] = price_fetch_fail_counts.get(product_id, 0) + 1
+                    fail_count = price_fetch_fail_counts[product_id]
+
+                    print(f"[WARN] ID#{product_id}: 가격 정보를 가져올 수 없습니다 (연속 {fail_count}회 실패)")
+
+                    # 연속 5회 실패 시 디스코드 알림
+                    if fail_count == CONSECUTIVE_FAIL_THRESHOLD:
+                        try:
+                            from notifications.notifier import send_notification
+                            send_notification(
+                                notification_type='price_fetch_fail',
+                                message=f"가격 추출 {fail_count}회 연속 실패: {product_name}",
+                                product_id=product_id,
+                                product_name=product_name,
+                                sourcing_url=sourcing_url,
+                                fail_count=fail_count
+                            )
+                            print(f"[ALERT] ID#{product_id}: 연속 {fail_count}회 실패 알림 발송됨")
+                        except Exception as notify_err:
+                            print(f"[WARN] 알림 발송 실패: {notify_err}")
+
                     error_count += 1
 
                 await asyncio.sleep(3)
