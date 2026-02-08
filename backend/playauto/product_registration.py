@@ -491,18 +491,18 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         opts = []
         logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=옵션없음")
     elif channel_type == "coupang":
-        # 쿠팡: 조합형 옵션 필수
+        # 쿠팡: 조합형 옵션 필수, 추천옵션 "수량" 사용 (추천단위: 개)
         std_ol_yn = "N"
         opt_type = "조합형"
         opts = [
             {
-                "opt_sort1": "상품선택",
-                "opt_sort1_desc": option_value,
+                "opt_sort1": "수량",
+                "opt_sort1_desc": "1개",
                 "stock_cnt": 999,
                 "status": "정상"
             }
         ]
-        logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, 옵션값='{option_value}'")
+        logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, 옵션명='수량', 옵션값='1개'")
     else:
         # 스마트스토어 등: 독립형 옵션
         std_ol_yn = "N"
