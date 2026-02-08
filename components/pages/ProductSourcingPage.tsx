@@ -412,6 +412,28 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
 
       const data = await response.json();
 
+      // 디버깅: 전체 응답 콘솔 출력
+      console.log('=== PlayAuto 상품 등록 응답 ===');
+      console.log('전체 응답:', data);
+
+      // 쿠팡 디버깅 정보 출력
+      if (data.results) {
+        data.results.forEach((result: { product_name?: string; coupang_debug?: { opt_type?: string; std_ol_yn?: string; opts?: unknown; site_list?: unknown; error?: string; api_response?: unknown } }) => {
+          if (result.coupang_debug) {
+            console.log(`\n[쿠팡 디버그] 상품: ${result.product_name}`);
+            console.log('opt_type:', result.coupang_debug.opt_type);
+            console.log('std_ol_yn:', result.coupang_debug.std_ol_yn);
+            console.log('opts:', result.coupang_debug.opts);
+            console.log('site_list:', result.coupang_debug.site_list);
+            if (result.coupang_debug.error) {
+              console.log('에러:', result.coupang_debug.error);
+              console.log('API 응답:', result.coupang_debug.api_response);
+            }
+          }
+        });
+      }
+      console.log('==============================');
+
       if (response.ok && data.success) {
         alert(
           `상품 등록 완료!\n\n` +

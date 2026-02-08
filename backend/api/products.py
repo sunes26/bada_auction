@@ -899,11 +899,22 @@ async def register_products_to_playauto(request: dict):
                         logger.error(f"[상품등록] 전체 응답: {result_single}")
 
                 # 2. 쿠팡 등록 (있는 경우) - 조합형 옵션
+                coupang_debug_info = None
                 if coupang_sites:
                     logger.info(f"[상품등록] ===== 쿠팡 등록 시작 =====")
                     logger.info(f"[상품등록] 채널 수: {len(coupang_sites)}개")
                     logger.info(f"[상품등록] 설정: std_ol_yn=N, opt_type=조합형")
                     product_data_coupang = build_product_data_from_db(product, coupang_sites, channel_type="coupang")
+
+                    # 디버깅 정보 저장 (프론트엔드 콘솔용)
+                    coupang_debug_info = {
+                        "opt_type": product_data_coupang.get("opt_type"),
+                        "std_ol_yn": product_data_coupang.get("std_ol_yn"),
+                        "opts": product_data_coupang.get("opts"),
+                        "site_list": product_data_coupang.get("site_list")
+                    }
+                    logger.info(f"[상품등록] 쿠팡 디버그: {coupang_debug_info}")
+
                     result_coupang = await registration_api.register_product(product_data_coupang)
 
                     if result_coupang.get("success"):
@@ -918,6 +929,8 @@ async def register_products_to_playauto(request: dict):
                     else:
                         logger.error(f"[상품등록] ✗ 쿠팡 등록 실패: {result_coupang.get('error')}")
                         logger.error(f"[상품등록] 전체 응답: {result_coupang}")
+                        coupang_debug_info["error"] = result_coupang.get("error")
+                        coupang_debug_info["api_response"] = result_coupang.get("data")
 
                 # 3. 스마트스토어 등 등록 (있는 경우) - 독립형 옵션
                 if smartstore_sites:
@@ -1045,7 +1058,8 @@ async def register_products_to_playauto(request: dict):
                     "success": result.get("success"),
                     "error": result.get("error"),
                     "c_sale_cd_gmk": c_sale_cd_gmk,
-                    "c_sale_cd_smart": c_sale_cd_smart
+                    "c_sale_cd_smart": c_sale_cd_smart,
+                    "coupang_debug": coupang_debug_info  # 쿠팡 디버깅 정보
                 })
 
             except Exception as e:
