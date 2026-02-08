@@ -838,7 +838,8 @@ async def register_products_to_playauto(request: dict):
                     "A006", "a006", "GMK", "gmk",  # 지마켓
                 ]
                 # 쿠팡은 조합형 옵션 필요
-                coupang_codes = ["A027", "a027", "CPM", "cpm", "COUPANG", "coupang"]
+                # B378: 쿠팡 (실제 PlayAuto shop_cd)
+                coupang_codes = ["A027", "a027", "CPM", "cpm", "COUPANG", "coupang", "B378", "b378"]
                 esm_codes = ["ESM", "esm", "Esm"]  # ESM은 제외
 
                 # ESM 제외하고 채널 분리
