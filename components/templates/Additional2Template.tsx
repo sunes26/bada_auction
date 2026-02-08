@@ -4,7 +4,7 @@ import EditableImage from './EditableImage';
 import { TemplateProps } from './TemplateProps';
 
 export default function Additional2Template(props: TemplateProps) {
-  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove } = props;
+  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment } = props;
 
   return (
     <>
@@ -17,7 +17,7 @@ export default function Additional2Template(props: TemplateProps) {
           <EditableText field="introCopy" value={content.introCopy} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
         </p>
         <EditableImage imageKey="additional2_template1_main" uploadedImages={uploadedImages} className="w-full max-w-4xl mx-auto h-[600px] rounded-3xl shadow-2xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
       </div>
 
       {/* 고객만족우수 Section */}
@@ -51,10 +51,10 @@ export default function Additional2Template(props: TemplateProps) {
           {/* 2개 이미지: 큰 이미지 + 작은 이미지 */}
           <div className="relative">
             <EditableImage imageKey="additional2_template2_main" uploadedImages={uploadedImages} className="w-full h-[600px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
             <div className="absolute bottom-8 right-8 w-64 h-64">
               <EditableImage imageKey="additional2_template2_small" uploadedImages={uploadedImages} className="w-full h-full rounded-xl shadow-2xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function Additional2Template(props: TemplateProps) {
         </h2>
         <div className="max-w-3xl mx-auto">
           <EditableImage imageKey="additional2_template3_product" uploadedImages={uploadedImages} className="w-full h-[600px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
 
@@ -89,7 +89,7 @@ export default function Additional2Template(props: TemplateProps) {
         </h2>
         <div className="max-w-4xl mx-auto">
           <EditableImage imageKey="additional2_template5_bg" uploadedImages={uploadedImages} className="w-full h-[500px] rounded-2xl shadow-lg" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
 
           {/* 추가 이미지 슬롯 */}
           {Array.from({ length: additionalImageSlots }).map((_, index) => (

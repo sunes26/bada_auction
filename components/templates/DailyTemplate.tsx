@@ -29,6 +29,8 @@ export default function DailyTemplate(props: TemplateProps) {
     onImageResize,
     imagePositions = {},
     onImageMove,
+    imageAlignments = {},
+    onImageAlignment,
   } = props;
   return (
     <>
@@ -49,6 +51,8 @@ export default function DailyTemplate(props: TemplateProps) {
           onImageResize={onImageResize}
           imagePositions={imagePositions}
           onImageMove={onImageMove}
+          imageAlignments={imageAlignments}
+          onImageAlignment={onImageAlignment}
           fillContainer={true}
           isResizable={false}
         >
@@ -355,6 +359,8 @@ export default function DailyTemplate(props: TemplateProps) {
           onImageResize={onImageResize}
           imagePositions={imagePositions}
           onImageMove={onImageMove}
+          imageAlignments={imageAlignments}
+          onImageAlignment={onImageAlignment}
           fillContainer={true}
           isResizable={false}
         />

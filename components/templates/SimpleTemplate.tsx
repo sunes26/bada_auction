@@ -4,7 +4,7 @@ import EditableImage from './EditableImage';
 import { TemplateProps } from './TemplateProps';
 
 export default function SimpleTemplate(props: TemplateProps) {
-  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove } = props;
+  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment } = props;
 
   return (
     <>
@@ -58,6 +58,8 @@ export default function SimpleTemplate(props: TemplateProps) {
             onImageResize={onImageResize}
             imagePositions={imagePositions}
             onImageMove={onImageMove}
+            imageAlignments={imageAlignments}
+            onImageAlignment={onImageAlignment}
             fillContainer={true}
             isResizable={false}
           />

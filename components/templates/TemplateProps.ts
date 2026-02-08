@@ -23,4 +23,6 @@ export interface TemplateProps {
   onImageResize?: (imageKey: string, size: number) => void;
   imagePositions?: Record<string, { x: number; y: number }>;
   onImageMove?: (imageKey: string, position: { x: number; y: number }) => void;
+  imageAlignments?: Record<string, 'left' | 'center' | 'right'>;
+  onImageAlignment?: (imageKey: string, alignment: 'left' | 'center' | 'right') => void;
 }

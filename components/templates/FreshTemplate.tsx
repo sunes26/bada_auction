@@ -4,7 +4,7 @@ import EditableImage from './EditableImage';
 import { TemplateProps } from './TemplateProps';
 
 export default function FreshTemplate(props: TemplateProps) {
-  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove } = props;
+  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment } = props;
 
   return (
     <>
@@ -23,7 +23,7 @@ export default function FreshTemplate(props: TemplateProps) {
         {/* 제품 이미지 */}
         <div className="max-w-2xl mx-auto mb-8">
           <EditableImage imageKey="fresh_template1_main" uploadedImages={uploadedImages} className="w-full h-[500px] rounded-3xl shadow-2xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
 
@@ -38,7 +38,7 @@ export default function FreshTemplate(props: TemplateProps) {
           {/* 이미지 + 100% 황금 배지 */}
           <div className="relative max-w-3xl mx-auto mb-12">
             <EditableImage imageKey="fresh_template1_sub" uploadedImages={uploadedImages} className="w-full h-[500px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
 
             {/* 100% 황금 배지 - 우상단 */}
             <div className="absolute top-4 right-4">
@@ -124,7 +124,7 @@ export default function FreshTemplate(props: TemplateProps) {
         </h2>
         <div className="max-w-4xl mx-auto">
           <EditableImage imageKey="fresh_point1" uploadedImages={uploadedImages} className="w-full h-[500px] rounded-2xl shadow-2xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
 
@@ -140,7 +140,7 @@ export default function FreshTemplate(props: TemplateProps) {
             <EditableText field="freshPoint1Description" value={content.freshPoint1Description} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
           <EditableImage imageKey="fresh_point2" uploadedImages={uploadedImages} className="w-full h-[500px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
 
@@ -156,7 +156,7 @@ export default function FreshTemplate(props: TemplateProps) {
             <EditableText field="freshPoint2Description" value={content.freshPoint2Description} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
           <EditableImage imageKey="fresh_point3" uploadedImages={uploadedImages} className="w-full h-[500px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
 
@@ -172,7 +172,7 @@ export default function FreshTemplate(props: TemplateProps) {
             <EditableText field="freshPoint3Description" value={content.freshPoint3Description} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
           </p>
           <EditableImage imageKey="fresh_composition_image" uploadedImages={uploadedImages} className="w-full h-[500px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
 
@@ -236,7 +236,7 @@ export default function FreshTemplate(props: TemplateProps) {
 
           {/* 이미지 */}
           <EditableImage imageKey="fresh_template2_main" uploadedImages={uploadedImages} className="w-full h-[400px] rounded-2xl shadow-xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
-          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} fillContainer={true} isResizable={false} />
+          onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
 
           {/* 추가 이미지 슬롯 */}
           {Array.from({ length: additionalImageSlots }).map((_, index) => (

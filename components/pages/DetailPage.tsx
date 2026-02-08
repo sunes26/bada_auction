@@ -52,7 +52,25 @@ export default function DetailPage() {
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [imageSizes, setImageSizes] = useState<Record<string, number>>({});
   const [imagePositions, setImagePositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [imageAlignments, setImageAlignments] = useState<Record<string, 'left' | 'center' | 'right'>>({});
   const templateRef = useRef<HTMLDivElement>(null);
+
+  // 외부 클릭 시 편집 모드 해제
+  const handleOutsideClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    // 편집 가능한 요소나 그 자식이 아닌 경우에만 해제
+    if (!target.closest('[data-editable]') && !target.closest('.editable-container')) {
+      setEditingField(null);
+      setEditingImage(null);
+      setEditingTextStyle(null);
+      setSelectedElement({ type: null, field: null });
+    }
+  };
+
+  // 이미지 정렬 변경
+  const handleImageAlignment = (imageKey: string, alignment: 'left' | 'center' | 'right') => {
+    setImageAlignments(prev => ({ ...prev, [imageKey]: alignment }));
+  };
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const level1Options = Object.keys(categoryStructure);
@@ -903,6 +921,8 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       onImageResize: handleImageResize,
       imagePositions,
       onImageMove: handleImageMove,
+      imageAlignments,
+      onImageAlignment: handleImageAlignment,
       onImageDelete: (key: string) => {
         setUploadedImages(prev => {
           const newImages = { ...prev };
@@ -963,7 +983,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       )}
 
       {screen === 'result' && generatedContent && (
-        <div className="w-full relative">
+        <div className="w-full relative" onClick={handleOutsideClick}>
           {/* 상단 컨트롤 바 */}
           <div className="sticky top-0 bg-white border-b border-gray-200 z-30 shadow-sm">
             <div className="flex justify-between items-center px-6 py-4">
