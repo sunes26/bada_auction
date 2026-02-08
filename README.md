@@ -688,7 +688,49 @@ python main.py  # 자동으로 새 DB 생성
 
 ## 📈 업데이트 히스토리
 
-### 2026-02-08 (최신): 쿠팡 상품 등록 이슈 디버깅 + shop_cd 수정 🔍🛒
+### 2026-02-09 (최신): CJ제일제당 소싱처 추가 + 상세페이지 편집 개선 🛒✏️
+
+**CJ제일제당 더마켓 소싱처 추가**:
+- ✅ **CJTheMarketScraper 클래스 생성** (`backend/scrapers/cjthemarket_scraper.py`)
+  - Selenium 기반 JavaScript 렌더링 페이지 처리
+  - 상품 검색, 상세 정보 조회, 가격 체크 기능
+  - URL에서 `prdCd` 파라미터로 상품 식별
+- ✅ **소싱 API 등록** (`backend/api/sourcing.py`)
+  - `source=cjthemarket` 옵션으로 CJ 더마켓 상품 검색 가능
+- ✅ **URL 정보 추출 API 지원** (`backend/api/monitoring.py`)
+  - `cjthemarket.com` URL 자동 인식
+  - 상품명, 가격, 썸네일 자동 추출
+- ✅ **ProductMonitor 업데이트** (`backend/monitor/product_monitor.py`)
+  - `_check_cjthemarket_status()` 함수로 품절/판매종료 상태 체크
+  - 가격 추출 (og:price 우선, 페이지 파싱 폴백)
+
+**상세페이지 편집 기능 개선** (내일 수정 예정 🔧):
+- ✅ **외부 클릭 시 편집 모드 해제**
+  - 편집 중인 컨테이너 외부 클릭 시 자동으로 편집 상태 해제
+  - `data-editable` 속성으로 편집 가능 요소 구분
+- ✅ **이미지 크기 조정 시 레이아웃 자연스럽게 확장**
+  - 기존: `transform: scale()` 사용 → 이미지가 커져도 레이아웃 공간 불변 → 겹침 발생
+  - 개선: 실제 `width/height`로 크기 조정 → 이미지가 커지면 컨테이너도 함께 커짐
+- ✅ **이미지 정렬 기능 추가**
+  - 각 이미지 컨테이너에 왼쪽/가운데/오른쪽 정렬 버튼 추가
+  - `imageAlignments` 상태로 정렬 설정 관리
+
+**관련 파일**:
+- `backend/scrapers/cjthemarket_scraper.py` - CJ 더마켓 스크래퍼
+- `backend/api/sourcing.py` - 소싱 API
+- `backend/api/monitoring.py` - URL 정보 추출
+- `backend/monitor/product_monitor.py` - 가격/상태 모니터링
+- `components/pages/DetailPage.tsx` - 상세페이지 편집
+- `components/templates/EditableImage.tsx` - 이미지 편집 컴포넌트
+- `components/templates/TemplateProps.ts` - 템플릿 Props 타입
+
+**커밋 해시**:
+- `31b50eb`: CJ제일제당 더마켓 소싱처 추가
+- `1ac6ac0`: 상세페이지 편집 기능 개선
+
+---
+
+### 2026-02-08: 쿠팡 상품 등록 이슈 디버깅 + shop_cd 수정 🔍🛒
 
 **쿠팡 shop_cd 문제 발견 및 수정**:
 - ✅ **실제 쿠팡 shop_cd 확인**: `B378` (기존 코드에서는 A027, CPM만 인식)
