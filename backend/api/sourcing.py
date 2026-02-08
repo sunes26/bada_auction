@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, List
 from datetime import datetime
 from models.product import Product, ProductCreate
-from scrapers import TradersScraper
+from scrapers import TradersScraper, CJTheMarketScraper
 from scrapers.ssg_scraper_selenium import SSGSeleniumScraper
 
 router = APIRouter(prefix="/api/sourcing", tags=["sourcing"])
@@ -11,6 +11,7 @@ router = APIRouter(prefix="/api/sourcing", tags=["sourcing"])
 scrapers = {
     "traders": TradersScraper(),
     "ssg": SSGSeleniumScraper(),
+    "cjthemarket": CJTheMarketScraper(),
 }
 
 

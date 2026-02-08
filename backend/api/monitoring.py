@@ -323,8 +323,10 @@ async def extract_url_info(request: dict):
             source = 'auction'
         elif 'gsshop.com' in product_url:
             source = 'gsshop'
+        elif 'cjthemarket.com' in product_url:
+            source = 'cjthemarket'
         else:
-            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 롯데ON, G마켓, 옥션, GS샵 URL을 입력해주세요.")
+            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 롯데ON, G마켓, 옥션, GS샵, CJ제일제당 URL을 입력해주세요.")
 
         # 봇 감지 보호 사이트 (FlareSolverr 사용)
         bot_protected_sites = ['gmarket.co.kr', 'auction.co.kr']
@@ -655,6 +657,28 @@ async def extract_url_info(request: dict):
                     print(f"[GSSHOP] 대기 중... ({i+1}/8초)")
                     time.sleep(1)
                 time.sleep(1)  # 추가 안정화
+            elif 'cjthemarket.com' in product_url:
+                # CJ제일제당 더마켓: React SPA - 콘텐츠 로드 대기
+                print(f"[CJTHEMARKET] 콘텐츠 로딩 대기 중...")
+                for i in range(10):  # 최대 10초 대기
+                    try:
+                        has_content = monitor.driver.execute_script("""
+                            // 가격 텍스트가 있는지 확인
+                            const bodyText = document.body.innerText || '';
+                            if (/\\d{1,3}(,\\d{3})+\\s*원/.test(bodyText)) return true;
+                            // 상품명 확인
+                            const titleEl = document.querySelector('h1, .prd-name, [class*="product"][class*="name"]');
+                            if (titleEl && titleEl.textContent.length > 5) return true;
+                            return false;
+                        """)
+                        if has_content:
+                            print(f"[CJTHEMARKET] 콘텐츠 로드 완료 ({i+1}초)")
+                            break
+                    except:
+                        pass
+                    print(f"[CJTHEMARKET] 대기 중... ({i+1}/10초)")
+                    time.sleep(1)
+                time.sleep(1)  # 추가 안정화
             elif 'homeplus.co.kr' in product_url:
                 # 홈플러스: DOM 완전히 로드될 때까지 명시적 대기 (최적화)
                 time.sleep(1)
@@ -743,6 +767,8 @@ async def extract_url_info(request: dict):
                 result = monitor._check_auction_status()
             elif 'gsshop.com' in product_url:
                 result = monitor._check_gsshop_status()
+            elif 'cjthemarket.com' in product_url:
+                result = monitor._check_cjthemarket_status()
             else:
                 result = monitor._check_generic_status()
 

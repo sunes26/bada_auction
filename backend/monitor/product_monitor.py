@@ -439,6 +439,32 @@ class ProductMonitor:
                     }
                 }
 
+                // CJ제일제당 더마켓 선택자
+                if (window.location.hostname.includes('cjthemarket.com')) {
+                    // 1. og:title 메타 태그 (가장 정확함)
+                    const ogTitle = document.querySelector('meta[property="og:title"]');
+                    if (ogTitle && ogTitle.content) {
+                        return ogTitle.content.trim();
+                    }
+
+                    // 2. 페이지 타이틀에서 추출
+                    const title = document.title;
+                    if (title && title.length > 5) {
+                        // "상품명 | CJ더마켓" 형태에서 상품명만 추출
+                        if (title.includes(' | ')) {
+                            return title.split(' | ')[0].trim();
+                        }
+                        if (title.includes(' - ')) {
+                            return title.split(' - ')[0].trim();
+                        }
+                        return title.trim();
+                    }
+
+                    // 3. 상품명 영역
+                    const prdName = document.querySelector('.prd-name, .product-name, h1');
+                    if (prdName) return prdName.textContent.trim();
+                }
+
                 // 홈플러스/Traders 선택자
                 if (window.location.hostname.includes('homeplus.co.kr')) {
                     // 1. 페이지 타이틀에서 추출 (가장 안정적)
@@ -647,6 +673,8 @@ class ProductMonitor:
                 result = self._check_auction_status()
             elif 'gsshop.com' in product_url:
                 result = self._check_gsshop_status()
+            elif 'cjthemarket.com' in product_url:
+                result = self._check_cjthemarket_status()
             else:
                 result = self._check_generic_status()
 
@@ -1723,4 +1751,133 @@ class ProductMonitor:
                 'price': None,
                 'original_price': None,
                 'details': f"GS샵 체크 오류: {str(e)}"
+            }
+
+    def _check_cjthemarket_status(self) -> Dict:
+        """CJ제일제당 더마켓 상품 상태 체크"""
+        try:
+            # JavaScript로 상태 체크
+            status_info = self.driver.execute_script("""
+                // 구매 버튼 영역에서 품절 확인
+                const buyBtn = document.querySelector('.btn-buy, [class*="buy"][class*="btn"], button[class*="cart"]');
+
+                if (buyBtn) {
+                    const text = buyBtn.textContent;
+                    if (text.includes('품절') || text.includes('SOLD OUT') || text.includes('일시품절')) {
+                        return { status: 'out_of_stock', details: '품절' };
+                    }
+                    if (text.includes('판매종료') || text.includes('판매중지')) {
+                        return { status: 'discontinued', details: '판매종료' };
+                    }
+                }
+
+                // 품절 표시 확인
+                const soldoutEl = document.querySelector('.soldout, [class*="soldout"], .sold-out');
+                if (soldoutEl && soldoutEl.offsetParent !== null) {
+                    return { status: 'out_of_stock', details: '품절' };
+                }
+
+                // 페이지 텍스트에서 품절/판매종료 확인
+                const pageText = document.body.innerText || '';
+                if (pageText.includes('품절') && !pageText.includes('재입고')) {
+                    return { status: 'out_of_stock', details: '품절' };
+                }
+
+                return { status: 'available', details: '정상' };
+            """)
+
+            status = status_info.get('status', 'available')
+            details = [status_info.get('details', '')]
+
+            # 가격 추출 (CJ제일제당 더마켓)
+            price_data = self.driver.execute_script(r"""
+                const result = {
+                    prices: [],
+                    debug_info: []
+                };
+
+                // 1. og:price 메타 태그 (가장 정확)
+                const ogPrice = document.querySelector('meta[property="product:price:amount"]');
+                if (ogPrice && ogPrice.content) {
+                    const num = parseInt(ogPrice.content);
+                    if (num > 100 && num < 10000000) {
+                        result.prices.push(num);
+                        result.debug_info.push(`og:price: ${num}원`);
+                        return result;
+                    }
+                }
+
+                // 2. 메인 상품 가격 영역
+                const priceSelectors = [
+                    '.prd-price strong',
+                    '.price-area .sale-price',
+                    '.price-area .price',
+                    '[class*="price"] strong',
+                    '.product-price',
+                    '.final-price'
+                ];
+
+                for (const selector of priceSelectors) {
+                    const el = document.querySelector(selector);
+                    if (el) {
+                        const text = el.textContent.replace(/[^0-9]/g, '');
+                        const num = parseInt(text);
+                        if (num > 1000 && num < 10000000) {
+                            result.prices.push(num);
+                            result.debug_info.push(`${selector}: ${num}원`);
+                            return result;
+                        }
+                    }
+                }
+
+                // 3. 페이지에서 가격 패턴 찾기
+                const bodyText = document.body.innerText || '';
+                const matches = bodyText.match(/(\d{1,3}(,\d{3})*)\s*원/g);
+                if (matches) {
+                    for (const match of matches) {
+                        const num = parseInt(match.replace(/[^0-9]/g, ''));
+                        if (num > 1000 && num < 10000000) {
+                            result.prices.push(num);
+                            result.debug_info.push(`패턴: ${num}원`);
+                            break;
+                        }
+                    }
+                }
+
+                return result;
+            """)
+
+            print(f"[DEBUG] CJ더마켓 가격 추출 정보: {price_data}")
+            logger.debug(f"CJ더마켓 가격 추출 정보: {price_data}")
+
+            prices = price_data.get('prices', []) if price_data else []
+
+            if len(prices) > 0:
+                prices_sorted = sorted(prices)
+                if len(prices) == 1:
+                    price = prices_sorted[0]
+                else:
+                    # 2개 이상이면 작은 값 선택 (할인가)
+                    price = prices_sorted[0]
+
+                logger.info(f"CJ더마켓 추출된 모든 가격: {prices_sorted}")
+                logger.info(f"CJ더마켓 선택된 가격: {price}원")
+            else:
+                price = None
+                logger.warning("CJ더마켓 가격 추출 실패")
+
+            return {
+                'status': status,
+                'price': price,
+                'original_price': None,
+                'details': ', '.join(details) if details else '정상'
+            }
+
+        except Exception as e:
+            logger.error(f"CJ더마켓 체크 오류: {str(e)}")
+            return {
+                'status': 'error',
+                'price': None,
+                'original_price': None,
+                'details': f"CJ더마켓 체크 오류: {str(e)}"
             }
