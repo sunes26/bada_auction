@@ -416,9 +416,23 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
       console.log('=== PlayAuto 상품 등록 응답 ===');
       console.log('전체 응답:', data);
 
-      // 쿠팡 디버깅 정보 출력
+      // 채널 분류 및 쿠팡 디버깅 정보 출력
       if (data.results) {
-        data.results.forEach((result: { product_name?: string; coupang_debug?: { opt_type?: string; std_ol_yn?: string; opts?: unknown; site_list?: unknown; error?: string; api_response?: unknown } }) => {
+        data.results.forEach((result: {
+          product_name?: string;
+          coupang_debug?: { opt_type?: string; std_ol_yn?: string; opts?: unknown; site_list?: unknown; error?: string; api_response?: unknown };
+          channel_debug?: { site_list_received?: string[]; single_product_sites?: string[]; coupang_sites?: string[]; smartstore_sites?: string[] }
+        }) => {
+          // 채널 분류 정보 출력
+          if (result.channel_debug) {
+            console.log(`\n[채널 분류] 상품: ${result.product_name}`);
+            console.log('받은 site_list:', result.channel_debug.site_list_received);
+            console.log('옥션/지마켓:', result.channel_debug.single_product_sites);
+            console.log('쿠팡:', result.channel_debug.coupang_sites);
+            console.log('스마트스토어:', result.channel_debug.smartstore_sites);
+          }
+
+          // 쿠팡 디버깅 정보 출력
           if (result.coupang_debug) {
             console.log(`\n[쿠팡 디버그] 상품: ${result.product_name}`);
             console.log('opt_type:', result.coupang_debug.opt_type);
@@ -429,6 +443,8 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
               console.log('에러:', result.coupang_debug.error);
               console.log('API 응답:', result.coupang_debug.api_response);
             }
+          } else {
+            console.log(`\n[쿠팡] 쿠팡 등록 시도 안됨 (coupang_sites가 비어있음)`);
           }
         });
       }

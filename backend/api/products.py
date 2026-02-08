@@ -1059,7 +1059,14 @@ async def register_products_to_playauto(request: dict):
                     "error": result.get("error"),
                     "c_sale_cd_gmk": c_sale_cd_gmk,
                     "c_sale_cd_smart": c_sale_cd_smart,
-                    "coupang_debug": coupang_debug_info  # 쿠팡 디버깅 정보
+                    "coupang_debug": coupang_debug_info,  # 쿠팡 디버깅 정보
+                    # 채널 분류 디버깅 정보
+                    "channel_debug": {
+                        "site_list_received": [s.get("shop_cd") for s in site_list],
+                        "single_product_sites": [s.get("shop_cd") for s in single_product_sites],
+                        "coupang_sites": [s.get("shop_cd") for s in coupang_sites],
+                        "smartstore_sites": [s.get("shop_cd") for s in smartstore_sites]
+                    }
                 })
 
             except Exception as e:
