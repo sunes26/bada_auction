@@ -1,63 +1,58 @@
+"""
+CJ The Market 스크래퍼 - FlareSolverr 기반 (Selenium 제거)
+"""
 import re
 from typing import List, Dict, Optional
 from datetime import datetime
 from urllib.parse import quote, urljoin, parse_qs, urlparse
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
-import time
+import requests
+from bs4 import BeautifulSoup
 
 from .base import BaseScraper
 from models.product import ProductCreate
 
+# FlareSolverr 클라이언트 임포트
+try:
+    from utils.flaresolverr import solve_cloudflare
+    FLARESOLVERR_AVAILABLE = True
+except ImportError:
+    FLARESOLVERR_AVAILABLE = False
+
 
 class CJTheMarketScraper(BaseScraper):
     """
-    CJ The Market 스크래퍼
-
-    Selenium을 사용하여 CJ제일제당 더마켓에서 상품 정보를 수집합니다.
+    CJ The Market 스크래퍼 - FlareSolverr 기반
     """
 
     def __init__(self):
         super().__init__()
         self.source_name = "CJ제일제당"
         self.base_url = "https://www.cjthemarket.com"
-        self.driver = None
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        }
 
-    def _init_driver(self):
-        """Selenium 드라이버 초기화"""
-        if self.driver is None:
-            chrome_options = Options()
-            chrome_options.add_argument('--headless')
-            chrome_options.add_argument('--no-sandbox')
-            chrome_options.add_argument('--disable-dev-shm-usage')
-            chrome_options.add_argument('--disable-gpu')
-            chrome_options.add_argument('--window-size=1920,1080')
-            chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    def _get_html(self, url: str) -> Optional[str]:
+        """HTML 가져오기 (FlareSolverr 우선, requests 폴백)"""
+        # FlareSolverr 시도
+        if FLARESOLVERR_AVAILABLE:
+            try:
+                result = solve_cloudflare(url, max_timeout=60000)
+                if result and result.get('html'):
+                    return result.get('html')
+            except Exception as e:
+                print(f"[FLARESOLVERR] 실패: {e}")
 
-            # ChromeDriver 경로 설정 (프로덕션/개발 환경 자동 감지)
-            import os
-            import shutil
-
-            chromedriver_path = '/usr/local/bin/chromedriver'
-            if os.path.exists(chromedriver_path):
-                service = Service(chromedriver_path)
-            elif shutil.which('chromedriver'):
-                service = Service(shutil.which('chromedriver'))
-            else:
-                service = Service(ChromeDriverManager().install())
-
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
-
-    def _close_driver(self):
-        """Selenium 드라이버 종료"""
-        if self.driver:
-            self.driver.quit()
-            self.driver = None
+        # requests 폴백
+        try:
+            response = requests.get(url, headers=self.headers, timeout=15)
+            response.raise_for_status()
+            return response.text
+        except Exception as e:
+            print(f"[REQUESTS] 실패: {e}")
+            return None
 
     async def search_products(
         self,
@@ -67,13 +62,11 @@ class CJTheMarketScraper(BaseScraper):
         page_size: int = 20
     ) -> List[ProductCreate]:
         """
-        CJ The Market에서 상품 검색 (Selenium 사용)
+        CJ The Market에서 상품 검색
         """
         products = []
 
         try:
-            self._init_driver()
-
             # 검색 쿼리 구성
             search_query = keyword if keyword else category if category else "선물세트"
             encoded_query = quote(search_query)
@@ -83,101 +76,78 @@ class CJTheMarketScraper(BaseScraper):
 
             print(f"CJ The Market: 검색 시도 - {search_url}")
 
-            # 페이지 로드
-            self.driver.get(search_url)
-            time.sleep(5)  # JavaScript 렌더링 대기
+            html = self._get_html(search_url)
+            if not html:
+                print(f"CJ The Market: HTML 가져오기 실패")
+                return self._get_sample_products(search_query, min(10, page_size))
 
-            # JavaScript로 상품 데이터 추출
-            product_data = self.driver.execute_script("""
-                const products = [];
+            soup = BeautifulSoup(html, 'html.parser')
 
-                // 상품 카드 찾기 (다양한 셀렉터 시도)
-                const selectors = [
-                    '.prd-item',
-                    '.product-item',
-                    '.item-card',
-                    '[class*="product"]',
-                    '[class*="item"]'
-                ];
+            # 상품 링크 찾기
+            links = soup.find_all('a', href=re.compile(r'prdCd='))
+            seen_prd_cd = set()
 
-                let items = [];
-                for (const selector of selectors) {
-                    items = document.querySelectorAll(selector);
-                    if (items.length > 0) break;
-                }
-
-                // 상품 링크에서 데이터 추출
-                const links = document.querySelectorAll('a[href*="prdCd="]');
-                const seenPrdCd = new Set();
-
-                links.forEach(link => {
-                    const href = link.href || '';
-                    const text = link.textContent || '';
-
-                    // prdCd 추출
-                    const prdCdMatch = href.match(/prdCd=(\d+)/);
-                    if (prdCdMatch && !seenPrdCd.has(prdCdMatch[1])) {
-                        seenPrdCd.add(prdCdMatch[1]);
-
-                        // 이미지 찾기
-                        const img = link.querySelector('img');
-                        const imgSrc = img ? (img.src || img.getAttribute('data-src') || '') : '';
-                        const imgAlt = img ? (img.alt || '') : '';
-
-                        // 가격 찾기
-                        let price = 0;
-                        let originalPrice = null;
-
-                        const priceMatches = text.match(/([\d,]+)원/g);
-                        if (priceMatches) {
-                            if (priceMatches.length >= 2) {
-                                originalPrice = parseInt(priceMatches[0].replace(/[^0-9]/g, ''));
-                                price = parseInt(priceMatches[priceMatches.length - 1].replace(/[^0-9]/g, ''));
-                            } else if (priceMatches.length === 1) {
-                                price = parseInt(priceMatches[0].replace(/[^0-9]/g, ''));
-                            }
-                        }
-
-                        // 상품명 추출 (이미지 alt 또는 텍스트)
-                        let name = imgAlt || '';
-                        if (!name || name.length < 5) {
-                            // 텍스트에서 상품명 추출 시도
-                            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-                            for (const line of lines) {
-                                if (line.length > 5 && line.length < 100 && !line.includes('원') && !line.includes('%')) {
-                                    name = line;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (name && name.length > 0) {
-                            products.push({
-                                prdCd: prdCdMatch[1],
-                                name: name,
-                                price: price,
-                                originalPrice: originalPrice,
-                                url: href,
-                                image: imgSrc
-                            });
-                        }
-                    }
-                });
-
-                return products;
-            """)
-
-            print(f"CJ The Market: {len(product_data)}개 상품 데이터 추출")
-
-            # 데이터 파싱
-            for idx, data in enumerate(product_data[:page_size]):
+            for link in links:
                 try:
-                    product = self._parse_product_data(data, search_query)
-                    if product:
-                        products.append(product)
+                    href = link.get('href', '')
+                    text = link.get_text()
+
+                    # prdCd 추출
+                    prd_cd_match = re.search(r'prdCd=(\d+)', href)
+                    if not prd_cd_match or prd_cd_match.group(1) in seen_prd_cd:
+                        continue
+
+                    prd_cd = prd_cd_match.group(1)
+                    seen_prd_cd.add(prd_cd)
+
+                    # 이미지 찾기
+                    img = link.find('img')
+                    img_src = ''
+                    img_alt = ''
+                    if img:
+                        img_src = img.get('src') or img.get('data-src') or ''
+                        img_alt = img.get('alt') or ''
+
+                    # 가격 찾기
+                    price = 0
+                    original_price = None
+                    price_matches = re.findall(r'([\d,]+)원', text)
+                    if price_matches:
+                        if len(price_matches) >= 2:
+                            original_price = int(price_matches[0].replace(',', ''))
+                            price = int(price_matches[-1].replace(',', ''))
+                        elif len(price_matches) == 1:
+                            price = int(price_matches[0].replace(',', ''))
+
+                    # 상품명 추출
+                    name = img_alt
+                    if not name or len(name) < 5:
+                        lines = [l.strip() for l in text.split('\n') if l.strip()]
+                        for line in lines:
+                            if len(line) > 5 and len(line) < 100 and '원' not in line and '%' not in line:
+                                name = line
+                                break
+
+                    if name and len(name) > 3:
+                        product = self._parse_product_data({
+                            'prdCd': prd_cd,
+                            'name': name,
+                            'price': price,
+                            'originalPrice': original_price,
+                            'url': href,
+                            'image': img_src
+                        }, search_query)
+                        if product:
+                            products.append(product)
+
+                        if len(products) >= page_size:
+                            break
+
                 except Exception as e:
-                    print(f"CJ 상품 파싱 오류 #{idx}: {str(e)}")
+                    print(f"CJ 상품 파싱 오류: {str(e)}")
                     continue
+
+            print(f"CJ The Market: {len(products)}개 상품 추출")
 
             # 상품이 없으면 샘플 데이터 반환
             if not products:
@@ -190,15 +160,10 @@ class CJTheMarketScraper(BaseScraper):
             traceback.print_exc()
             products = self._get_sample_products(keyword or category or "선물세트", min(10, page_size))
 
-        finally:
-            self._close_driver()
-
         return products
 
     def _parse_product_data(self, data: dict, search_query: str) -> Optional[ProductCreate]:
-        """
-        JavaScript로 추출한 데이터 파싱
-        """
+        """상품 데이터 파싱"""
         try:
             name = data.get('name', '')
             price = data.get('price', 0)
@@ -242,96 +207,59 @@ class CJTheMarketScraper(BaseScraper):
             return None
 
     async def get_product_detail(self, product_url: str) -> Dict:
-        """
-        상품 상세 정보 가져오기
-        """
+        """상품 상세 정보 가져오기"""
         try:
-            self._init_driver()
-
             print(f"CJ The Market: 상품 상세 페이지 로드 - {product_url}")
 
-            self.driver.get(product_url)
-            time.sleep(5)
+            html = self._get_html(product_url)
+            if not html:
+                return {}
 
-            # JavaScript로 상세 정보 추출
-            detail_data = self.driver.execute_script("""
-                const result = {
-                    name: '',
-                    price: 0,
-                    originalPrice: null,
-                    description: '',
-                    images: [],
-                    brand: 'CJ제일제당'
-                };
+            soup = BeautifulSoup(html, 'html.parser')
 
-                // 상품명
-                const nameSelectors = ['h1', '.prd-name', '.product-name', '[class*="title"]'];
-                for (const sel of nameSelectors) {
-                    const el = document.querySelector(sel);
-                    if (el && el.textContent.trim().length > 3) {
-                        result.name = el.textContent.trim();
-                        break;
-                    }
-                }
+            # 상품명
+            name = ''
+            for selector in ['h1', '.prd-name', '.product-name', '[class*="title"]']:
+                elem = soup.select_one(selector)
+                if elem and elem.get_text(strip=True) and len(elem.get_text(strip=True)) > 3:
+                    name = elem.get_text(strip=True)
+                    break
 
-                // 가격
-                const priceText = document.body.innerText || '';
-                const priceMatches = priceText.match(/([\d,]+)원/g);
-                if (priceMatches && priceMatches.length > 0) {
-                    result.price = parseInt(priceMatches[priceMatches.length - 1].replace(/[^0-9]/g, ''));
-                    if (priceMatches.length > 1) {
-                        result.originalPrice = parseInt(priceMatches[0].replace(/[^0-9]/g, ''));
-                    }
-                }
+            # 가격
+            price = 0
+            original_price = None
+            page_text = soup.get_text()
+            price_matches = re.findall(r'([\d,]+)원', page_text)
+            if price_matches:
+                price = int(price_matches[-1].replace(',', ''))
+                if len(price_matches) > 1:
+                    original_price = int(price_matches[0].replace(',', ''))
 
-                // 설명
-                const descSelectors = ['.prd-desc', '.product-description', '[class*="description"]', '[class*="detail"]'];
-                for (const sel of descSelectors) {
-                    const el = document.querySelector(sel);
-                    if (el && el.textContent.trim().length > 10) {
-                        result.description = el.textContent.trim().substring(0, 500);
-                        break;
-                    }
-                }
-
-                // 이미지
-                const images = document.querySelectorAll('img[src*="cjthemarket"], img[class*="prd"], img[class*="product"]');
-                images.forEach(img => {
-                    const src = img.src || img.getAttribute('data-src');
-                    if (src && !src.includes('icon') && !src.includes('logo')) {
-                        let imgUrl = src;
-                        if (!imgUrl.startsWith('http')) {
-                            imgUrl = 'https:' + imgUrl;
-                        }
-                        result.images.push(imgUrl);
-                    }
-                });
-
-                return result;
-            """)
+            # 이미지
+            images = []
+            for img in soup.find_all('img'):
+                src = img.get('src') or img.get('data-src')
+                if src and 'cjthemarket' in src and 'icon' not in src and 'logo' not in src:
+                    if not src.startswith('http'):
+                        src = 'https:' + src
+                    images.append(src)
 
             return {
-                "name": detail_data.get('name', ''),
-                "price": detail_data.get('price', 0),
-                "original_price": detail_data.get('originalPrice'),
-                "description": detail_data.get('description', ''),
-                "images": detail_data.get('images', []),
-                "brand": detail_data.get('brand', 'CJ제일제당'),
+                "name": name,
+                "price": price,
+                "original_price": original_price,
+                "description": "",
+                "images": images,
+                "brand": "CJ제일제당",
             }
 
         except Exception as e:
             print(f"CJ The Market 상품 상세 정보 조회 오류: {str(e)}")
             return {}
 
-        finally:
-            self._close_driver()
-
     async def get_product_by_url(self, product_url: str) -> Optional[ProductCreate]:
-        """
-        URL로 단일 상품 정보 가져오기
-        """
+        """URL로 단일 상품 정보 가져오기"""
         try:
-            # prdCd 추출
             parsed = urlparse(product_url)
             params = parse_qs(parsed.query)
             prd_cd = params.get('prdCd', [''])[0]
@@ -365,9 +293,7 @@ class CJTheMarketScraper(BaseScraper):
             return None
 
     async def check_price(self, product_url: str) -> float:
-        """
-        현재 가격 확인
-        """
+        """현재 가격 확인"""
         try:
             detail = await self.get_product_detail(product_url)
             return detail.get("price", 0.0)
@@ -376,9 +302,7 @@ class CJTheMarketScraper(BaseScraper):
             return 0.0
 
     def _get_sample_products(self, keyword: str, count: int) -> List[ProductCreate]:
-        """
-        샘플 상품 데이터 생성 (CJ 선물세트 기반)
-        """
+        """샘플 상품 데이터 생성"""
         sample_templates = [
             ("[설선물세트] 스팸 클래식 1호", 32900, 39900, "스팸"),
             ("[설선물세트] 스팸 블랙라벨 2호", 45900, 54900, "스팸"),
@@ -389,16 +313,14 @@ class CJTheMarketScraper(BaseScraper):
             ("[설선물세트] 해찬들 고추장 세트", 22900, 27900, "해찬들"),
             ("[설선물세트] CJ 종합 1호", 49900, 59900, "CJ"),
             ("[설선물세트] 참치 세트 1호", 38900, 45900, "동원"),
-            ("{keyword} 프리미엄 세트", 35900, 42900, "CJ제일제당"),
+            (f"{keyword} 프리미엄 세트", 35900, 42900, "CJ제일제당"),
         ]
 
         products = []
 
         for i in range(count):
             template = sample_templates[i % len(sample_templates)]
-            name_template, price, original_price, brand = template
-
-            name = name_template.format(keyword=keyword)
+            name, price, original_price, brand = template
 
             product = ProductCreate(
                 name=name,

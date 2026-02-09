@@ -9,9 +9,8 @@ python-dotenv>=1.0.1
 sqlalchemy>=2.0.36
 aiosqlite>=0.20.0
 psycopg2-binary>=2.9.9
-selenium>=4.27.0
-webdriver-manager>=4.0.2
-undetected-chromedriver>=3.5.0
+# selenium, webdriver-manager, undetected-chromedriver 제거됨
+# FlareSolverr로 대체
 apscheduler>=3.10.4
 cryptography>=42.0.0
 gunicorn>=21.2.0
