@@ -203,7 +203,13 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
       }
 
       if (data.success) {
-        alert(`✅ ${data.synced_count}개 마켓 코드 수집 완료`);
+        // 디버그 로그를 콘솔에 출력
+        if (data.debug_logs && data.debug_logs.length > 0) {
+          console.log('=== 마켓코드 동기화 디버그 로그 ===');
+          data.debug_logs.forEach((log: string) => console.log(log));
+          console.log('================================');
+        }
+        alert(`✅ ${data.synced_count}개 마켓 코드 수집 완료\n\n[디버그 로그는 F12 콘솔에서 확인하세요]`);
         await loadMarketplaceCodes(); // 재조회
       } else {
         alert('수집 실패: ' + (data.message || '알 수 없는 오류'));
