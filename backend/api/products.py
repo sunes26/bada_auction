@@ -51,6 +51,7 @@ class UpdateProductRequest(BaseModel):
     keywords: Optional[List[str]] = None  # 검색 키워드 (최대 40개)
     is_active: Optional[bool] = None
     notes: Optional[str] = None
+    sol_cate_no: Optional[int] = None  # PlayAuto 카테고리 번호 (수동 설정)
     c_sale_cd: Optional[str] = None  # 하위 호환성
     c_sale_cd_gmk: Optional[str] = None  # 지마켓/옥션용
     c_sale_cd_smart: Optional[str] = None  # 스마트스토어용
@@ -505,9 +506,16 @@ async def update_product(product_id: int, request: UpdateProductRequest):
         if request.thumbnail_url and request.thumbnail_url != product.get('thumbnail_url'):
             playauto_changes['sale_img1'] = request.thumbnail_url
 
-        # 카테고리 변경 시 자동 매핑
+        # 카테고리 번호 처리: 수동 입력 우선, 없으면 자동 매핑
         sol_cate_no = None
-        if request.category:
+        if request.sol_cate_no is not None:
+            # 수동 입력된 카테고리 번호 사용
+            sol_cate_no = request.sol_cate_no
+            logger.info(f"[상품수정] PlayAuto 카테고리 번호 수동 설정: {sol_cate_no}")
+            if sol_cate_no != product.get('sol_cate_no'):
+                playauto_changes['sol_cate_no'] = sol_cate_no
+        elif request.category:
+            # 카테고리 변경 시 자동 매핑
             sol_cate_no = get_playauto_category_code(request.category)
             if sol_cate_no:
                 logger.info(f"[상품수정] 카테고리 자동 매핑: {request.category} -> {sol_cate_no}")

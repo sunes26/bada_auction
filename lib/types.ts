@@ -222,6 +222,7 @@ export interface CreateProductRequest {
 
 export interface UpdateProductRequest extends Partial<CreateProductRequest> {
   is_active?: boolean;
+  sol_cate_no?: number;  // PlayAuto 카테고리 번호 (수동 설정)
   c_sale_cd?: string;  // 하위 호환성
   c_sale_cd_gmk?: string;  // 지마켓/옥션용
   c_sale_cd_smart?: string;  // 스마트스토어용

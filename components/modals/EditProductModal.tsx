@@ -18,6 +18,7 @@ interface Product {
   category?: string;
   notes?: string;
   keywords?: string;  // JSON 문자열로 저장된 키워드 배열
+  sol_cate_no?: number;  // PlayAuto 카테고리 번호
   c_sale_cd?: string;
   c_sale_cd_gmk?: string;  // 지마켓/옥션용
   c_sale_cd_smart?: string;  // 스마트스토어용
@@ -85,6 +86,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
     thumbnail_url: (product as any).thumbnail_url || '',
     weight: (product as any).weight || '',  // 상품 중량 (쿠팡 옵션용)
     notes: product.notes || '',
+    sol_cate_no: (product as any).sol_cate_no?.toString() || '',  // PlayAuto 카테고리 번호
     c_sale_cd_gmk: product.c_sale_cd_gmk || '',
     c_sale_cd_smart: product.c_sale_cd_smart || '',
     c_sale_cd_coupang: (product as any).c_sale_cd_coupang || '',
@@ -562,6 +564,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
         weight: formData.weight || undefined,  // 상품 중량 (쿠팡 옵션용)
         category: categoryString,
         notes: formData.notes || undefined,
+        sol_cate_no: formData.sol_cate_no ? parseInt(formData.sol_cate_no) : undefined,  // PlayAuto 카테고리 번호
         c_sale_cd_gmk: formData.c_sale_cd_gmk || undefined,
         c_sale_cd_smart: formData.c_sale_cd_smart || undefined,
         c_sale_cd_coupang: formData.c_sale_cd_coupang || undefined,
@@ -886,6 +889,29 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                 선택된 카테고리: {category.level1} &gt; {category.level2} &gt; {category.level3} &gt; {category.level4}
               </p>
             )}
+
+            {/* PlayAuto 카테고리 번호 */}
+            <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-3">
+              <label className="block text-sm font-semibold text-yellow-800 mb-2">
+                PlayAuto 카테고리 번호 (sol_cate_no)
+              </label>
+              <input
+                type="number"
+                value={formData.sol_cate_no}
+                onChange={(e) => setFormData({ ...formData, sol_cate_no: e.target.value })}
+                className="w-full px-3 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent font-mono text-sm"
+                placeholder="예: 138"
+              />
+              <p className="text-xs text-yellow-700 mt-2">
+                💡 PlayAuto 관리자 페이지에서 확인한 카테고리 번호를 입력하세요.
+                입력하지 않으면 카테고리 매핑에서 자동으로 가져옵니다.
+              </p>
+              {(product as any).sol_cate_no && (
+                <p className="text-xs text-green-600 mt-1">
+                  ✅ 현재 설정된 값: {(product as any).sol_cate_no}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* 썸네일 이미지 */}
