@@ -126,9 +126,19 @@ class PlayautoProductRegistration:
                 # 실패 처리
                 error_msg = ", ".join(result.get("messages", ["알 수 없는 오류"]))
                 logger.error(f"[플레이오토] 상품 등록 실패: {error_msg}")
+
+                # sol_cate_no 관련 에러는 친절한 메시지로 변환
+                if "sol_cate_no" in error_msg:
+                    friendly_error = (
+                        "PlayAuto 카테고리 번호가 설정되어 있지 않습니다. "
+                        "관리자 페이지에 접속해서 PlayAuto 카테고리 번호 매핑을 추가해야 합니다."
+                    )
+                else:
+                    friendly_error = f"플레이오토 API 오류: {error_msg}"
+
                 return {
                     "success": False,
-                    "error": f"플레이오토 API 오류: {error_msg}",
+                    "error": friendly_error,
                     "error_code": result.get("error_code"),
                     "data": result
                 }
