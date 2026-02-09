@@ -1454,7 +1454,7 @@ Client → ws://localhost:8000/ws/notifications
 
 **임시 해결**: 문제 있는 상품을 PlayAuto에 재등록하면 해결됩니다.
 
-**상세 문서**: [`OL_SHOP_NO_ISSUE_STATUS.md`](./OL_SHOP_NO_ISSUE_STATUS.md)
+**상세 문서**: [`OL_SHOP_NO_ISSUE_STATUS.md`](./docs/md/OL_SHOP_NO_ISSUE_STATUS.md)
 
 ---
 
