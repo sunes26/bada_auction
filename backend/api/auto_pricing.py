@@ -7,6 +7,7 @@ from typing import Optional
 from database.db_wrapper import get_db
 from logger import get_logger
 from playauto.products import edit_playauto_product
+from notifications.notifier import send_notification
 
 logger = get_logger(__name__)
 
@@ -235,6 +236,22 @@ async def adjust_product_price(product_id: int):
         except Exception as e:
             logger.warning(f"[자동가격] WebSocket 알림 실패: {e}")
 
+        # Discord 알림 (가격이 실제로 변경된 경우만)
+        if old_selling_price != new_selling_price:
+            try:
+                send_notification(
+                    notification_type='price_adjustment',
+                    message=f"가격 조정: {product_name}",
+                    product_name=product_name,
+                    old_price=old_selling_price,
+                    new_price=new_selling_price,
+                    margin_rate=new_margin,
+                    sourcing_price=sourcing_price,
+                    playauto_updated=playauto_updated
+                )
+            except Exception as e:
+                logger.warning(f"[자동가격] Discord 알림 실패: {e}")
+
         return {
             "success": True,
             "message": "가격이 자동 조정되었습니다.",
@@ -289,6 +306,18 @@ async def adjust_all_products():
                 continue
 
         logger.info(f"[자동가격] 일괄 조정 완료: {adjusted_count}개 조정")
+
+        # Discord 알림 (조정된 상품이 있는 경우)
+        if adjusted_count > 0:
+            try:
+                send_notification(
+                    notification_type='bulk_price_adjustment',
+                    message=f"일괄 가격 조정 완료: {adjusted_count}개",
+                    adjusted_count=adjusted_count,
+                    target_margin=settings.get('target_margin', 30.0)
+                )
+            except Exception as e:
+                logger.warning(f"[자동가격] Discord 알림 실패: {e}")
 
         return {
             "success": True,

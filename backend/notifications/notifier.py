@@ -448,6 +448,157 @@ def format_price_change_alert(
     return {"slack": slack_message, "discord": discord_message}
 
 
+def format_price_adjustment_alert(
+    product_name: str,
+    old_price: float,
+    new_price: float,
+    margin_rate: float,
+    sourcing_price: float,
+    playauto_updated: bool = False
+) -> Dict:
+    """
+    자동 가격 조정 완료 알림 메시지 포맷팅
+    """
+    emoji = "💰"
+    price_diff = new_price - old_price
+    is_increase = price_diff > 0
+
+    # Slack Block Kit 형식
+    slack_message = {
+        "text": f"{emoji} 자동 가격 조정: {product_name}",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"{emoji} 자동 가격 조정 완료"
+                }
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*상품명:*\n{product_name}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*마진율:*\n{margin_rate:.1f}%"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*이전 판매가:*\n{int(old_price):,}원"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*새 판매가:*\n{int(new_price):,}원"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*소싱가:*\n{int(sourcing_price):,}원"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*PlayAuto:*\n{'✅ 동기화됨' if playauto_updated else '⏳ 로컬만'}"
+                    }
+                ]
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"조정 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    }
+                ]
+            }
+        ]
+    }
+
+    # Discord Embed 형식
+    color = 3066993 if playauto_updated else 15105570  # Green if synced, Orange if not
+
+    discord_message = {
+        "embeds": [{
+            "title": f"{emoji} 자동 가격 조정 완료",
+            "color": color,
+            "fields": [
+                {"name": "상품명", "value": product_name, "inline": False},
+                {"name": "소싱가", "value": f"{int(sourcing_price):,}원", "inline": True},
+                {"name": "이전 판매가", "value": f"{int(old_price):,}원", "inline": True},
+                {"name": "새 판매가", "value": f"{int(new_price):,}원", "inline": True},
+                {"name": "마진율", "value": f"{margin_rate:.1f}%", "inline": True},
+                {"name": "가격 변동", "value": f"{'+' if is_increase else ''}{int(price_diff):,}원", "inline": True},
+                {"name": "PlayAuto", "value": "✅ 동기화됨" if playauto_updated else "⏳ 로컬만", "inline": True}
+            ],
+            "timestamp": datetime.now().isoformat()
+        }]
+    }
+
+    return {"slack": slack_message, "discord": discord_message}
+
+
+def format_bulk_price_adjustment_alert(
+    adjusted_count: int,
+    target_margin: float
+) -> Dict:
+    """
+    일괄 가격 조정 완료 알림 메시지 포맷팅
+    """
+    emoji = "📊"
+
+    # Slack Block Kit 형식
+    slack_message = {
+        "text": f"{emoji} 일괄 가격 조정 완료: {adjusted_count}개 상품",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"{emoji} 일괄 가격 조정 완료"
+                }
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*조정된 상품:*\n{adjusted_count}개"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*목표 마진율:*\n{target_margin}%"
+                    }
+                ]
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"조정 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    }
+                ]
+            }
+        ]
+    }
+
+    # Discord Embed 형식
+    discord_message = {
+        "embeds": [{
+            "title": f"{emoji} 일괄 가격 조정 완료",
+            "color": 5814783,  # Purple
+            "fields": [
+                {"name": "조정된 상품", "value": f"{adjusted_count}개", "inline": True},
+                {"name": "목표 마진율", "value": f"{target_margin}%", "inline": True}
+            ],
+            "timestamp": datetime.now().isoformat()
+        }]
+    }
+
+    return {"slack": slack_message, "discord": discord_message}
+
+
 def format_inventory_alert(
     product_name: str,
     alert_type: str,
@@ -902,6 +1053,20 @@ def send_notification(
                 old_price=kwargs.get('old_price', 0),
                 new_price=kwargs.get('new_price', 0),
                 change_percent=kwargs.get('change_percent', 0)
+            )
+        elif notification_type == 'price_adjustment':
+            formatted_messages = format_price_adjustment_alert(
+                product_name=kwargs.get('product_name', ''),
+                old_price=kwargs.get('old_price', 0),
+                new_price=kwargs.get('new_price', 0),
+                margin_rate=kwargs.get('margin_rate', 0),
+                sourcing_price=kwargs.get('sourcing_price', 0),
+                playauto_updated=kwargs.get('playauto_updated', False)
+            )
+        elif notification_type == 'bulk_price_adjustment':
+            formatted_messages = format_bulk_price_adjustment_alert(
+                adjusted_count=kwargs.get('adjusted_count', 0),
+                target_margin=kwargs.get('target_margin', 30.0)
             )
         elif notification_type == 'new_order':
             formatted_messages = format_new_order_alert(
