@@ -899,6 +899,7 @@ async def register_products_to_playauto(request: dict):
                 result = {"success": False, "error": "등록 가능한 채널이 없습니다."}
                 c_sale_cd_gmk = None
                 c_sale_cd_smart = None
+                c_sale_cd_coupang = None
 
                 # 1. 단일상품 등록 - 옥션/지마켓 (있는 경우)
                 if single_product_sites:
@@ -1050,6 +1051,11 @@ async def register_products_to_playauto(request: dict):
                         if not c_sale_cd_gmk:  # gmk가 없으면 smart를 playauto_product_no에 저장
                             update_params["playauto_product_no"] = c_sale_cd_smart
                         logger.info(f"[상품등록] 스마트스토어 c_sale_cd 저장: {c_sale_cd_smart}")
+                    if c_sale_cd_coupang:
+                        update_params["c_sale_cd_coupang"] = c_sale_cd_coupang
+                        if not c_sale_cd_gmk and not c_sale_cd_smart:  # 둘 다 없으면 coupang을 playauto_product_no에 저장
+                            update_params["playauto_product_no"] = c_sale_cd_coupang
+                        logger.info(f"[상품등록] 쿠팡 c_sale_cd 저장: {c_sale_cd_coupang}")
 
                     # 채널별 ol_shop_no 저장
                     if ol_shop_no_gmk:
@@ -1079,6 +1085,7 @@ async def register_products_to_playauto(request: dict):
                     "error": result.get("error"),
                     "c_sale_cd_gmk": c_sale_cd_gmk,
                     "c_sale_cd_smart": c_sale_cd_smart,
+                    "c_sale_cd_coupang": c_sale_cd_coupang,
                     "coupang_debug": coupang_debug_info,  # 쿠팡 디버깅 정보
                     # 채널 분류 디버깅 정보
                     "channel_debug": {
