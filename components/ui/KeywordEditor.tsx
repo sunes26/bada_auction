@@ -50,7 +50,10 @@ export default function KeywordEditor({
         // 기존 키워드와 합치고 중복 제거
         const combined = [...keywords, ...data.keywords];
         const unique = [...new Set(combined)].slice(0, maxKeywords);
+        console.log('[KeywordEditor] 키워드 생성 완료:', unique.length, '개');
+        console.log('[KeywordEditor] onKeywordsChange 호출 전:', unique);
         onKeywordsChange(unique);
+        console.log('[KeywordEditor] onKeywordsChange 호출 완료');
       } else {
         alert('키워드 생성에 실패했습니다: ' + (data.error || '알 수 없는 오류'));
       }

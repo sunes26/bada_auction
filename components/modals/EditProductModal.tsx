@@ -91,6 +91,11 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
   });
   const [keywords, setKeywords] = useState<string[]>(parseKeywords((product as any).keywords));
   const [category, setCategory] = useState<Category>(parseCategory(product.category));
+
+  // 디버그: keywords state 변경 감지
+  useEffect(() => {
+    console.log('[EditProductModal] keywords state 변경됨:', keywords.length, '개', keywords);
+  }, [keywords]);
   const [loading, setLoading] = useState(false);
   const [extractingUrl, setExtractingUrl] = useState(false);
 
