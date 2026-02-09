@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 from database.db_wrapper import get_db
 from logger import get_logger
+from playauto.products import edit_playauto_product
 
 logger = get_logger(__name__)
 
@@ -80,21 +81,25 @@ async def update_auto_pricing_settings(settings: AutoPricingSettings):
 
 async def calculate_new_price(sourcing_price: float, target_margin: float, price_unit: int) -> int:
     """
-    새 판매가 계산
+    새 판매가 계산 (소싱가 기준 마진율)
 
     Args:
         sourcing_price: 소싱가
-        target_margin: 목표 마진율 (%)
+        target_margin: 목표 마진율 (%, 소싱가 기준)
         price_unit: 가격 올림 단위
 
     Returns:
         조정된 판매가
-    """
-    # 목표 마진율로 판매가 계산
-    # 마진율 = (판매가 - 소싱가) / 판매가 * 100
-    # 판매가 = 소싱가 / (1 - 마진율/100)
 
-    target_price = sourcing_price / (1 - target_margin / 100)
+    Example:
+        소싱가 10,000원, 목표 마진율 30% → 판매가 13,000원
+        계산: 10,000 + (10,000 × 0.3) = 13,000원
+    """
+    # 목표 마진율로 판매가 계산 (소싱가 기준)
+    # 마진율 = (판매가 - 소싱가) / 소싱가 * 100
+    # 판매가 = 소싱가 * (1 + 마진율/100)
+
+    target_price = sourcing_price * (1 + target_margin / 100)
 
     # 가격 올림 단위로 반올림
     adjusted_price = round(target_price / price_unit) * price_unit
@@ -147,8 +152,8 @@ async def adjust_product_price(product_id: int):
             settings['price_unit']
         )
 
-        # 마진율 계산
-        new_margin = ((new_selling_price - sourcing_price) / new_selling_price) * 100
+        # 마진율 계산 (소싱가 기준)
+        new_margin = ((new_selling_price - sourcing_price) / sourcing_price) * 100
 
         # 최소 마진율 체크
         should_disable = False
@@ -156,7 +161,7 @@ async def adjust_product_price(product_id: int):
             should_disable = True
             logger.warning(f"[자동가격] {product_name}: 최소 마진율 미달 ({new_margin:.1f}% < {settings['min_margin']}%) - 판매 중단")
 
-        # 가격 업데이트
+        # 로컬 DB 가격 업데이트
         db.update_selling_product(
             product_id=product_id,
             selling_price=new_selling_price,
@@ -164,6 +169,71 @@ async def adjust_product_price(product_id: int):
         )
 
         logger.info(f"[자동가격] {product_name}: {old_selling_price:,}원 → {new_selling_price:,}원 (마진 {new_margin:.1f}%)")
+
+        # PlayAuto 가격 업데이트
+        playauto_updated = False
+        c_sale_cd_gmk = product.get('c_sale_cd_gmk')
+        c_sale_cd_smart = product.get('c_sale_cd_smart')
+        c_sale_cd_coupang = product.get('c_sale_cd_coupang')
+
+        playauto_changes = {'sale_price': new_selling_price}
+
+        # GMK (지마켓/옥션) 업데이트
+        if c_sale_cd_gmk:
+            try:
+                result_gmk = await edit_playauto_product(
+                    c_sale_cd=c_sale_cd_gmk,
+                    shop_cd="master",
+                    shop_id="master",
+                    edit_slave_all=True,
+                    **playauto_changes
+                )
+                if result_gmk.get('success'):
+                    playauto_updated = True
+                    logger.info(f"[자동가격] PlayAuto GMK 업데이트 성공: {c_sale_cd_gmk}")
+                else:
+                    logger.error(f"[자동가격] PlayAuto GMK 업데이트 실패: {result_gmk.get('message')}")
+            except Exception as e:
+                logger.error(f"[자동가격] PlayAuto GMK 업데이트 오류: {str(e)}")
+
+        # 스마트스토어 업데이트
+        if c_sale_cd_smart:
+            try:
+                result_smart = await edit_playauto_product(
+                    c_sale_cd=c_sale_cd_smart,
+                    shop_cd="master",
+                    shop_id="master",
+                    edit_slave_all=True,
+                    **playauto_changes
+                )
+                if result_smart.get('success'):
+                    playauto_updated = True
+                    logger.info(f"[자동가격] PlayAuto 스마트스토어 업데이트 성공: {c_sale_cd_smart}")
+                else:
+                    logger.error(f"[자동가격] PlayAuto 스마트스토어 업데이트 실패: {result_smart.get('message')}")
+            except Exception as e:
+                logger.error(f"[자동가격] PlayAuto 스마트스토어 업데이트 오류: {str(e)}")
+
+        # 쿠팡 업데이트
+        if c_sale_cd_coupang:
+            try:
+                result_coupang = await edit_playauto_product(
+                    c_sale_cd=c_sale_cd_coupang,
+                    shop_cd="master",
+                    shop_id="master",
+                    edit_slave_all=True,
+                    **playauto_changes
+                )
+                if result_coupang.get('success'):
+                    playauto_updated = True
+                    logger.info(f"[자동가격] PlayAuto 쿠팡 업데이트 성공: {c_sale_cd_coupang}")
+                else:
+                    logger.error(f"[자동가격] PlayAuto 쿠팡 업데이트 실패: {result_coupang.get('message')}")
+            except Exception as e:
+                logger.error(f"[자동가격] PlayAuto 쿠팡 업데이트 오류: {str(e)}")
+
+        if not (c_sale_cd_gmk or c_sale_cd_smart or c_sale_cd_coupang):
+            logger.warning(f"[자동가격] {product_name}: PlayAuto 판매자관리코드 없음 - 로컬 DB만 업데이트됨")
 
         # WebSocket 알림
         try:
@@ -184,7 +254,8 @@ async def adjust_product_price(product_id: int):
             "old_price": old_selling_price,
             "new_price": new_selling_price,
             "margin": new_margin,
-            "disabled": should_disable
+            "disabled": should_disable,
+            "playauto_updated": playauto_updated
         }
 
     except HTTPException:
