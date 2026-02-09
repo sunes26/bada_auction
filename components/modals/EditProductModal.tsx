@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Search, Package, RefreshCw, Upload, X } from 'lucide-react';
+import { Search, Package, RefreshCw, Upload, X, Tag } from 'lucide-react';
+import KeywordEditor from '@/components/ui/KeywordEditor';
 import { categoryStructure } from '@/lib/categories';
 import type { Category } from '@/types';
 import { productsApi, monitorApi, API_BASE_URL } from '@/lib/api';
@@ -16,6 +17,7 @@ interface Product {
   sourcing_source?: string;
   category?: string;
   notes?: string;
+  keywords?: string;  // JSON 문자열로 저장된 키워드 배열
   c_sale_cd?: string;
   c_sale_cd_gmk?: string;  // 지마켓/옥션용
   c_sale_cd_smart?: string;  // 스마트스토어용
@@ -56,6 +58,17 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
     };
   };
 
+  // 키워드 파싱 함수
+  const parseKeywords = (keywordsJson?: string): string[] => {
+    if (!keywordsJson) return [];
+    try {
+      const parsed = JSON.parse(keywordsJson);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
   const [formData, setFormData] = useState({
     product_name: product.product_name,
     selling_price: product.selling_price.toString(),
@@ -70,6 +83,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
     c_sale_cd_smart: product.c_sale_cd_smart || '',
     c_sale_cd_coupang: (product as any).c_sale_cd_coupang || '',
   });
+  const [keywords, setKeywords] = useState<string[]>(parseKeywords((product as any).keywords));
   const [category, setCategory] = useState<Category>(parseCategory(product.category));
   const [loading, setLoading] = useState(false);
   const [extractingUrl, setExtractingUrl] = useState(false);
@@ -364,6 +378,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
         c_sale_cd_gmk: formData.c_sale_cd_gmk || undefined,
         c_sale_cd_smart: formData.c_sale_cd_smart || undefined,
         c_sale_cd_coupang: formData.c_sale_cd_coupang || undefined,
+        keywords: keywords.length > 0 ? keywords : undefined,  // 키워드 전송
       });
 
       if (data.success) {
@@ -741,6 +756,15 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
               </p>
             </div>
           </div>
+
+          {/* 검색 키워드 */}
+          <KeywordEditor
+            keywords={keywords}
+            onKeywordsChange={setKeywords}
+            productName={formData.product_name}
+            category={`${category.level1} > ${category.level2} > ${category.level3} > ${category.level4}`}
+            disabled={loading}
+          />
 
           {/* PlayAuto 판매자 관리코드 */}
           <div className="bg-purple-50 border-2 border-purple-300 rounded-xl p-5">

@@ -25,6 +25,7 @@ export interface Product {
   created_at: string;
   updated_at: string;
   notes?: string;
+  keywords?: string;  // JSON 문자열로 저장된 검색 키워드 배열
 
   // PlayAuto fields
   c_sale_cd?: string;  // 하위 호환성을 위해 유지
@@ -216,6 +217,7 @@ export interface CreateProductRequest {
   thumbnail_url?: string;
   weight?: string;  // 상품 중량 (쿠팡 옵션용, 예: "500g", "1kg")
   notes?: string;
+  keywords?: string[];  // 검색 키워드 (최대 40개)
 }
 
 export interface UpdateProductRequest extends Partial<CreateProductRequest> {

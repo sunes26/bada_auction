@@ -339,6 +339,7 @@ class MySellingProduct(Base):
     c_sale_cd_smart = Column(Text)  # 스마트스토어용 판매자 관리코드
     c_sale_cd_coupang = Column(Text)  # 쿠팡용 판매자 관리코드
     weight = Column(Text)  # 상품 중량 (쿠팡 옵션용, 예: "500g", "1kg")
+    keywords = Column(Text)  # 검색 키워드 (JSON 배열로 저장, 최대 40개)
     is_active = Column(Boolean, default=False)  # 기본값: 중단 (상세페이지 생성기에서 추가된 상품은 중단 상태로 시작)
     created_at = Column(DateTime, default=func.current_timestamp())
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())

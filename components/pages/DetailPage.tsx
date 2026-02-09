@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Download, Sparkles, CheckCircle, ShoppingCart, RefreshCw, Search, ExternalLink, DollarSign, Plus } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { ArrowLeft, Download, Sparkles, CheckCircle, ShoppingCart, RefreshCw, Search, ExternalLink, DollarSign, Plus, Tag } from 'lucide-react';
 import { categoryStructure } from '@/lib/categories';
 import { templates, getTemplateIcon } from '@/lib/templates';
 import { imageService } from '@/lib/imageService';
@@ -15,6 +15,7 @@ import AdditionalTemplate from '@/components/templates/AdditionalTemplate';
 import Additional2Template from '@/components/templates/Additional2Template';
 import TextStyleEditor from '@/components/templates/TextStyleEditor';
 import PropertiesPanel from '@/components/ui/PropertiesPanel';
+import KeywordEditor from '@/components/ui/KeywordEditor';
 import { API_BASE_URL } from '@/lib/api';
 
 type Screen = 'category-selection' | 'product-input' | 'generating' | 'result';
@@ -1547,10 +1548,48 @@ function AddProductFromDetailPageModal({
     weight: '',  // 상품 중량 (쿠팡 옵션용)
     notes: '',
   });
+  const [keywords, setKeywords] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [thumbnailPreview, setThumbnailPreview] = useState(extractedThumbnail);
   const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+  const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
+  // 컴포넌트 마운트 시 자동으로 키워드 생성
+  useEffect(() => {
+    const generateKeywordsOnMount = async () => {
+      if (!productName) return;
+
+      setIsGeneratingKeywords(true);
+      try {
+        const categoryString = category.level1 && category.level2 && category.level3 && category.level4
+          ? `${category.level1} > ${category.level2} > ${category.level3} > ${category.level4}`
+          : undefined;
+
+        const response = await fetch(`${API_BASE_URL}/api/products/generate-keywords`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product_name: productName,
+            category: categoryString,
+            count: 30
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.keywords) {
+          setKeywords(data.keywords.slice(0, 40));
+        }
+      } catch (error) {
+        console.error('키워드 자동 생성 실패:', error);
+      } finally {
+        setIsGeneratingKeywords(false);
+      }
+    };
+
+    generateKeywordsOnMount();
+  }, [productName, category]);
 
   // 썸네일 이미지 업로드 핸들러
   const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1725,6 +1764,7 @@ function AddProductFromDetailPageModal({
           detail_page_data: detailPageData,
           weight: formData.weight || undefined,  // 상품 중량 (쿠팡 옵션용)
           notes: formData.notes || undefined,
+          keywords: keywords.length > 0 ? keywords : undefined,  // 키워드 전송
         }),
       });
 
@@ -1893,6 +1933,24 @@ function AddProductFromDetailPageModal({
               현재 생성한 상세페이지가 이 상품에 자동으로 연결됩니다.
             </div>
           </div>
+
+          {/* 검색 키워드 */}
+          {isGeneratingKeywords ? (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-5">
+              <div className="flex items-center justify-center gap-2 py-8">
+                <RefreshCw className="w-5 h-5 text-blue-600 animate-spin" />
+                <span className="text-blue-600 font-medium">AI가 키워드를 생성하는 중...</span>
+              </div>
+            </div>
+          ) : (
+            <KeywordEditor
+              keywords={keywords}
+              onKeywordsChange={setKeywords}
+              productName={formData.product_name}
+              category={`${category.level1} > ${category.level2} > ${category.level3} > ${category.level4}`}
+              disabled={loading}
+            />
+          )}
 
           {/* 메모 */}
           <div>

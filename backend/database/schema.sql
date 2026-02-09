@@ -262,6 +262,7 @@ CREATE TABLE IF NOT EXISTS my_selling_products (
     c_sale_cd_smart TEXT,  -- 스마트스토어용 판매자 관리코드
     c_sale_cd_coupang TEXT,  -- 쿠팡용 판매자 관리코드
     weight TEXT,  -- 상품 중량 (쿠팡 옵션용, 예: "500g", "1kg")
+    keywords TEXT,  -- 검색 키워드 (JSON 배열로 저장, 최대 40개)
     is_active BOOLEAN DEFAULT FALSE,  -- 판매 중 여부 (기본값: 중단)
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

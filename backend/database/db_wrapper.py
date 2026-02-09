@@ -304,6 +304,7 @@ class DatabaseWrapper:
         playauto_product_no: Optional[str] = None,
         ol_shop_no: Optional[str] = None,
         weight: Optional[str] = None,
+        keywords: Optional[str] = None,
         notes: Optional[str] = None
     ) -> int:
         """판매 상품 추가"""
@@ -324,6 +325,7 @@ class DatabaseWrapper:
                 playauto_product_no=playauto_product_no,
                 ol_shop_no=ol_shop_no,
                 weight=weight,
+                keywords=keywords,
                 notes=notes
             )
             session.add(product)
@@ -494,6 +496,7 @@ class DatabaseWrapper:
         c_sale_cd_smart: Optional[str] = None,
         c_sale_cd_coupang: Optional[str] = None,
         weight: Optional[str] = None,
+        keywords: Optional[str] = None,
         is_active: Optional[bool] = None,
         notes: Optional[str] = None
     ):
@@ -543,6 +546,8 @@ class DatabaseWrapper:
                 product.c_sale_cd_coupang = c_sale_cd_coupang
             if weight is not None:
                 product.weight = weight
+            if keywords is not None:
+                product.keywords = keywords
             if is_active is not None:
                 product.is_active = is_active
             if notes is not None:

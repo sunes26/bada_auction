@@ -30,6 +30,7 @@ class CreateProductRequest(BaseModel):
     thumbnail_url: Optional[str] = None
     original_thumbnail_url: Optional[str] = None  # 원본 외부 URL
     weight: Optional[str] = None  # 상품 중량 (쿠팡 옵션용, 예: "500g", "1kg")
+    keywords: Optional[List[str]] = None  # 검색 키워드 (최대 40개)
     notes: Optional[str] = None
 
 
@@ -46,6 +47,7 @@ class UpdateProductRequest(BaseModel):
     category: Optional[str] = None
     thumbnail_url: Optional[str] = None
     weight: Optional[str] = None  # 상품 중량 (쿠팡 옵션용)
+    keywords: Optional[List[str]] = None  # 검색 키워드 (최대 40개)
     is_active: Optional[bool] = None
     notes: Optional[str] = None
     c_sale_cd: Optional[str] = None  # 하위 호환성
@@ -97,6 +99,12 @@ async def create_product(request: CreateProductRequest):
                 logger.warning(f"[상품생성] 썸네일 업로드 실패, 원본 URL 사용")
                 thumbnail_url = request.original_thumbnail_url
 
+        # 키워드를 JSON 문자열로 변환
+        import json
+        keywords_json = None
+        if request.keywords:
+            keywords_json = json.dumps(request.keywords[:40], ensure_ascii=False)
+
         product_id = db.add_selling_product(
             product_name=request.product_name,
             selling_price=request.selling_price,
@@ -111,6 +119,7 @@ async def create_product(request: CreateProductRequest):
             original_thumbnail_url=request.original_thumbnail_url,
             sol_cate_no=sol_cate_no,
             weight=request.weight,
+            keywords=keywords_json,
             notes=request.notes
         )
 
@@ -516,6 +525,11 @@ async def update_product(product_id: int, request: UpdateProductRequest):
         if request.c_sale_cd_coupang is not None:
             logger.info(f"[상품수정] 쿠팡 c_sale_cd 변경: {product.get('c_sale_cd_coupang')} -> {request.c_sale_cd_coupang}")
 
+        # 키워드 처리 (리스트 -> JSON 문자열)
+        keywords_json = None
+        if request.keywords is not None:
+            keywords_json = json.dumps(request.keywords[:40], ensure_ascii=False)
+
         # 로컬 DB 수정
         db.update_selling_product(
             product_id=product_id,
@@ -535,7 +549,8 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             notes=request.notes,
             c_sale_cd_gmk=c_sale_cd_gmk,
             c_sale_cd_smart=c_sale_cd_smart,
-            c_sale_cd_coupang=c_sale_cd_coupang
+            c_sale_cd_coupang=c_sale_cd_coupang,
+            keywords=keywords_json
         )
 
         # 플레이오토 API 업데이트 (변경사항 + 플레이오토 상품인 경우)
@@ -1787,3 +1802,185 @@ async def recover_ol_shop_no():
     except Exception as e:
         logger.error(f"[ol_shop_no 복구] 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=f"ol_shop_no 복구 실패: {str(e)}")
+
+
+# ==========================================
+# 키워드 생성 API
+# ==========================================
+
+class GenerateKeywordsRequest(BaseModel):
+    """키워드 생성 요청"""
+    product_name: str
+    category: Optional[str] = None
+    count: int = 30  # 기본 30개 생성
+
+
+class UpdateKeywordsRequest(BaseModel):
+    """키워드 수정 요청"""
+    keywords: List[str]
+
+
+@router.post("/generate-keywords")
+async def generate_keywords(request: GenerateKeywordsRequest):
+    """GPT를 이용하여 상품 관련 키워드 생성 (최대 40개)"""
+    import os
+    import json
+
+    try:
+        # OpenAI API 키 확인
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        if not openai_api_key:
+            logger.warning("[키워드 생성] OpenAI API 키 없음, 기본 키워드 반환")
+            # API 키가 없으면 기본 키워드 생성
+            base_keywords = generate_basic_keywords(request.product_name, request.category)
+            return {
+                "success": True,
+                "keywords": base_keywords[:request.count],
+                "source": "basic"
+            }
+
+        import openai
+        client = openai.OpenAI(api_key=openai_api_key)
+
+        # 카테고리 정보 포함
+        category_hint = ""
+        if request.category:
+            category_hint = f"\n카테고리: {request.category}"
+
+        # GPT에게 키워드 생성 요청
+        prompt = f"""다음 상품에 대한 검색 키워드를 {min(request.count, 40)}개 생성해주세요.
+검색 키워드는 해당 상품을 고객이 검색할 때 사용할 만한 단어들입니다.
+
+상품명: {request.product_name}{category_hint}
+
+규칙:
+1. 상품명에서 추출한 핵심 키워드 포함
+2. 유사 상품, 관련 카테고리 키워드 포함
+3. 브랜드명, 일반명칭 모두 포함
+4. 단어 1~3개 조합의 짧은 키워드
+5. 중복 없이 다양하게 생성
+6. 한국어로 작성
+
+JSON 배열 형식으로만 응답해주세요. 예시:
+["키워드1", "키워드2", "키워드3"]"""
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "당신은 이커머스 검색 키워드 전문가입니다. 고객이 상품을 검색할 때 사용할 만한 키워드를 생성합니다."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+
+        # 응답 파싱
+        content = response.choices[0].message.content.strip()
+
+        # JSON 파싱 시도
+        try:
+            # ```json ... ``` 형식 처리
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+
+            keywords = json.loads(content)
+
+            if not isinstance(keywords, list):
+                raise ValueError("키워드가 리스트 형식이 아닙니다")
+
+            # 문자열만 필터링 및 중복 제거
+            keywords = list(dict.fromkeys([k.strip() for k in keywords if isinstance(k, str) and k.strip()]))
+
+            logger.info(f"[키워드 생성] 상품: {request.product_name}, 키워드 {len(keywords)}개 생성")
+
+            return {
+                "success": True,
+                "keywords": keywords[:40],  # 최대 40개
+                "source": "gpt"
+            }
+
+        except json.JSONDecodeError as e:
+            logger.warning(f"[키워드 생성] JSON 파싱 실패, 텍스트 파싱 시도: {e}")
+            # 텍스트에서 키워드 추출 시도
+            keywords = [k.strip().strip('"').strip("'") for k in content.replace("[", "").replace("]", "").split(",")]
+            keywords = [k for k in keywords if k]
+
+            return {
+                "success": True,
+                "keywords": keywords[:40],
+                "source": "gpt_fallback"
+            }
+
+    except Exception as e:
+        logger.error(f"[키워드 생성] 오류: {str(e)}")
+        # 오류 시 기본 키워드 반환
+        base_keywords = generate_basic_keywords(request.product_name, request.category)
+        return {
+            "success": True,
+            "keywords": base_keywords[:request.count],
+            "source": "basic_fallback",
+            "error": str(e)
+        }
+
+
+def generate_basic_keywords(product_name: str, category: Optional[str] = None) -> List[str]:
+    """기본 키워드 생성 (GPT 없이)"""
+    keywords = []
+
+    # 상품명에서 키워드 추출
+    words = product_name.replace("/", " ").replace("-", " ").replace("_", " ").split()
+    keywords.extend(words)
+
+    # 상품명 전체도 추가
+    keywords.append(product_name)
+
+    # 카테고리에서 키워드 추출
+    if category:
+        category_parts = category.split(">")
+        for part in category_parts:
+            keywords.append(part.strip())
+
+    # 조합 키워드 생성
+    if len(words) >= 2:
+        # 2개씩 조합
+        for i in range(len(words) - 1):
+            keywords.append(f"{words[i]} {words[i+1]}")
+
+    # 중복 제거 및 빈 문자열 제거
+    keywords = list(dict.fromkeys([k.strip() for k in keywords if k.strip()]))
+
+    return keywords
+
+
+@router.put("/{product_id}/keywords")
+async def update_product_keywords(product_id: int, request: UpdateKeywordsRequest):
+    """상품 키워드 수정"""
+    import json
+
+    try:
+        db = get_db()
+
+        # 키워드 유효성 검사 (최대 40개)
+        keywords = request.keywords[:40]
+
+        # JSON 문자열로 저장
+        keywords_json = json.dumps(keywords, ensure_ascii=False)
+
+        db.update_selling_product(
+            product_id=product_id,
+            keywords=keywords_json
+        )
+
+        logger.info(f"[키워드 수정] 상품 {product_id}: {len(keywords)}개 키워드 저장")
+
+        return {
+            "success": True,
+            "message": f"{len(keywords)}개 키워드가 저장되었습니다.",
+            "keywords": keywords
+        }
+
+    except Exception as e:
+        logger.error(f"[키워드 수정] 상품 {product_id} 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"키워드 수정 실패: {str(e)}")
