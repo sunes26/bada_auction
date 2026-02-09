@@ -1,6 +1,7 @@
 """
 내 판매 상품 관리 API
 """
+import json
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional, List
