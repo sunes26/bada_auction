@@ -529,6 +529,9 @@ async def update_product(product_id: int, request: UpdateProductRequest):
         keywords_json = None
         if request.keywords is not None:
             keywords_json = json.dumps(request.keywords[:40], ensure_ascii=False)
+            logger.info(f"[상품수정] 키워드 저장: {len(request.keywords)}개 -> {keywords_json[:100]}...")
+        else:
+            logger.info(f"[상품수정] 키워드 없음 (request.keywords is None)")
 
         # 로컬 DB 수정
         db.update_selling_product(
