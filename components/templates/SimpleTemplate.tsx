@@ -1,15 +1,31 @@
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Trash2 } from 'lucide-react';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
 import { TemplateProps } from './TemplateProps';
 
+// 섹션 삭제 버튼 컴포넌트
+function SectionDeleteButton({ sectionKey, onSectionDelete }: { sectionKey: string; onSectionDelete?: (key: string) => void }) {
+  if (!onSectionDelete) return null;
+  return (
+    <button
+      onClick={() => onSectionDelete(sectionKey)}
+      className="absolute top-2 right-2 w-10 h-10 bg-red-500/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20"
+      title="섹션 삭제"
+    >
+      <Trash2 className="w-5 h-5" />
+    </button>
+  );
+}
+
 export default function SimpleTemplate(props: TemplateProps) {
-  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment, containerWidths = {}, onContainerWidthChange } = props;
+  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment, containerWidths = {}, onContainerWidthChange, hiddenSections = {}, onSectionDelete } = props;
 
   return (
     <>
       {/* Hero Section - Simple and Clean */}
-      <div className="w-full bg-white py-16 px-10 text-center">
+      {!hiddenSections['hero'] && (
+      <div className="w-full bg-white py-16 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="hero" onSectionDelete={onSectionDelete} />
         <h1 className="text-6xl font-bold text-gray-800 mb-8">
           <EditableText
             field="productName"
@@ -39,9 +55,12 @@ export default function SimpleTemplate(props: TemplateProps) {
           />
         </p>
       </div>
+      )}
 
       {/* Main Product Image */}
-      <div className="w-full px-10">
+      {!hiddenSections['mainImage'] && (
+      <div className="w-full px-10 relative">
+        <SectionDeleteButton sectionKey="mainImage" onSectionDelete={onSectionDelete} />
         <div className="max-w-5xl mx-auto">
           <EditableImage
             imageKey="simple_main_image"
@@ -65,9 +84,12 @@ export default function SimpleTemplate(props: TemplateProps) {
           />
         </div>
       </div>
+      )}
 
       {/* Product Information Section - 상품정보 */}
-      <div className="w-full bg-white py-20 px-10">
+      {!hiddenSections['productInfo'] && (
+      <div className="w-full bg-white py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="productInfo" onSectionDelete={onSectionDelete} />
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl font-bold text-gray-800 mb-12 text-center">
             <EditableText
@@ -162,9 +184,12 @@ export default function SimpleTemplate(props: TemplateProps) {
           )}
         </div>
       </div>
+      )}
 
       {/* Caution Section */}
-      <div className="w-full bg-gray-50 py-20 px-10">
+      {!hiddenSections['caution'] && (
+      <div className="w-full bg-gray-50 py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="caution" onSectionDelete={onSectionDelete} />
         <div className="max-w-4xl mx-auto">
           <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-10">
             <div className="flex items-center gap-3 mb-6">
@@ -202,6 +227,7 @@ export default function SimpleTemplate(props: TemplateProps) {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 }

@@ -55,6 +55,7 @@ export default function DetailPage() {
   const [imagePositions, setImagePositions] = useState<Record<string, { x: number; y: number }>>({});
   const [imageAlignments, setImageAlignments] = useState<Record<string, 'left' | 'center' | 'right'>>({});
   const [containerWidths, setContainerWidths] = useState<Record<string, number>>({}); // 컨테이너 가로 크기 (%)
+  const [hiddenSections, setHiddenSections] = useState<Record<string, boolean>>({}); // 숨겨진(삭제된) 섹션
   const templateRef = useRef<HTMLDivElement>(null);
 
   // 외부 클릭 시 편집 모드 해제
@@ -82,6 +83,13 @@ export default function DetailPage() {
   const handleContainerWidthChange = (imageKey: string, width: number) => {
     setContainerWidths(prev => ({ ...prev, [imageKey]: width }));
   };
+
+  const handleSectionDelete = (sectionKey: string) => {
+    if (window.confirm('이 섹션을 삭제하시겠습니까?')) {
+      setHiddenSections(prev => ({ ...prev, [sectionKey]: true }));
+    }
+  };
+
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const level1Options = Object.keys(categoryStructure);
@@ -664,15 +672,26 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
 
     // Extract folder ID from image URL
     // 로컬 형식: /supabase-images/1_흰밥/...
-    // Supabase Storage 형식: https://.../product-images/cat-1/...
+    // Supabase Storage 형식 1: https://.../product-images/cat-1/...
+    // Supabase Storage 형식 2: https://.../product-images/detail-pages/1770647709_xxx.png
     let folderId: string | null = null;
 
-    // Try Supabase Storage format first (cat-{id})
-    const supabaseMatch = currentImage.match(/\/cat-(\d+)\//);
-    if (supabaseMatch) {
-      folderId = supabaseMatch[1];
-    } else {
-      // Fallback to local format ({id}_name)
+    // Try Supabase Storage format (cat-{id})
+    const catMatch = currentImage.match(/\/cat-(\d+)\//);
+    if (catMatch) {
+      folderId = catMatch[1];
+    }
+
+    // Try detail-pages format ({id}_name)
+    if (!folderId) {
+      const detailPagesMatch = currentImage.match(/\/detail-pages\/(\d+)_/);
+      if (detailPagesMatch) {
+        folderId = detailPagesMatch[1];
+      }
+    }
+
+    // Fallback to local format ({id}_name)
+    if (!folderId) {
       const localMatch = currentImage.match(/\/supabase-images\/(\d+)_/);
       if (localMatch) {
         folderId = localMatch[1];
@@ -681,6 +700,7 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
 
     if (!folderId) {
       console.warn('폴더 경로를 찾을 수 없습니다:', currentImage);
+      // 이미지 새로고침 대신 토스트 메시지만 표시하고 조용히 리턴
       return;
     }
 
@@ -936,6 +956,8 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       onImageAlignment: handleImageAlignment,
       containerWidths,
       onContainerWidthChange: handleContainerWidthChange,
+      hiddenSections,
+      onSectionDelete: handleSectionDelete,
       onImageDelete: (key: string) => {
         setUploadedImages(prev => {
           const newImages = { ...prev };

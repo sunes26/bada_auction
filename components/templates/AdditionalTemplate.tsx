@@ -1,15 +1,31 @@
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Trash2 } from 'lucide-react';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
 import { TemplateProps } from './TemplateProps';
 
+// 섹션 삭제 버튼 컴포넌트
+function SectionDeleteButton({ sectionKey, onSectionDelete }: { sectionKey: string; onSectionDelete?: (key: string) => void }) {
+  if (!onSectionDelete) return null;
+  return (
+    <button
+      onClick={() => onSectionDelete(sectionKey)}
+      className="absolute top-2 right-2 w-10 h-10 bg-red-500/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20"
+      title="섹션 삭제"
+    >
+      <Trash2 className="w-5 h-5" />
+    </button>
+  );
+}
+
 export default function AdditionalTemplate(props: TemplateProps) {
-  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment, containerWidths = {}, onContainerWidthChange } = props;
+  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment, containerWidths = {}, onContainerWidthChange, hiddenSections = {}, onSectionDelete } = props;
 
   return (
     <>
       {/* Hero Section - 배경 이미지 + 브랜드 + 제품명 */}
+      {!hiddenSections['hero'] && (
       <div className="w-full h-[800px] relative">
+        <SectionDeleteButton sectionKey="hero" onSectionDelete={onSectionDelete} />
         <EditableImage
           imageKey="additional_template1_product"
           uploadedImages={uploadedImages}
@@ -69,9 +85,12 @@ export default function AdditionalTemplate(props: TemplateProps) {
           </div>
         </EditableImage>
       </div>
+      )}
 
       {/* 면도의 새로운 기준 Section */}
-      <div className="w-full bg-white py-20 px-10">
+      {!hiddenSections['mainProduct'] && (
+      <div className="w-full bg-white py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="mainProduct" onSectionDelete={onSectionDelete} />
         <div className="max-w-5xl mx-auto">
           <p className="text-center text-xl text-gray-600 mb-4">
             <EditableText
@@ -124,9 +143,12 @@ export default function AdditionalTemplate(props: TemplateProps) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Notice Section - 검정 배경 */}
-      <div className="w-full bg-black text-white py-16 px-10 text-center">
+      {!hiddenSections['notice'] && (
+      <div className="w-full bg-black text-white py-16 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="notice" onSectionDelete={onSectionDelete} />
         <h3 className="text-3xl font-bold mb-4">
           <EditableText
             field="noticeTitle"
@@ -156,9 +178,12 @@ export default function AdditionalTemplate(props: TemplateProps) {
           />
         </p>
       </div>
+      )}
 
       {/* 제품명 + 이미지 Section */}
-      <div className="w-full bg-white py-20 px-10 text-center">
+      {!hiddenSections['feature'] && (
+      <div className="w-full bg-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="feature" onSectionDelete={onSectionDelete} />
         <h2 className="text-5xl font-bold text-gray-800 mb-12">
           <EditableText
             field="copywriting1"
@@ -194,9 +219,12 @@ export default function AdditionalTemplate(props: TemplateProps) {
           />
         </div>
       </div>
+      )}
 
       {/* 제품정보 Section */}
-      <div className="w-full bg-white py-20 px-10 text-center">
+      {!hiddenSections['productInfo'] && (
+      <div className="w-full bg-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="productInfo" onSectionDelete={onSectionDelete} />
         <h2 className="text-4xl font-bold text-gray-800 mb-12">
           <EditableText
             field="productInfoLabel"
@@ -284,9 +312,12 @@ export default function AdditionalTemplate(props: TemplateProps) {
           )}
         </div>
       </div>
+      )}
 
       {/* 주의사항 Section */}
-      <div className="w-full bg-gray-100 py-16 px-10">
+      {!hiddenSections['caution'] && (
+      <div className="w-full bg-gray-100 py-16 px-10 relative">
+        <SectionDeleteButton sectionKey="caution" onSectionDelete={onSectionDelete} />
         <div className="max-w-3xl mx-auto">
           <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-8">
             <div className="flex items-center gap-3 mb-4">
@@ -324,6 +355,7 @@ export default function AdditionalTemplate(props: TemplateProps) {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 }

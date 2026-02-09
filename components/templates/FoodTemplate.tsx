@@ -1,16 +1,32 @@
-import { Star } from 'lucide-react';
+import { Star, Trash2 } from 'lucide-react';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
 import OctagonBadge from './OctagonBadge';
 import { TemplateProps } from './TemplateProps';
 
+// 섹션 삭제 버튼 컴포넌트
+function SectionDeleteButton({ sectionKey, onSectionDelete }: { sectionKey: string; onSectionDelete?: (key: string) => void }) {
+  if (!onSectionDelete) return null;
+  return (
+    <button
+      onClick={() => onSectionDelete(sectionKey)}
+      className="absolute top-2 right-2 w-10 h-10 bg-red-500/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20"
+      title="섹션 삭제"
+    >
+      <Trash2 className="w-5 h-5" />
+    </button>
+  );
+}
+
 export default function FoodTemplate(props: TemplateProps) {
-  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment, containerWidths = {}, onContainerWidthChange } = props;
+  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment, containerWidths = {}, onContainerWidthChange, hiddenSections = {}, onSectionDelete } = props;
 
   return (
     <>
       {/* Hero Section */}
+      {!hiddenSections['hero'] && (
       <div className="w-full h-[1200px] relative">
+        <SectionDeleteButton sectionKey="hero" onSectionDelete={onSectionDelete} />
         <EditableImage
           imageKey="food_template1_bg"
           uploadedImages={uploadedImages}
@@ -85,9 +101,12 @@ export default function FoodTemplate(props: TemplateProps) {
           </div>
         </EditableImage>
       </div>
+      )}
 
       {/* Dark Blue Section - 맛과 영양을 모두 갖춘 */}
-      <div className="w-full text-white py-16 px-10 text-center" style={{ backgroundColor: 'rgb(39, 57, 93)' }}>
+      {!hiddenSections['darkBlue'] && (
+      <div className="w-full text-white py-16 px-10 text-center relative" style={{ backgroundColor: 'rgb(39, 57, 93)' }}>
+        <SectionDeleteButton sectionKey="darkBlue" onSectionDelete={onSectionDelete} />
         <h2 className="text-4xl font-bold mb-8 drop-shadow-lg">
           <EditableText
             field="coreMessage1"
@@ -145,9 +164,12 @@ export default function FoodTemplate(props: TemplateProps) {
           ))}
         </div>
       </div>
+      )}
 
       {/* Blue Review Section - 실제 구매자들의 BEST REVIEW */}
-      <div className="w-full bg-blue-600 text-white py-20 px-10">
+      {!hiddenSections['reviews'] && (
+      <div className="w-full bg-blue-600 text-white py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="reviews" onSectionDelete={onSectionDelete} />
         <div className="text-center mb-12">
           <h3 className="text-3xl font-bold mb-2">
             <EditableText
@@ -249,9 +271,12 @@ export default function FoodTemplate(props: TemplateProps) {
           ))}
         </div>
       </div>
+      )}
 
       {/* Product Image Section - 상품 정보 */}
-      <div className="w-full bg-white py-20 px-10 text-center">
+      {!hiddenSections['productInfo'] && (
+      <div className="w-full bg-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="productInfo" onSectionDelete={onSectionDelete} />
         <div className="max-w-3xl mx-auto">
           {/* 상품 정보 배지 */}
           <div className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-bold text-xl mb-8 shadow-lg">
@@ -342,9 +367,12 @@ export default function FoodTemplate(props: TemplateProps) {
           )}
         </div>
       </div>
+      )}
 
       {/* Caution Section - 주의사항 */}
-      <div className="w-full bg-white py-20 px-10">
+      {!hiddenSections['caution'] && (
+      <div className="w-full bg-white py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="caution" onSectionDelete={onSectionDelete} />
         <div className="max-w-3xl mx-auto">
           <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-8 shadow-md text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -370,6 +398,7 @@ export default function FoodTemplate(props: TemplateProps) {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 }

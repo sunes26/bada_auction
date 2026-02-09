@@ -27,4 +27,6 @@ export interface TemplateProps {
   onImageAlignment?: (imageKey: string, alignment: 'left' | 'center' | 'right') => void;
   containerWidths?: Record<string, number>; // 컨테이너 가로 크기 (%)
   onContainerWidthChange?: (imageKey: string, width: number) => void;
+  hiddenSections?: Record<string, boolean>; // 숨겨진(삭제된) 섹션
+  onSectionDelete?: (sectionKey: string) => void; // 섹션 삭제 핸들러
 }

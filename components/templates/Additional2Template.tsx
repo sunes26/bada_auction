@@ -1,15 +1,31 @@
-import { Star } from 'lucide-react';
+import { Star, Trash2 } from 'lucide-react';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
 import { TemplateProps } from './TemplateProps';
 
+// 섹션 삭제 버튼 컴포넌트
+function SectionDeleteButton({ sectionKey, onSectionDelete }: { sectionKey: string; onSectionDelete?: (key: string) => void }) {
+  if (!onSectionDelete) return null;
+  return (
+    <button
+      onClick={() => onSectionDelete(sectionKey)}
+      className="absolute top-2 right-2 w-10 h-10 bg-red-500/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20"
+      title="섹션 삭제"
+    >
+      <Trash2 className="w-5 h-5" />
+    </button>
+  );
+}
+
 export default function Additional2Template(props: TemplateProps) {
-  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment, containerWidths = {}, onContainerWidthChange } = props;
+  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment, containerWidths = {}, onContainerWidthChange, hiddenSections = {}, onSectionDelete } = props;
 
   return (
     <>
       {/* Hero Section - 황금 비누방울 */}
-      <div className="w-full bg-gradient-to-b from-amber-50 to-white py-20 px-10 text-center">
+      {!hiddenSections['hero'] && (
+      <div className="w-full bg-gradient-to-b from-amber-50 to-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="hero" onSectionDelete={onSectionDelete} />
         <h1 className="text-6xl font-bold text-gray-800 mb-4">
           <EditableText field="introTitle" value={content.introTitle} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
         </h1>
@@ -19,9 +35,12 @@ export default function Additional2Template(props: TemplateProps) {
         <EditableImage imageKey="additional2_template1_main" uploadedImages={uploadedImages} className="w-full max-w-4xl mx-auto h-[600px] rounded-3xl shadow-2xl" onImageUpload={onImageUpload} onImageRefresh={onImageRefresh}
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
       </div>
+      )}
 
       {/* 고객만족우수 Section */}
-      <div className="w-full bg-white py-20 px-10">
+      {!hiddenSections['reviews'] && (
+      <div className="w-full bg-white py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="reviews" onSectionDelete={onSectionDelete} />
         <h2 className="text-4xl font-bold text-center text-gray-800 mb-4">
           <EditableText field="reviewTitle" value={content.reviewTitle || "고객만족우수"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} className="text-gray-800" />
         </h2>
@@ -37,9 +56,12 @@ export default function Additional2Template(props: TemplateProps) {
           ))}
         </div>
       </div>
+      )}
 
       {/* 자연의 힘으로 건강한 머릿결을 Section */}
-      <div className="w-full bg-gray-50 py-20 px-10">
+      {!hiddenSections['health'] && (
+      <div className="w-full bg-gray-50 py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="health" onSectionDelete={onSectionDelete} />
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl font-bold text-center text-gray-800 mb-12">
             <EditableText field="healthTitle" value={content.healthTitle || "자연의 힘으로 건강한 머릿결을"} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
@@ -59,9 +81,12 @@ export default function Additional2Template(props: TemplateProps) {
           </div>
         </div>
       </div>
+      )}
 
       {/* 샴푸 Section - 제품명 + 이미지 */}
-      <div className="w-full bg-white py-20 px-10 text-center">
+      {!hiddenSections['brandProduct'] && (
+      <div className="w-full bg-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="brandProduct" onSectionDelete={onSectionDelete} />
         <h2 className="text-5xl font-bold text-gray-800 mb-12">
           <EditableText field="brandProductName" value={content.brandProductName} editingField={editingField} editingValue={editingValue} onEdit={onTextEdit} onSave={onTextSave} onCancel={onTextCancel} onValueChange={onValueChange} onStyleClick={onTextStyleClick} textStyles={textStyles} />
         </h2>
@@ -70,9 +95,12 @@ export default function Additional2Template(props: TemplateProps) {
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
+      )}
 
       {/* 제품정보 Section */}
-      <div className="w-full bg-white py-20 px-10 text-center">
+      {!hiddenSections['productInfo'] && (
+      <div className="w-full bg-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="productInfo" onSectionDelete={onSectionDelete} />
         <h2 className="text-4xl font-bold text-gray-800 mb-12">
           <EditableText
             field="productInfoLabel"
@@ -144,9 +172,12 @@ export default function Additional2Template(props: TemplateProps) {
           )}
         </div>
       </div>
+      )}
 
       {/* 주의사항 Section - 파란 배경 */}
-      <div className="w-full bg-blue-600 text-white py-12 px-10">
+      {!hiddenSections['caution'] && (
+      <div className="w-full bg-blue-600 text-white py-12 px-10 relative">
+        <SectionDeleteButton sectionKey="caution" onSectionDelete={onSectionDelete} />
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -172,6 +203,7 @@ export default function Additional2Template(props: TemplateProps) {
           </p>
         </div>
       </div>
+      )}
     </>
   );
 }

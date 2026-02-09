@@ -1,15 +1,31 @@
-import { Star, Leaf } from 'lucide-react';
+import { Star, Leaf, Trash2 } from 'lucide-react';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
 import { TemplateProps } from './TemplateProps';
 
+// 섹션 삭제 버튼 컴포넌트
+function SectionDeleteButton({ sectionKey, onSectionDelete }: { sectionKey: string; onSectionDelete?: (key: string) => void }) {
+  if (!onSectionDelete) return null;
+  return (
+    <button
+      onClick={() => onSectionDelete(sectionKey)}
+      className="absolute top-2 right-2 w-10 h-10 bg-red-500/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20"
+      title="섹션 삭제"
+    >
+      <Trash2 className="w-5 h-5" />
+    </button>
+  );
+}
+
 export default function FreshTemplate(props: TemplateProps) {
-  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment, containerWidths = {}, onContainerWidthChange } = props;
+  const { content, uploadedImages, editingField, editingValue, onImageUpload, onImageRefresh, onImageDrop, onTextEdit, onTextSave, onTextCancel, onValueChange, onImageClick, editingImage, imageStyleSettings, onImageDelete, onTextStyleClick, textStyles = {}, additionalImageSlots = 0, onAddImageSlot, onRemoveImageSlot, imageSizes = {}, onImageResize, imagePositions = {}, onImageMove, imageAlignments = {}, onImageAlignment, containerWidths = {}, onContainerWidthChange, hiddenSections = {}, onSectionDelete } = props;
 
   return (
     <>
       {/* Hero Section - 초록 배지 + 제품명 + 이미지 + 잎 장식 */}
+      {!hiddenSections['hero'] && (
       <div className="w-full bg-gradient-to-b from-green-50 to-white py-16 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="hero" onSectionDelete={onSectionDelete} />
         {/* 초록 잎 장식 - 좌상단 */}
         <div className="absolute top-8 left-8">
           <Leaf className="w-16 h-16 text-green-500 transform -rotate-45" />
@@ -26,9 +42,12 @@ export default function FreshTemplate(props: TemplateProps) {
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
+      )}
 
       {/* 설명 + 이미지 + 3개 원형 아이콘 Section */}
-      <div className="w-full bg-white py-20 px-10">
+      {!hiddenSections['description'] && (
+      <div className="w-full bg-white py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="description" onSectionDelete={onSectionDelete} />
         <div className="max-w-5xl mx-auto">
           {/* 빨간 텍스트 */}
           <p className="text-center text-2xl text-red-500 font-semibold mb-12 leading-relaxed">
@@ -73,9 +92,12 @@ export default function FreshTemplate(props: TemplateProps) {
           </div>
         </div>
       </div>
+      )}
 
       {/* 검정 배경 - 최고급 원유 + 가격 + 평점 */}
-      <div className="w-full bg-black text-white py-20 px-10 text-center">
+      {!hiddenSections['pricing'] && (
+      <div className="w-full bg-black text-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="pricing" onSectionDelete={onSectionDelete} />
         {/* 황금 배지 */}
         <div className="inline-block relative mb-8">
           <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 text-black px-8 py-4 rounded-full font-bold text-2xl shadow-2xl">
@@ -105,9 +127,12 @@ export default function FreshTemplate(props: TemplateProps) {
           </p>
         </div>
       </div>
+      )}
 
       {/* 장점 Section - 검정 배경 */}
-      <div className="w-full bg-black text-white py-20 px-10 text-center">
+      {!hiddenSections['advantages'] && (
+      <div className="w-full bg-black text-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="advantages" onSectionDelete={onSectionDelete} />
         <h2 className="text-4xl font-bold mb-12">
           <EditableText
             field="advantageTitle"
@@ -127,9 +152,12 @@ export default function FreshTemplate(props: TemplateProps) {
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
+      )}
 
       {/* 분홍 배지 Section 1 - 아침 커피의 단짝 */}
-      <div className="w-full bg-white py-20 px-10">
+      {!hiddenSections['point1'] && (
+      <div className="w-full bg-white py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="point1" onSectionDelete={onSectionDelete} />
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <span className="inline-block bg-pink-500 text-white px-8 py-3 rounded-full font-bold text-xl">
@@ -143,9 +171,12 @@ export default function FreshTemplate(props: TemplateProps) {
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
+      )}
 
       {/* 분홍 배지 Section 2 - 면역 개선에 탁월 */}
-      <div className="w-full bg-white py-20 px-10">
+      {!hiddenSections['point2'] && (
+      <div className="w-full bg-white py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="point2" onSectionDelete={onSectionDelete} />
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <span className="inline-block bg-pink-500 text-white px-8 py-3 rounded-full font-bold text-xl">
@@ -159,9 +190,12 @@ export default function FreshTemplate(props: TemplateProps) {
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
+      )}
 
       {/* 분홍 배지 Section 3 - 비타민 풍부 보장 */}
-      <div className="w-full bg-white py-20 px-10">
+      {!hiddenSections['point3'] && (
+      <div className="w-full bg-white py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="point3" onSectionDelete={onSectionDelete} />
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <span className="inline-block bg-pink-500 text-white px-8 py-3 rounded-full font-bold text-xl">
@@ -175,9 +209,12 @@ export default function FreshTemplate(props: TemplateProps) {
           onImageDrop={onImageDrop} onImageClick={onImageClick} editingImage={editingImage} imageStyleSettings={imageStyleSettings} onImageDelete={onImageDelete} imageSizes={imageSizes} onImageResize={onImageResize} imagePositions={imagePositions} onImageMove={onImageMove} imageAlignments={imageAlignments} onImageAlignment={onImageAlignment} fillContainer={true} isResizable={false} />
         </div>
       </div>
+      )}
 
       {/* 주의사항 Section - 연한 초록 배경 */}
-      <div className="w-full bg-green-50 py-16 px-10">
+      {!hiddenSections['caution'] && (
+      <div className="w-full bg-green-50 py-16 px-10 relative">
+        <SectionDeleteButton sectionKey="caution" onSectionDelete={onSectionDelete} />
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-6">
             <Leaf className="w-6 h-6 text-green-600" />
@@ -201,9 +238,12 @@ export default function FreshTemplate(props: TemplateProps) {
           </p>
         </div>
       </div>
+      )}
 
       {/* 상품 구성 체크리스트 Section */}
-      <div className="w-full bg-white py-20 px-10">
+      {!hiddenSections['composition'] && (
+      <div className="w-full bg-white py-20 px-10 relative">
+        <SectionDeleteButton sectionKey="composition" onSectionDelete={onSectionDelete} />
         <div className="max-w-4xl mx-auto">
           <h2 className="text-4xl font-bold text-center text-gray-800 mb-12">
             <EditableText
@@ -291,6 +331,7 @@ export default function FreshTemplate(props: TemplateProps) {
           )}
         </div>
       </div>
+      )}
     </>
   );
 }

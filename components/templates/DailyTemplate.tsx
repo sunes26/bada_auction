@@ -1,7 +1,21 @@
-import { Star, Check, AlertCircle } from 'lucide-react';
+import { Star, Check, AlertCircle, Trash2 } from 'lucide-react';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
 import { TemplateProps } from './TemplateProps';
+
+// 섹션 삭제 버튼 컴포넌트
+function SectionDeleteButton({ sectionKey, onSectionDelete }: { sectionKey: string; onSectionDelete?: (key: string) => void }) {
+  if (!onSectionDelete) return null;
+  return (
+    <button
+      onClick={() => onSectionDelete(sectionKey)}
+      className="absolute top-2 right-2 w-10 h-10 bg-red-500/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20"
+      title="섹션 삭제"
+    >
+      <Trash2 className="w-5 h-5" />
+    </button>
+  );
+}
 
 export default function DailyTemplate(props: TemplateProps) {
   const {
@@ -33,11 +47,15 @@ export default function DailyTemplate(props: TemplateProps) {
     onImageAlignment,
     containerWidths = {},
     onContainerWidthChange,
+    hiddenSections = {},
+    onSectionDelete,
   } = props;
   return (
     <>
       {/* Hero Section */}
+      {!hiddenSections['hero'] && (
       <div className="w-full h-[1200px] relative">
+        <SectionDeleteButton sectionKey="hero" onSectionDelete={onSectionDelete} />
         <EditableImage
           imageKey="template1_bg"
           uploadedImages={uploadedImages}
@@ -119,9 +137,12 @@ export default function DailyTemplate(props: TemplateProps) {
           </div>
         </EditableImage>
       </div>
+      )}
 
       {/* Product Info Section */}
-      <div className="w-full bg-[#f0f0f0] py-20 px-10 text-center">
+      {!hiddenSections['productInfo'] && (
+      <div className="w-full bg-[#f0f0f0] py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="productInfo" onSectionDelete={onSectionDelete} />
         <h3 className="text-4xl font-bold text-gray-800">
           <EditableText
             field="hookingTitle2"
@@ -215,9 +236,12 @@ export default function DailyTemplate(props: TemplateProps) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Customer Reviews Section */}
-      <div className="w-full bg-black text-white py-20 px-10 text-center">
+      {!hiddenSections['reviews'] && (
+      <div className="w-full bg-black text-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="reviews" onSectionDelete={onSectionDelete} />
         <h2 className="text-4xl font-bold">
           <EditableText
             field="reviewSectionTitle"
@@ -315,9 +339,12 @@ export default function DailyTemplate(props: TemplateProps) {
           ))}
         </div>
       </div>
+      )}
 
       {/* Product Details Section */}
-      <div className="w-full bg-white pt-20 text-center">
+      {!hiddenSections['productDetails'] && (
+      <div className="w-full bg-white pt-20 text-center relative">
+        <SectionDeleteButton sectionKey="productDetails" onSectionDelete={onSectionDelete} />
         <h3 className="text-4xl font-bold text-cyan-400">
           <EditableText
             field="hookingTitle3"
@@ -367,9 +394,12 @@ export default function DailyTemplate(props: TemplateProps) {
           isResizable={false}
         />
       </div>
+      )}
 
       {/* Product Guide Section */}
-      <div className="w-full bg-white py-20 px-10 text-center">
+      {!hiddenSections['productGuide'] && (
+      <div className="w-full bg-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="productGuide" onSectionDelete={onSectionDelete} />
         <div className="inline-block bg-black text-white px-8 py-3 rounded-full font-bold text-xl mb-12">
           <EditableText
             field="productGuideLabel"
@@ -427,9 +457,12 @@ export default function DailyTemplate(props: TemplateProps) {
           ))}
         </div>
       </div>
+      )}
 
       {/* Caution Section */}
-      <div className="w-full bg-white py-20 px-10 text-center">
+      {!hiddenSections['caution'] && (
+      <div className="w-full bg-white py-20 px-10 text-center relative">
+        <SectionDeleteButton sectionKey="caution" onSectionDelete={onSectionDelete} />
         <div className="inline-block bg-black text-white px-8 py-3 rounded-full font-bold text-xl mb-12">
           <EditableText
             field="productInfoLabel"
@@ -553,6 +586,7 @@ export default function DailyTemplate(props: TemplateProps) {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 }
