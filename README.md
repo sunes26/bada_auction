@@ -688,43 +688,60 @@ python main.py  # 자동으로 새 DB 생성
 
 ## 📈 업데이트 히스토리
 
-### 2026-02-09 (최신): CJ제일제당 소싱처 추가 + 상세페이지 편집 개선 🛒✏️
+### 2026-02-09 (최신): Selenium 제거 + FlareSolverr 전환 + 품절 오감지 수정 🚀🔧
+
+**Selenium → FlareSolverr 완전 전환**:
+모든 Selenium 코드를 FlareSolverr 기반으로 전환하여 서버 리소스를 대폭 절감했습니다.
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `monitor/product_monitor.py` | Selenium 제거 → FlareSolverr + BeautifulSoup |
+| `api/monitoring.py` | Selenium 제거 → FlareSolverr 기반 |
+| `scrapers/cjthemarket_scraper.py` | Selenium 제거 → FlareSolverr + requests |
+| `scrapers/ssg_scraper_selenium.py` | Selenium 제거 → FlareSolverr + requests |
+| `sourcing/smartstore.py` | Selenium 제거 → requests 기반 |
+| `requirements.txt` | selenium, webdriver-manager, undetected-chromedriver 제거 |
+| `Dockerfile` | Chrome/ChromeDriver 설치 제거 |
+
+**이점**:
+- ✅ Docker 이미지 크기 ~500MB 감소
+- ✅ Railway 메모리 사용량 감소 (Chrome 프로세스 제거)
+- ✅ "tab crashed" 오류 해결
+- ✅ 빌드 시간 단축
+
+**품절 오감지 문제 수정**:
+페이지 전체에서 "품절" 키워드를 찾던 방식에서, 구매 버튼 영역만 확인하도록 변경했습니다.
+
+```python
+# 변경 전 (문제)
+page_text = soup.get_text().lower()
+if '품절' in page_text:  # 리뷰, 다른 옵션 등에서도 감지됨
+    return 'out_of_stock'
+
+# 변경 후 (수정)
+buy_button_selectors = ['.btn_buy', '.btn_cart', ...]
+for selector in buy_button_selectors:
+    elem = soup.select_one(selector)
+    if elem and '품절' in elem.get_text():
+        status = 'out_of_stock'
+```
+
+- ✅ 적용 소싱처: 11번가, SSG, 홈플러스, 롯데ON, G마켓, 옥션, GS샵, CJ더마켓
+- ✅ 가격이 정상 추출되면 판매중으로 재판정하는 로직 추가
 
 **CJ제일제당 더마켓 소싱처 추가**:
-- ✅ **CJTheMarketScraper 클래스 생성** (`backend/scrapers/cjthemarket_scraper.py`)
-  - Selenium 기반 JavaScript 렌더링 페이지 처리
-  - 상품 검색, 상세 정보 조회, 가격 체크 기능
-  - URL에서 `prdCd` 파라미터로 상품 식별
-- ✅ **소싱 API 등록** (`backend/api/sourcing.py`)
-  - `source=cjthemarket` 옵션으로 CJ 더마켓 상품 검색 가능
-- ✅ **URL 정보 추출 API 지원** (`backend/api/monitoring.py`)
-  - `cjthemarket.com` URL 자동 인식
-  - 상품명, 가격, 썸네일 자동 추출
-- ✅ **ProductMonitor 업데이트** (`backend/monitor/product_monitor.py`)
-  - `_check_cjthemarket_status()` 함수로 품절/판매종료 상태 체크
-  - 가격 추출 (og:price 우선, 페이지 파싱 폴백)
+- ✅ `cjthemarket.com` URL 자동 인식
+- ✅ 상품명, 가격, 썸네일 자동 추출
+- ✅ 품절/판매종료 상태 체크
 
-**상세페이지 편집 기능 개선** (내일 수정 예정 🔧):
-- ✅ **외부 클릭 시 편집 모드 해제**
-  - 편집 중인 컨테이너 외부 클릭 시 자동으로 편집 상태 해제
-  - `data-editable` 속성으로 편집 가능 요소 구분
-- ✅ **이미지 크기 조정 시 레이아웃 자연스럽게 확장**
-  - 기존: `transform: scale()` 사용 → 이미지가 커져도 레이아웃 공간 불변 → 겹침 발생
-  - 개선: 실제 `width/height`로 크기 조정 → 이미지가 커지면 컨테이너도 함께 커짐
-- ✅ **이미지 정렬 기능 추가**
-  - 각 이미지 컨테이너에 왼쪽/가운데/오른쪽 정렬 버튼 추가
-  - `imageAlignments` 상태로 정렬 설정 관리
-
-**관련 파일**:
-- `backend/scrapers/cjthemarket_scraper.py` - CJ 더마켓 스크래퍼
-- `backend/api/sourcing.py` - 소싱 API
-- `backend/api/monitoring.py` - URL 정보 추출
-- `backend/monitor/product_monitor.py` - 가격/상태 모니터링
-- `components/pages/DetailPage.tsx` - 상세페이지 편집
-- `components/templates/EditableImage.tsx` - 이미지 편집 컴포넌트
-- `components/templates/TemplateProps.ts` - 템플릿 Props 타입
+**상세페이지 편집 기능 개선**:
+- ✅ 외부 클릭 시 편집 모드 자동 해제
+- ✅ 이미지 크기 조정 시 레이아웃 자연스럽게 확장
+- ✅ 이미지 정렬 기능 추가 (왼쪽/가운데/오른쪽)
 
 **커밋 해시**:
+- `cb43bb7`: 품절 오감지 문제 수정 - 구매 버튼 영역만 확인
+- `f2c037a`: Selenium 제거, FlareSolverr 기반으로 전환
 - `31b50eb`: CJ제일제당 더마켓 소싱처 추가
 - `1ac6ac0`: 상세페이지 편집 기능 개선
 
@@ -801,23 +818,22 @@ python main.py  # 자동으로 새 DB 생성
 ### 2026-02-06: FlareSolverr 연동 + 소싱 사이트 확장 🔓🛒
 
 **FlareSolverr 연동 (Cloudflare 우회)**:
-- ✅ **G마켓/옥션 자동 수집 지원**: FlareSolverr로 Cloudflare 보호 우회
-- ✅ **FlareSolverr 클라이언트 추가** (`backend/utils/flaresolverr.py`):
+- ✅ **모든 소싱 사이트 지원**: FlareSolverr로 Cloudflare 보호 우회
+- ✅ **FlareSolverr 클라이언트** (`backend/utils/flaresolverr.py`):
   - 세션 관리 (브라우저 인스턴스 재사용)
   - 페이지 요청 및 HTML 파싱
-  - 쿠키 추출 (requests/Selenium용)
 - ✅ **HTML 직접 파싱**: FlareSolverr 응답에서 BeautifulSoup으로 데이터 추출
-- ✅ **프로토콜 상대 URL 처리**: `//image.auction.co.kr/...` → `https://...` 변환
 
 **소싱 사이트 지원 현황**:
 | 사이트 | 방식 | 상품명 | 가격 | 썸네일 |
 |--------|------|--------|------|--------|
 | G마켓 | FlareSolverr | ✅ | ✅ | ✅ |
 | 옥션 | FlareSolverr | ✅ | ✅ | ✅ |
-| 11번가 | Selenium | ✅ | ✅ | ✅ |
-| SSG | Selenium | ✅ | ✅ | ✅ |
-| 홈플러스 | Selenium | ✅ | ✅ | ✅ |
-| 롯데ON | Selenium | ✅ | ✅ | ✅ |
+| 11번가 | FlareSolverr | ✅ | ✅ | ✅ |
+| SSG | FlareSolverr | ✅ | ✅ | ✅ |
+| 홈플러스 | FlareSolverr | ✅ | ✅ | ✅ |
+| 롯데ON | FlareSolverr | ✅ | ✅ | ✅ |
+| CJ더마켓 | FlareSolverr | ✅ | ✅ | ✅ |
 | ~~스마트스토어~~ | - | ❌ | ❌ | ❌ |
 
 **롯데ON 지원 추가**:
@@ -1410,172 +1426,33 @@ Client → ws://localhost:8000/ws/notifications
 
 ---
 
-### 2026-02-02: SQLite 완전 제거 및 PostgreSQL 전환 🗄️
+### 2026-02-02 ~ 2026-02-03: 과거 업데이트 요약
 
-**치명적인 데이터 손실 문제 발견 및 해결**:
-- 🚨 **문제 발견**: 프로덕션(Railway)에서 SQLite 사용으로 재시작 시 모든 데이터 손실
-- 🔍 **전체 코드베이스 감사**: 92개 Python 파일을 15가지 방법으로 검증
-- ✅ **27개 파일 수정**: 모든 프로덕션 코드가 PostgreSQL 사용하도록 수정
+<details>
+<summary>📦 SQLite → PostgreSQL 전환 (클릭하여 펼치기)</summary>
 
-**수정된 파일들**:
-1. **API 폴더** (9개): products, orders, monitoring, playauto, accounting, categories, notifications, tracking_scheduler, admin
-2. **PlayAuto 모듈** (5개): auth, orders, scheduler, tracking, product_registration
-3. **핵심 시스템** (13개):
-   - main.py (메인 애플리케이션!)
-   - monitor/scheduler.py, monitor/selling_product_monitor.py
-   - notifications/notifier.py
-   - services/dynamic_pricing_service.py, tracking_scheduler.py, tracking_upload_service.py
-   - inventory/auto_manager.py
-   - + 5개 테스트 스크립트
+**2026-02-02: SQLite 완전 제거 및 PostgreSQL 전환**
+- 프로덕션(Railway)에서 SQLite 사용으로 인한 데이터 손실 문제 해결
+- 27개 파일 수정 (API, PlayAuto 모듈, 핵심 시스템)
+- `database.db_wrapper.get_db()` 사용으로 통일
+- Railway 재시작해도 모든 데이터 100% 보존
 
-**주요 변경사항**:
-```python
-# Before (잘못됨 - SQLite 전용)
-from database.db import get_db
+**2026-02-03: PlayAuto 카테고리 코드 시스템 개편**
+- 138개 카테고리를 새 시스템(category.xlsx)으로 수동 매핑 완료
+- 상품 등록 시 "존재하지 않는 카테고리" 에러 해결
+- 커밋: `d3337d9`, `3f0d4dd`
 
-# After (올바름 - PostgreSQL/SQLite 자동 선택)
-from database.db_wrapper import get_db
-```
-
-**Railway 환경변수 추가**:
-```env
-USE_POSTGRESQL=true  # PostgreSQL 사용 강제
-DATABASE_URL=postgresql://...  # Supabase PostgreSQL
-```
-
-**추가 수정**:
-- 🔧 `admin.py`: PostgreSQL 지원 (시스템 상태, DB 통계, 백업/복원, 최적화)
-- 🔧 `backup_manager.py`: PostgreSQL 환경 감지 (Supabase 백업 안내)
-- 🔧 `base_repository.py`: database_manager 사용, 동적 SQL placeholder 지원
-- 🔧 `product_registration.py`: SQLite import 제거, database_manager 사용
-
-**검증 결과** (15가지 검증):
-- ✅ 프로덕션 코드 SQLite 직접 사용: **0개**
-- ✅ database.db_wrapper 사용: **28개**
-- ✅ database_manager 사용: **5개**
-- ✅ 동적 import: **0개**
-- ✅ 숨겨진 SQLite 연결: **0개**
-
-**영향**:
-- ✅ 상품 데이터 → PostgreSQL (영구 보존)
-- ✅ 주문 데이터 → PostgreSQL
-- ✅ 모니터링 데이터 → PostgreSQL
-- ✅ PlayAuto 설정 → PostgreSQL
-- ✅ 알림 기록 → PostgreSQL
-- ✅ 재고 정보 → PostgreSQL
-
-**Railway 재시작해도 모든 데이터 100% 보존!** 🎉
-
-**커밋 해시**:
-- `d3337d9`: API 폴더 전체 db_wrapper 전환 (9개 파일)
-- `78ab329`: SQLite 하드코딩 추가 수정 (5개 파일)
-- `bba60dd`: admin.py PostgreSQL 지원 추가
-- `c8f3996`: PlayAuto 모듈 전체 수정 (5개 파일)
-- `0c29c69`: 핵심 시스템 파일 수정 (13개 파일)
-
-**문서**:
-- 📄 `scratchpad/SQLITE_AUDIT_FINAL_REPORT.md`: 전체 감사 상세 보고서
-
----
-
-### ✅ 해결된 문제
-
-#### ✅ PlayAuto 카테고리 코드 시스템 개편 완료 (2026-02-03)
-
-**문제**:
-- 기존 구 카테고리 시스템 (Standard_category_list.xlsx, 13,366개)
-- PlayAuto 계정 카테고리와 불일치
-- 상품 등록 실패: "존재하지 않는 카테고리 입니다.(1)"
-
-**해결**:
-- ✅ **138개 카테고리를 새 시스템(category.xlsx)으로 수동 매핑 완료**
-- ✅ 모든 카테고리 코드를 PlayAuto 호환 코드로 변경
-- ✅ `categories` 테이블: 138/138개 sol_cate_no 업데이트
-- ✅ `category_playauto_mapping` 테이블: 81/81개 sol_cate_no 업데이트
-- ✅ `playauto_category` 컬럼: 81/81개 카테고리명 업데이트 (관리자 화면 표시)
-
-**변경 사항**:
-```
-간편식 > 카레/짜장/덮밥 > 카레 > 카레
-  구: 36190600 (구 시스템)
-  신: 6226818  (신 시스템) ✅
-
-간편식 > 면 > 라면 > 라면
-  구: 36060200 (구 시스템)
-  신: 6226561  (신 시스템) ✅
-
-냉동식 > 만두 > 고기만두 > 고기만두
-  구: 36070500 (구 시스템)
-  신: 6226587  (신 시스템) ✅
-```
-
-**영향**:
-- ✅ PlayAuto 상품 등록 시 올바른 카테고리 코드 사용
-- ✅ 계정에 등록된 카테고리와 일치
-- ✅ 관리자 화면에서 새 카테고리명 정상 표시
-- ✅ 모든 상품 카테고리 정상 작동
-
-**검증 완료**:
-- ✅ 데이터베이스: 구 코드 0개, 신 코드 81개
-- ✅ 코드 범위: 6226500 ~ 34030100
-- ✅ 관리자 화면 표시 정상
-
-**권장 테스트**:
-1. PlayAuto 웹사이트에서 카테고리 확인
-2. 실제 상품 등록 테스트
-3. 필요시 PlayAuto 계정에 추가 카테고리 등록
-
-**관련 파일**:
-- `backend/manual_mapping_template.xlsx`: 수동 매핑 템플릿 (사용자 작업 완료)
-- `backend/categories_list.csv`: 138개 카테고리 목록
-- `backend/MANUAL_MAPPING_GUIDE.md`: 매핑 가이드
-- `backend/search_category.py`: 카테고리 검색 도구
-- `backend/apply_manual_mapping.py`: 매핑 적용 스크립트
-- `backend/prepare_manual_mapping.py`: 템플릿 생성 스크립트
-- `category.xlsx`: PlayAuto 카테고리 마스터 파일 (13,363개)
-
-**커밋 해시**:
-- `d5f789d`: PlayAuto 카테고리 문제 근본 원인 파악
-- `f900d85`: Railway 빌드 최적화
-- `3f0d4dd`: PlayAuto 카테고리 시스템 마이그레이션 완료 (138개 수동 매핑)
+</details>
 
 ---
 
 ### ⚠️ 현재 알려진 문제
 
-#### 🔴 마켓 코드 동기화 이슈 (작업 중)
+#### 🔴 마켓 코드 동기화 이슈
 
-**증상**:
-```
-❌ ol_shop_no가 없어 마켓 코드를 수집할 수 없습니다. 상품을 재등록하세요.
-```
+**증상**: `ol_shop_no가 없어 마켓 코드를 수집할 수 없습니다`
 
-**근본 원인**:
-- PlayAuto에 상품을 2번 등록 (지마켓/옥션용, 스마트스토어용)
-- 각 등록마다 다른 `ol_shop_no`(온라인 쇼핑몰 번호)를 반환
-- 기존 DB는 하나의 `ol_shop_no`만 저장 → 일부 마켓 코드 누락
-
-**완료된 작업** (2026-02-05):
-- ✅ DB 스키마 확장 (`ol_shop_no_gmk`, `ol_shop_no_smart` 컬럼 추가)
-- ✅ 상품 등록 로직 수정 (채널별 `ol_shop_no` 저장)
-- ✅ 마켓 코드 동기화 로직 수정 (모든 채널 조회)
-- ✅ Railway 배포 및 마이그레이션 완료
-- ✅ 커밋: `3058b41`, `a231dbc`, `2aa4aa0`
-
-**남은 작업**:
-- ❌ **기존 상품의 `ol_shop_no` 데이터 복구** ← 현재 문제
-  - 기존 상품들은 `ol_shop_no_gmk`, `ol_shop_no_smart`가 NULL
-  - 마켓 코드 동기화 시도하면 에러 발생
-
-**임시 해결 방법**:
-1. 문제 있는 상품을 PlayAuto에 **재등록**
-2. 재등록 시 `ol_shop_no_gmk`, `ol_shop_no_smart` 자동 저장
-3. 마켓 코드 동기화 → ✅ 정상 작동
-
-**다음 세션 계획**:
-1. PlayAuto API 문서 재확인 (상품 검색/목록 조회 API 찾기)
-2. 자동 복구 스크립트 작성 (`c_sale_cd`로 `ol_shop_no` 자동 매칭)
-3. 또는 일괄 재등록 UI 추가
+**임시 해결**: 문제 있는 상품을 PlayAuto에 재등록하면 해결됩니다.
 
 **상세 문서**: [`OL_SHOP_NO_ISSUE_STATUS.md`](./OL_SHOP_NO_ISSUE_STATUS.md)
 
@@ -1790,13 +1667,14 @@ SUPABASE_SERVICE_ROLE_KEY=***
    - `PUT /api/playauto/invoice` - 송장 업데이트 (출고대기 → 출고완료)
    - 자동: 배송사 코드 매칭 (CJ대한통운=4, 한진택배=5 등)
 
-   **소싱처 지원** (2026-02-06 업데이트):
+   **소싱처 지원** (2026-02-09 업데이트):
    - ✅ G마켓 (gmarket.co.kr) - FlareSolverr
    - ✅ 옥션 (auction.co.kr) - FlareSolverr
-   - ✅ 11번가 (11st.co.kr) - Selenium
-   - ✅ SSG (ssg.com) - Selenium
-   - ✅ 홈플러스/트레이더스 (homeplus.co.kr) - Selenium
-   - ✅ 롯데ON (lotteon.com) - Selenium (NEW)
+   - ✅ 11번가 (11st.co.kr) - FlareSolverr
+   - ✅ SSG (ssg.com) - FlareSolverr
+   - ✅ 홈플러스/트레이더스 (homeplus.co.kr) - FlareSolverr
+   - ✅ 롯데ON (lotteon.com) - FlareSolverr
+   - ✅ CJ더마켓 (cjthemarket.com) - FlareSolverr
    - ❌ ~~스마트스토어~~ (smartstore.naver.com) - 네이버 CAPTCHA로 지원 중단
 
 ### 선택사항
@@ -1848,17 +1726,20 @@ G마켓, 옥션 등 Cloudflare로 보호된 사이트에서 상품 정보를 수
    FLARESOLVERR_URL=https://flaresolverr-production-xxx.up.railway.app/v1
    ```
 
-### 지원 사이트별 수집 방식
+### 지원 사이트별 수집 방식 (2026-02-09 업데이트)
 
 | 사이트 | 수집 방식 | 상태 |
 |--------|----------|------|
 | G마켓 | FlareSolverr | ✅ 상품명, 가격, 썸네일 |
 | 옥션 | FlareSolverr | ✅ 상품명, 가격, 썸네일 |
-| 11번가 | Selenium | ✅ 상품명, 가격, 썸네일 |
-| SSG | Selenium | ✅ 상품명, 가격, 썸네일 |
-| 홈플러스/트레이더스 | Selenium | ✅ 상품명, 가격, 썸네일 |
-| 롯데ON | Selenium | ✅ 상품명, 가격, 썸네일 |
+| 11번가 | FlareSolverr | ✅ 상품명, 가격, 썸네일 |
+| SSG | FlareSolverr | ✅ 상품명, 가격, 썸네일 |
+| 홈플러스/트레이더스 | FlareSolverr | ✅ 상품명, 가격, 썸네일 |
+| 롯데ON | FlareSolverr | ✅ 상품명, 가격, 썸네일 |
+| CJ더마켓 | FlareSolverr | ✅ 상품명, 가격, 썸네일 |
 | ~~스마트스토어~~ | - | ❌ 네이버 CAPTCHA |
+
+> **Note**: 2026-02-09부로 모든 Selenium 코드가 FlareSolverr 기반으로 전환되었습니다.
 
 ### 리소스 요구사항
 
