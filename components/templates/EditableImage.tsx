@@ -237,13 +237,16 @@ export default function EditableImage({
     };
   }, [isResizing, resizeCorner, resizeStart, imageKey, onImageResize]);
 
-  // 컨테이너 스타일 - 가운데 정렬, 이미지 크기에 따라 높이 자동 조정
+  // 컨테이너 스타일 - 가운데 정렬, 크기 조정 시 높이도 함께 증가
   const containerStyle: React.CSSProperties = {
     ...style,
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column',
+    // 크기 조정 가능할 때 컨테이너 높이도 이미지 크기에 비례하여 조정
+    ...(isResizable && !fillContainer && imageSize !== 100 ? {
+      minHeight: style.height ? `calc(${typeof style.height === 'number' ? style.height + 'px' : style.height} * ${imageSize / 100})` : undefined,
+    } : {}),
   };
 
   const imageStyle: React.CSSProperties = {
@@ -258,9 +261,11 @@ export default function EditableImage({
     borderStyle: settings.borderWidth ? 'solid' : undefined,
     opacity: settings.opacity !== undefined ? settings.opacity : 1,
     filter: `brightness(${settings.brightness || 1}) contrast(${settings.contrast || 1}) saturate(${settings.saturate || 1})`,
-    // 크기 조정: width는 비율로, height는 auto로 설정하여 레이아웃에 영향
+    // 크기 조정: width와 height 모두 비율 적용
     width: isResizable && !fillContainer ? `${imageSize}%` : '100%',
-    aspectRatio: '1 / 1',  // 정사각형 비율 유지 (필요시 조정)
+    height: isResizable && !fillContainer ? `${imageSize}%` : '100%',
+    minWidth: isResizable && !fillContainer ? `${imageSize}%` : undefined,
+    minHeight: isResizable && !fillContainer ? `${imageSize}%` : undefined,
     transition: isResizing ? 'none' : 'all 0.15s ease-out',
     position: 'relative' as const,
   };
