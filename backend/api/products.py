@@ -1397,15 +1397,18 @@ async def sync_product_marketplace_codes(product_id: int):
 
         logger.info(f"[마켓코드동기화] 상품 {product_id}번 동기화 시작")
 
-        # c_sale_cd로 검색
+        # c_sale_cd로 검색 (지마켓/옥션, 스마트스토어, 쿠팡)
         c_sale_cd_gmk = product.get("c_sale_cd_gmk")
         c_sale_cd_smart = product.get("c_sale_cd_smart")
+        c_sale_cd_coupang = product.get("c_sale_cd_coupang")
 
         c_sale_cd_list = []
         if c_sale_cd_gmk:
             c_sale_cd_list.append(c_sale_cd_gmk)
         if c_sale_cd_smart:
             c_sale_cd_list.append(c_sale_cd_smart)
+        if c_sale_cd_coupang:
+            c_sale_cd_list.append(c_sale_cd_coupang)
 
         if not c_sale_cd_list:
             return {
@@ -1531,6 +1534,7 @@ async def sync_all_marketplace_codes():
             product_id = product.get("id")
             c_sale_cd_gmk = product.get("c_sale_cd_gmk") or product.get("playauto_product_no")
             c_sale_cd_smart = product.get("c_sale_cd_smart")
+            c_sale_cd_coupang = product.get("c_sale_cd_coupang")
 
             if c_sale_cd_gmk:
                 c_sale_cd_list.append(c_sale_cd_gmk)
@@ -1538,6 +1542,9 @@ async def sync_all_marketplace_codes():
             if c_sale_cd_smart:
                 c_sale_cd_list.append(c_sale_cd_smart)
                 c_sale_cd_to_product[c_sale_cd_smart] = product_id
+            if c_sale_cd_coupang:
+                c_sale_cd_list.append(c_sale_cd_coupang)
+                c_sale_cd_to_product[c_sale_cd_coupang] = product_id
 
         if not c_sale_cd_list:
             return {

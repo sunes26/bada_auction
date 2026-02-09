@@ -119,6 +119,7 @@ async def sync_marketplace_codes_job():
             product_id = product.get("id")
             c_sale_cd_gmk = product.get("c_sale_cd_gmk") or product.get("playauto_product_no")
             c_sale_cd_smart = product.get("c_sale_cd_smart")
+            c_sale_cd_coupang = product.get("c_sale_cd_coupang")
 
             if c_sale_cd_gmk:
                 c_sale_cd_list.append(c_sale_cd_gmk)
@@ -126,6 +127,9 @@ async def sync_marketplace_codes_job():
             if c_sale_cd_smart:
                 c_sale_cd_list.append(c_sale_cd_smart)
                 c_sale_cd_to_product[c_sale_cd_smart] = product_id
+            if c_sale_cd_coupang:
+                c_sale_cd_list.append(c_sale_cd_coupang)
+                c_sale_cd_to_product[c_sale_cd_coupang] = product_id
 
         if not c_sale_cd_list:
             print("[PLAYAUTO] c_sale_cd가 있는 상품이 없습니다")
