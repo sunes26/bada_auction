@@ -409,7 +409,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
     } finally {
       setLoading(false);
     }
-  }, [product.id, formData, category, onSuccess]);
+  }, [product.id, formData, category, keywords, onSuccess]);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
