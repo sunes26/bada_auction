@@ -493,18 +493,31 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         opts = []
         logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=옵션없음")
     elif channel_type == "coupang":
-        # 쿠팡: 조합형 옵션 필수, 추천옵션 "수량" 사용 (추천단위: 개)
+        # 쿠팡: 조합형 옵션 필수
+        # - 옵션1: "수량" (추천단위: 개)
+        # - 옵션2: "개당 중량" (단위: g 또는 kg) - weight 필드가 있을 경우만
         std_ol_yn = "N"
         opt_type = "조합형"
-        opts = [
-            {
-                "opt_sort1": "수량",
-                "opt_sort1_desc": "1개",
-                "stock_cnt": 999,
-                "status": "정상"
-            }
-        ]
-        logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, 옵션명='수량', 옵션값='1개'")
+
+        # 중량 정보 가져오기 (예: "500g", "1kg")
+        weight = product.get("weight", "")
+
+        opt_data = {
+            "opt_sort1": "수량",
+            "opt_sort1_desc": "1개",
+            "stock_cnt": 999,
+            "status": "정상"
+        }
+
+        # weight가 있으면 opt_sort2 추가
+        if weight:
+            opt_data["opt_sort2"] = "개당 중량"
+            opt_data["opt_sort2_desc"] = weight
+            logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, 옵션1='수량/1개', 옵션2='개당 중량/{weight}'")
+        else:
+            logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, 옵션명='수량', 옵션값='1개' (중량 미설정)")
+
+        opts = [opt_data]
     else:
         # 스마트스토어 등: 독립형 옵션
         std_ol_yn = "N"

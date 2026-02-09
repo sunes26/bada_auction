@@ -29,6 +29,7 @@ class CreateProductRequest(BaseModel):
     category: Optional[str] = None
     thumbnail_url: Optional[str] = None
     original_thumbnail_url: Optional[str] = None  # 원본 외부 URL
+    weight: Optional[str] = None  # 상품 중량 (쿠팡 옵션용, 예: "500g", "1kg")
     notes: Optional[str] = None
 
 
@@ -44,11 +45,13 @@ class UpdateProductRequest(BaseModel):
     detail_page_data: Optional[str] = None
     category: Optional[str] = None
     thumbnail_url: Optional[str] = None
+    weight: Optional[str] = None  # 상품 중량 (쿠팡 옵션용)
     is_active: Optional[bool] = None
     notes: Optional[str] = None
     c_sale_cd: Optional[str] = None  # 하위 호환성
     c_sale_cd_gmk: Optional[str] = None  # 지마켓/옥션용
     c_sale_cd_smart: Optional[str] = None  # 스마트스토어용
+    c_sale_cd_coupang: Optional[str] = None  # 쿠팡용
 
 
 # API 엔드포인트
@@ -107,6 +110,7 @@ async def create_product(request: CreateProductRequest):
             thumbnail_url=thumbnail_url,
             original_thumbnail_url=request.original_thumbnail_url,
             sol_cate_no=sol_cate_no,
+            weight=request.weight,
             notes=request.notes
         )
 
@@ -151,6 +155,7 @@ async def get_products(is_active: Optional[bool] = None, limit: int = 100):
 async def search_product_for_purchase(
     shop_cd: Optional[str] = None,
     shop_sale_no: Optional[str] = None,
+    c_sale_cd: Optional[str] = None,
     query: Optional[str] = None
 ):
     """
@@ -159,7 +164,8 @@ async def search_product_for_purchase(
     우선순위:
     1. shop_cd + shop_sale_no로 정확 매칭 (마켓 코드 기반)
     2. shop_sale_no만으로 매칭 (shop_cd가 A000 등 알 수 없는 코드일 때)
-    3. query로 상품명 검색 (폴백)
+    3. c_sale_cd로 매칭 (판매자 관리코드 - 지마켓/옥션/스마트스토어/쿠팡)
+    4. query로 상품명 검색 (폴백)
     """
     try:
         db = get_db()
@@ -182,7 +188,15 @@ async def search_product_for_purchase(
                 matched_by = "shop_sale_no_only"
                 logger.info(f"[상품검색] 상품코드만으로 매칭 성공: shop_sale_no={shop_sale_no}")
 
-        # 3. 마켓 코드 매칭 실패 시 상품명으로 검색 (DB LIKE 쿼리 사용)
+        # 3. c_sale_cd(판매자 관리코드)로 매칭 시도
+        if not products and c_sale_cd:
+            product = db.get_product_by_c_sale_cd(c_sale_cd)
+            if product:
+                products = [product]
+                matched_by = "c_sale_cd"
+                logger.info(f"[상품검색] 판매자 관리코드 매칭 성공: c_sale_cd={c_sale_cd}")
+
+        # 4. 마켓 코드 매칭 실패 시 상품명으로 검색 (DB LIKE 쿼리 사용)
         if not products and query:
             products = db.search_selling_products_by_name(query=query, limit=10)
 
@@ -190,7 +204,7 @@ async def search_product_for_purchase(
                 matched_by = "name"
                 logger.info(f"[상품검색] 상품명 매칭 성공: query={query}, 결과={len(products)}개")
             else:
-                logger.info(f"[상품검색] 매칭 실패: shop_cd={shop_cd}, shop_sale_no={shop_sale_no}, query={query}")
+                logger.info(f"[상품검색] 매칭 실패: shop_cd={shop_cd}, shop_sale_no={shop_sale_no}, c_sale_cd={c_sale_cd}, query={query}")
 
         return {
             "success": True,
@@ -493,11 +507,14 @@ async def update_product(product_id: int, request: UpdateProductRequest):
         # 채널별 c_sale_cd 처리
         c_sale_cd_gmk = request.c_sale_cd_gmk if request.c_sale_cd_gmk is not None else product.get('c_sale_cd_gmk')
         c_sale_cd_smart = request.c_sale_cd_smart if request.c_sale_cd_smart is not None else product.get('c_sale_cd_smart')
+        c_sale_cd_coupang = request.c_sale_cd_coupang if request.c_sale_cd_coupang is not None else product.get('c_sale_cd_coupang')
 
         if request.c_sale_cd_gmk is not None:
             logger.info(f"[상품수정] 지마켓/옥션 c_sale_cd 변경: {product.get('c_sale_cd_gmk')} -> {request.c_sale_cd_gmk}")
         if request.c_sale_cd_smart is not None:
             logger.info(f"[상품수정] 스마트스토어 c_sale_cd 변경: {product.get('c_sale_cd_smart')} -> {request.c_sale_cd_smart}")
+        if request.c_sale_cd_coupang is not None:
+            logger.info(f"[상품수정] 쿠팡 c_sale_cd 변경: {product.get('c_sale_cd_coupang')} -> {request.c_sale_cd_coupang}")
 
         # 로컬 DB 수정
         db.update_selling_product(
@@ -512,11 +529,13 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             detail_page_data=request.detail_page_data,
             category=request.category,
             thumbnail_url=request.thumbnail_url,
+            weight=request.weight,
             is_active=request.is_active,
             sol_cate_no=sol_cate_no,
             notes=request.notes,
             c_sale_cd_gmk=c_sale_cd_gmk,
-            c_sale_cd_smart=c_sale_cd_smart
+            c_sale_cd_smart=c_sale_cd_smart,
+            c_sale_cd_coupang=c_sale_cd_coupang
         )
 
         # 플레이오토 API 업데이트 (변경사항 + 플레이오토 상품인 경우)

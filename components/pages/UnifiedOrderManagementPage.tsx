@@ -363,19 +363,22 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
    *
    * 우선순위:
    * 1. shop_cd + shop_sale_no로 마켓 코드 매칭
-   * 2. 상품명으로 폴백 검색
+   * 2. c_sale_cd로 판매자 관리코드 매칭 (지마켓/옥션/스마트스토어/쿠팡)
+   * 3. 상품명으로 폴백 검색
    */
   const matchOrderWithProduct = async (order: Order) => {
     try {
-      // PlayAuto 주문에서 shop_cd, shop_sale_no 추출
+      // PlayAuto 주문에서 shop_cd, shop_sale_no, c_sale_cd 추출
       const shopCd = (order as any).shop_cd;
       const shopSaleNo = (order as any).shop_sale_no;
+      const cSaleCd = (order as any).c_sale_cd;
       const shopSaleName = (order as any).shop_sale_name;
 
       // 검색 파라미터 구성
       const params = new URLSearchParams();
       if (shopCd) params.append('shop_cd', shopCd);
       if (shopSaleNo) params.append('shop_sale_no', shopSaleNo);
+      if (cSaleCd) params.append('c_sale_cd', cSaleCd);
       if (shopSaleName) params.append('query', shopSaleName);
 
       const res = await fetch(`${API_BASE_URL}/api/products/search?${params.toString()}`);
@@ -383,7 +386,7 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
 
       if (data.success && data.products && data.products.length > 0) {
         const matchedProduct = data.products[0];
-        console.log(`[상품매칭] 성공: ${data.matched_by}, shop_cd=${shopCd}, shop_sale_no=${shopSaleNo}`);
+        console.log(`[상품매칭] 성공: ${data.matched_by}, shop_cd=${shopCd}, shop_sale_no=${shopSaleNo}, c_sale_cd=${cSaleCd}`);
         return {
           sourcing_url: matchedProduct.sourcing_url,
           sourcing_source: matchedProduct.sourcing_source,
@@ -391,7 +394,7 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
         };
       }
 
-      console.log(`[상품매칭] 실패: shop_cd=${shopCd}, shop_sale_no=${shopSaleNo}, shop_sale_name=${shopSaleName}`);
+      console.log(`[상품매칭] 실패: shop_cd=${shopCd}, shop_sale_no=${shopSaleNo}, c_sale_cd=${cSaleCd}, shop_sale_name=${shopSaleName}`);
       return null;
     } catch (error) {
       console.error('상품 매칭 실패:', error);

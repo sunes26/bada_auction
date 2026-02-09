@@ -19,6 +19,7 @@ interface Product {
   c_sale_cd?: string;
   c_sale_cd_gmk?: string;  // 지마켓/옥션용
   c_sale_cd_smart?: string;  // 스마트스토어용
+  c_sale_cd_coupang?: string;  // 쿠팡용
 }
 
 // 마켓 코드 -> 한글 이름 변환 (PlayAuto 공식 코드)
@@ -63,9 +64,11 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
     sourcing_price: product.sourcing_price?.toString() || '',
     sourcing_source: product.sourcing_source || '',
     thumbnail_url: (product as any).thumbnail_url || '',
+    weight: (product as any).weight || '',  // 상품 중량 (쿠팡 옵션용)
     notes: product.notes || '',
     c_sale_cd_gmk: product.c_sale_cd_gmk || '',
     c_sale_cd_smart: product.c_sale_cd_smart || '',
+    c_sale_cd_coupang: (product as any).c_sale_cd_coupang || '',
   });
   const [category, setCategory] = useState<Category>(parseCategory(product.category));
   const [loading, setLoading] = useState(false);
@@ -355,10 +358,12 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
         sourcing_price: formData.sourcing_price ? parseFloat(formData.sourcing_price) : undefined,
         sourcing_source: formData.sourcing_source || undefined,
         thumbnail_url: formData.thumbnail_url || undefined,
+        weight: formData.weight || undefined,  // 상품 중량 (쿠팡 옵션용)
         category: categoryString,
         notes: formData.notes || undefined,
         c_sale_cd_gmk: formData.c_sale_cd_gmk || undefined,
         c_sale_cd_smart: formData.c_sale_cd_smart || undefined,
+        c_sale_cd_coupang: formData.c_sale_cd_coupang || undefined,
       });
 
       if (data.success) {
@@ -602,6 +607,23 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
             </div>
           </div>
 
+          {/* 상품 중량 (쿠팡용) */}
+          <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-5">
+            <label className="block text-sm font-semibold text-orange-800 mb-2">
+              상품 중량 <span className="text-xs text-gray-500">(쿠팡 전송용)</span>
+            </label>
+            <input
+              type="text"
+              value={formData.weight}
+              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              placeholder="예: 500g, 1kg, 200g"
+            />
+            <p className="text-xs text-orange-600 mt-2">
+              💡 쿠팡 등록 시 필수 옵션입니다. 단위는 g 또는 kg으로 입력하세요.
+            </p>
+          </div>
+
           {/* 카테고리 4단계 선택 */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">카테고리 <span className="text-red-500">*</span></label>
@@ -768,9 +790,26 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                   일반상품(std_ol_yn=N)으로 등록된 상품의 코드
                 </p>
               </div>
+
+              {/* 쿠팡용 c_sale_cd */}
+              <div>
+                <label className="block text-sm font-semibold text-purple-800 mb-2">
+                  🚀 쿠팡용 판매자 관리코드
+                </label>
+                <input
+                  type="text"
+                  value={formData.c_sale_cd_coupang}
+                  onChange={(e) => setFormData({ ...formData, c_sale_cd_coupang: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  placeholder="예: m20260204c12345d67"
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  쿠팡 전용 조합형 옵션(수량+개당 중량)으로 등록된 상품의 코드
+                </p>
+              </div>
             </div>
 
-            {(formData.c_sale_cd_gmk || formData.c_sale_cd_smart) && (
+            {(formData.c_sale_cd_gmk || formData.c_sale_cd_smart || formData.c_sale_cd_coupang) && (
               <div className="mt-4 bg-green-50 border border-green-300 rounded-lg p-3">
                 <p className="text-xs text-green-700 font-semibold">
                   ✅ 상품 수정 시 입력된 채널의 PlayAuto 상품이 함께 업데이트됩니다.
@@ -780,6 +819,9 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                 )}
                 {formData.c_sale_cd_smart && (
                   <p className="text-xs text-gray-600">• 스마트스토어 등 상품 동기화됨</p>
+                )}
+                {formData.c_sale_cd_coupang && (
+                  <p className="text-xs text-gray-600">• 쿠팡 상품 동기화됨</p>
                 )}
               </div>
             )}

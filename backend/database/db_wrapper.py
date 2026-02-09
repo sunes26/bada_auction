@@ -303,6 +303,7 @@ class DatabaseWrapper:
         sol_cate_no: Optional[int] = None,
         playauto_product_no: Optional[str] = None,
         ol_shop_no: Optional[str] = None,
+        weight: Optional[str] = None,
         notes: Optional[str] = None
     ) -> int:
         """판매 상품 추가"""
@@ -322,6 +323,7 @@ class DatabaseWrapper:
                 sol_cate_no=sol_cate_no,
                 playauto_product_no=playauto_product_no,
                 ol_shop_no=ol_shop_no,
+                weight=weight,
                 notes=notes
             )
             session.add(product)
@@ -489,6 +491,8 @@ class DatabaseWrapper:
         ol_shop_no_smart: Optional[str] = None,
         c_sale_cd_gmk: Optional[str] = None,
         c_sale_cd_smart: Optional[str] = None,
+        c_sale_cd_coupang: Optional[str] = None,
+        weight: Optional[str] = None,
         is_active: Optional[bool] = None,
         notes: Optional[str] = None
     ):
@@ -532,6 +536,10 @@ class DatabaseWrapper:
                 product.c_sale_cd_gmk = c_sale_cd_gmk
             if c_sale_cd_smart is not None:
                 product.c_sale_cd_smart = c_sale_cd_smart
+            if c_sale_cd_coupang is not None:
+                product.c_sale_cd_coupang = c_sale_cd_coupang
+            if weight is not None:
+                product.weight = weight
             if is_active is not None:
                 product.is_active = is_active
             if notes is not None:
@@ -1366,6 +1374,30 @@ class DatabaseWrapper:
                 product_dict['shop_cd'] = shop_cd
                 product_dict['shop_sale_no'] = shop_sale_no
                 return product_dict
+            return None
+
+    def get_product_by_c_sale_cd(self, c_sale_cd: str) -> Optional[Dict]:
+        """판매자 관리코드(c_sale_cd)로 상품 조회 (주문 매칭용)
+
+        세 개의 채널별 c_sale_cd 필드 중 하나와 일치하는 상품을 찾습니다:
+        - c_sale_cd_gmk: 지마켓/옥션용
+        - c_sale_cd_smart: 스마트스토어용
+        - c_sale_cd_coupang: 쿠팡용
+        """
+        from .models import MySellingProduct
+        from sqlalchemy import or_
+
+        with self.db_manager.get_session() as session:
+            result = session.query(MySellingProduct).filter(
+                or_(
+                    MySellingProduct.c_sale_cd_gmk == c_sale_cd,
+                    MySellingProduct.c_sale_cd_smart == c_sale_cd,
+                    MySellingProduct.c_sale_cd_coupang == c_sale_cd
+                )
+            ).first()
+
+            if result:
+                return self._model_to_dict(result)
             return None
 
     def get_products_without_marketplace_codes(self, limit: int = 100) -> List[Dict]:

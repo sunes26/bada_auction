@@ -1530,6 +1530,7 @@ function AddProductFromDetailPageModal({
     sourcing_price: sourcingPrice?.toString() || '',
     sourcing_source: detectedSource.toLowerCase() || '',
     thumbnail_url: extractedThumbnail,
+    weight: '',  // 상품 중량 (쿠팡 옵션용)
     notes: '',
   });
   const [loading, setLoading] = useState(false);
@@ -1708,6 +1709,7 @@ function AddProductFromDetailPageModal({
           original_thumbnail_url: thumbnailPreview || extractedThumbnail || undefined,  // 원본 외부 URL 저장
           category: categoryString,
           detail_page_data: detailPageData,
+          weight: formData.weight || undefined,  // 상품 중량 (쿠팡 옵션용)
           notes: formData.notes || undefined,
         }),
       });
@@ -1834,6 +1836,23 @@ function AddProductFromDetailPageModal({
                 ({((parseFloat(formData.selling_price || '0') - parseFloat(formData.sourcing_price)) / parseFloat(formData.sourcing_price) * 100).toFixed(1)}%)
               </p>
             )}
+          </div>
+
+          {/* 상품 중량 (쿠팡용) */}
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <label className="block text-sm font-semibold text-orange-800 mb-2">
+              상품 중량 <span className="text-xs text-gray-500">(쿠팡 전송용)</span>
+            </label>
+            <input
+              type="text"
+              value={formData.weight}
+              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+              className="w-full px-4 py-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              placeholder="예: 500g, 1kg, 200g"
+            />
+            <p className="text-xs text-orange-600 mt-2">
+              💡 쿠팡 등록 시 필수 옵션입니다. 단위는 g 또는 kg으로 입력하세요.
+            </p>
           </div>
 
           {/* 소싱 정보 */}

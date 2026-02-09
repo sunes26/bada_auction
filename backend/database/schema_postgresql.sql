@@ -238,7 +238,17 @@ CREATE TABLE IF NOT EXISTS my_selling_products (
     detail_page_data TEXT,
     category TEXT,
     thumbnail_url TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
+    original_thumbnail_url TEXT,
+    sol_cate_no BIGINT,
+    playauto_product_no TEXT,
+    ol_shop_no TEXT,
+    ol_shop_no_gmk TEXT,
+    ol_shop_no_smart TEXT,
+    c_sale_cd_gmk TEXT,
+    c_sale_cd_smart TEXT,
+    c_sale_cd_coupang TEXT,  -- 쿠팡용 판매자 관리코드
+    weight TEXT,  -- 상품 중량 (쿠팡 옵션용, 예: "500g", "1kg")
+    is_active BOOLEAN DEFAULT FALSE,  -- 기본값: 중단 (상세페이지 생성기에서 추가된 상품은 중단 상태로 시작)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     notes TEXT,
