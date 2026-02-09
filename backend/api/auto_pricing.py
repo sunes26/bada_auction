@@ -17,9 +17,7 @@ class AutoPricingSettings(BaseModel):
     """자동 가격 조정 설정"""
     enabled: bool = False
     target_margin: float = 30.0  # 목표 마진율 (%)
-    min_margin: float = 15.0  # 최소 마진율 (%) - 이하면 판매 중단
     price_unit: int = 100  # 가격 올림 단위 (100원 단위)
-    auto_disable_on_low_margin: bool = True  # 최소 마진 이하 시 자동 비활성화
 
 
 @router.get("/settings")
@@ -43,9 +41,7 @@ async def get_auto_pricing_settings():
                 "settings": {
                     "enabled": False,
                     "target_margin": 30.0,
-                    "min_margin": 15.0,
-                    "price_unit": 100,
-                    "auto_disable_on_low_margin": True
+                    "price_unit": 100
                 }
             }
 
@@ -140,7 +136,6 @@ async def adjust_product_price(product_id: int):
         product_name = product.get('product_name')
         sourcing_price = product.get('effective_sourcing_price') or product.get('sourcing_price', 0)
         old_selling_price = product.get('selling_price')
-        is_active = product.get('is_active')
 
         if sourcing_price == 0:
             return {"success": False, "message": "소싱가가 설정되지 않았습니다."}
@@ -155,17 +150,10 @@ async def adjust_product_price(product_id: int):
         # 마진율 계산 (소싱가 기준)
         new_margin = ((new_selling_price - sourcing_price) / sourcing_price) * 100
 
-        # 최소 마진율 체크
-        should_disable = False
-        if new_margin < settings['min_margin'] and settings['auto_disable_on_low_margin']:
-            should_disable = True
-            logger.warning(f"[자동가격] {product_name}: 최소 마진율 미달 ({new_margin:.1f}% < {settings['min_margin']}%) - 판매 중단")
-
         # 로컬 DB 가격 업데이트
         db.update_selling_product(
             product_id=product_id,
-            selling_price=new_selling_price,
-            is_active=False if should_disable else is_active
+            selling_price=new_selling_price
         )
 
         logger.info(f"[자동가격] {product_name}: {old_selling_price:,}원 → {new_selling_price:,}원 (마진 {new_margin:.1f}%)")
@@ -254,7 +242,6 @@ async def adjust_product_price(product_id: int):
             "old_price": old_selling_price,
             "new_price": new_selling_price,
             "margin": new_margin,
-            "disabled": should_disable,
             "playauto_updated": playauto_updated
         }
 
@@ -290,7 +277,6 @@ async def adjust_all_products():
 
         # 각 상품 가격 조정
         adjusted_count = 0
-        disabled_count = 0
 
         for product in products:
             product_id = product['id']
@@ -298,19 +284,16 @@ async def adjust_all_products():
                 result = await adjust_product_price(product_id)
                 if result['success']:
                     adjusted_count += 1
-                    if result.get('disabled'):
-                        disabled_count += 1
             except Exception as e:
                 logger.error(f"[자동가격] 상품 {product_id} 조정 실패: {str(e)}")
                 continue
 
-        logger.info(f"[자동가격] 일괄 조정 완료: {adjusted_count}개 조정, {disabled_count}개 비활성화")
+        logger.info(f"[자동가격] 일괄 조정 완료: {adjusted_count}개 조정")
 
         return {
             "success": True,
             "message": f"{adjusted_count}개 상품의 가격이 조정되었습니다.",
-            "adjusted_count": adjusted_count,
-            "disabled_count": disabled_count
+            "adjusted_count": adjusted_count
         }
 
     except Exception as e:

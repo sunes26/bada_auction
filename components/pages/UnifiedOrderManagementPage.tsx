@@ -147,9 +147,7 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
   const [autoPricingSettings, setAutoPricingSettings] = useState({
     enabled: true,  // 무조건 활성화
     target_margin: 30.0,
-    min_margin: 15.0,
-    price_unit: 100,
-    auto_disable_on_low_margin: true
+    price_unit: 100
   });
 
   // 주문 처리 상태 (송장 입력 모달)
@@ -1606,81 +1604,33 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
                     placeholder="30.0"
                   />
                   <p className="mt-2 text-sm text-gray-600">
-                    예: 30% 입력 시, 소싱가 10,000원 → 판매가 14,300원
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    최소 마진율 (%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={autoPricingSettings.min_margin}
-                    onChange={(e) => setAutoPricingSettings({
-                      ...autoPricingSettings,
-                      min_margin: parseFloat(e.target.value) || 0
-                    })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="15.0"
-                  />
-                  <p className="mt-2 text-sm text-gray-600">
-                    이 마진율 이하로 떨어지면 자동 비활성화
+                    예: 30% 입력 시, 소싱가 10,000원 → 판매가 13,000원
                   </p>
                 </div>
               </div>
 
               {/* 가격 단위 */}
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    가격 올림 단위 (원)
-                  </label>
-                  <select
-                    value={autoPricingSettings.price_unit}
-                    onChange={(e) => setAutoPricingSettings({
-                      ...autoPricingSettings,
-                      price_unit: parseInt(e.target.value)
-                    })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value={100}>100원 단위</option>
-                    <option value={500}>500원 단위</option>
-                    <option value={1000}>1,000원 단위</option>
-                    <option value={5000}>5,000원 단위</option>
-                    <option value={10000}>10,000원 단위</option>
-                  </select>
-                  <p className="mt-2 text-sm text-gray-600">
-                    판매가를 깔끔하게 올림 처리 (예: 14,380원 → 14,400원)
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    최소 마진 미달 시 자동 비활성화
-                  </label>
-                  <label className="relative inline-flex items-center cursor-pointer mt-3">
-                    <input
-                      type="checkbox"
-                      checked={autoPricingSettings.auto_disable_on_low_margin}
-                      onChange={(e) => setAutoPricingSettings({
-                        ...autoPricingSettings,
-                        auto_disable_on_low_margin: e.target.checked
-                      })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-14 h-8 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
-                    <span className="ml-3 text-sm font-medium text-gray-700">
-                      {autoPricingSettings.auto_disable_on_low_margin ? '활성화' : '비활성화'}
-                    </span>
-                  </label>
-                  <p className="mt-2 text-sm text-gray-600">
-                    마진이 최소 마진율 이하면 상품 판매 중단
-                  </p>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  가격 올림 단위 (원)
+                </label>
+                <select
+                  value={autoPricingSettings.price_unit}
+                  onChange={(e) => setAutoPricingSettings({
+                    ...autoPricingSettings,
+                    price_unit: parseInt(e.target.value)
+                  })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value={100}>100원 단위</option>
+                  <option value={500}>500원 단위</option>
+                  <option value={1000}>1,000원 단위</option>
+                  <option value={5000}>5,000원 단위</option>
+                  <option value={10000}>10,000원 단위</option>
+                </select>
+                <p className="mt-2 text-sm text-gray-600">
+                  판매가를 깔끔하게 올림 처리 (예: 14,380원 → 14,400원)
+                </p>
               </div>
 
               {/* 저장 버튼 */}
@@ -1727,18 +1677,18 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl border border-red-200">
+              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl border border-green-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6 text-white" />
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                    <RefreshCw className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-800">최소 마진율</h4>
-                    <p className="text-2xl font-bold text-red-600">{autoPricingSettings.min_margin}%</p>
+                    <h4 className="font-semibold text-gray-800">자동 조정 주기</h4>
+                    <p className="text-2xl font-bold text-green-600">30분</p>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600">
-                  이 마진율 이하로 떨어지면 판매를 중단합니다
+                  소싱가 변동 시 자동으로 판매가를 조정합니다
                 </p>
               </div>
             </div>
@@ -1778,9 +1728,11 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
                 </thead>
                 <tbody>
                   {[10000, 25000, 50000, 100000].map((sourcingPrice) => {
-                    const targetPrice = sourcingPrice / (1 - autoPricingSettings.target_margin / 100);
+                    // 소싱가 기준 마진율 계산: 판매가 = 소싱가 × (1 + 마진율/100)
+                    const targetPrice = sourcingPrice * (1 + autoPricingSettings.target_margin / 100);
                     const adjustedPrice = Math.round(targetPrice / autoPricingSettings.price_unit) * autoPricingSettings.price_unit;
-                    const actualMargin = ((adjustedPrice - sourcingPrice) / adjustedPrice) * 100;
+                    // 실제 마진율 = (판매가 - 소싱가) / 소싱가 × 100
+                    const actualMargin = ((adjustedPrice - sourcingPrice) / sourcingPrice) * 100;
 
                     return (
                       <tr key={sourcingPrice} className="border-b border-gray-200">
