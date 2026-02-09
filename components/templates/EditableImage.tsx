@@ -1,4 +1,4 @@
-import { Upload, X, RefreshCw, Maximize2, AlignCenter, AlignLeft, AlignRight } from 'lucide-react';
+import { Upload, X, RefreshCw } from 'lucide-react';
 import { ReactNode, useState, useRef, useEffect } from 'react';
 
 interface EditableImageProps {
@@ -61,25 +61,13 @@ export default function EditableImage({
   const [isFocused, setIsFocused] = useState(false);
   const [showPasteToast, setShowPasteToast] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
-  const [isMoving, setIsMoving] = useState(false);
   const [resizeCorner, setResizeCorner] = useState<'tl' | 'tr' | 'bl' | 'br' | null>(null);
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, size: 100, position: { x: 0, y: 0 } });
-  const [moveStart, setMoveStart] = useState({ x: 0, y: 0, startPos: { x: 0, y: 0 } });
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, size: 100 });
   const containerRef = useRef<HTMLDivElement>(null);
   const imageUrl = uploadedImages[imageKey];
   const settings = imageStyleSettings[imageKey] || {};
   const isEditing = editingImage === imageKey;
   const imageSize = imageSizes[imageKey] || 100;
-  const imagePosition = imagePositions[imageKey] || { x: 0, y: 0 };
-  const imageAlignment = imageAlignments[imageKey] || 'center';
-
-  // 정렬 변경 핸들러
-  const handleAlignmentClick = (alignment: 'left' | 'center' | 'right', e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onImageAlignment) {
-      onImageAlignment(imageKey, alignment);
-    }
-  };
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -190,24 +178,6 @@ export default function EditableImage({
       x: e.clientX,
       y: e.clientY,
       size: imageSize,
-      position: imagePosition,
-    });
-  };
-
-  // 이미지 이동 시작
-  const handleMoveStart = (e: React.MouseEvent) => {
-    // 핸들이 아닌 이미지 영역을 클릭했을 때만 이동
-    if ((e.target as HTMLElement).closest('.resize-handle')) {
-      return;
-    }
-
-    e.preventDefault();
-    e.stopPropagation();
-    setIsMoving(true);
-    setMoveStart({
-      x: e.clientX,
-      y: e.clientY,
-      startPos: imagePosition,
     });
   };
 
@@ -267,61 +237,13 @@ export default function EditableImage({
     };
   }, [isResizing, resizeCorner, resizeStart, imageKey, onImageResize]);
 
-  // 이동 처리
-  useEffect(() => {
-    if (!isMoving) return;
-
-    document.body.style.cursor = 'move';
-    document.body.style.userSelect = 'none';
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - moveStart.x;
-      const deltaY = e.clientY - moveStart.y;
-
-      const newPosition = {
-        x: moveStart.startPos.x + deltaX,
-        y: moveStart.startPos.y + deltaY,
-      };
-
-      if (onImageMove) {
-        onImageMove(imageKey, newPosition);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsMoving(false);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-  }, [isMoving, moveStart, imageKey, onImageMove]);
-
-  // 정렬에 따른 justify-content 값
-  const alignmentStyles: Record<string, string> = {
-    left: 'flex-start',
-    center: 'center',
-    right: 'flex-end',
-  };
-
-  // 컨테이너 스타일 (크기 조정 가능한 경우 실제 높이 조정)
+  // 컨테이너 스타일 - 가운데 정렬, 이미지 크기에 따라 높이 자동 조정
   const containerStyle: React.CSSProperties = {
     ...style,
-    // 리사이즈 가능하고 100%가 아닌 경우, 컨테이너 높이도 비례하게 조정
-    ...(isResizable && imageSize !== 100 && !fillContainer ? {
-      minHeight: `${imageSize}%`,
-    } : {}),
     display: 'flex',
-    justifyContent: alignmentStyles[imageAlignment],
+    justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'column',
   };
 
   const imageStyle: React.CSSProperties = {
@@ -336,13 +258,10 @@ export default function EditableImage({
     borderStyle: settings.borderWidth ? 'solid' : undefined,
     opacity: settings.opacity !== undefined ? settings.opacity : 1,
     filter: `brightness(${settings.brightness || 1}) contrast(${settings.contrast || 1}) saturate(${settings.saturate || 1})`,
-    // 크기 조정 가능한 경우 width/height로 실제 크기 조정 (레이아웃에 영향)
+    // 크기 조정: width는 비율로, height는 auto로 설정하여 레이아웃에 영향
     width: isResizable && !fillContainer ? `${imageSize}%` : '100%',
-    height: isResizable && !fillContainer ? `${imageSize}%` : '100%',
-    minWidth: isResizable && !fillContainer ? `${imageSize}%` : undefined,
-    minHeight: isResizable && !fillContainer ? `${imageSize}%` : undefined,
-    transform: `translate(${imagePosition.x}px, ${imagePosition.y}px)`,
-    transition: isResizing || isMoving ? 'none' : 'all 0.15s ease-out',
+    aspectRatio: '1 / 1',  // 정사각형 비율 유지 (필요시 조정)
+    transition: isResizing ? 'none' : 'all 0.15s ease-out',
     position: 'relative' as const,
   };
 
@@ -351,7 +270,7 @@ export default function EditableImage({
       ref={containerRef}
       tabIndex={0}
       data-editable="true"
-      className={`editable-container relative group ${className} ${isDragging ? 'ring-4 ring-blue-500 ring-opacity-50' : ''} ${isFocused || isResizing || isMoving ? 'ring-2 ring-blue-400 ring-offset-2' : ''} outline-none transition-all`}
+      className={`editable-container relative group ${className} ${isDragging ? 'ring-4 ring-blue-500 ring-opacity-50' : ''} ${isFocused || isResizing ? 'ring-2 ring-blue-400 ring-offset-2' : ''} outline-none transition-all`}
       style={containerStyle}
       onClick={handleContainerClick}
       onDragEnter={handleDragEnter}
@@ -360,13 +279,12 @@ export default function EditableImage({
       onDrop={handleDrop}
       onPaste={handlePaste}
       onBlur={handleBlur}
-      title={imageUrl ? "드래그하여 이동, 모서리 드래그하여 크기 조정" : "클릭 후 Ctrl+V로 붙여넣기"}
+      title={imageUrl ? "모서리 드래그하여 크기 조정" : "클릭 후 Ctrl+V로 붙여넣기"}
     >
       {/* 실제 이미지 영역 */}
       <div
         className="relative"
         style={imageStyle}
-        onMouseDown={imageUrl && onImageMove ? handleMoveStart : undefined}
       >
         {children}
 
@@ -401,78 +319,46 @@ export default function EditableImage({
           )}
         </div>
 
-        {/* 정렬 버튼 */}
-        {imageUrl && onImageAlignment && isResizable && (
-          <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 bg-white/90 backdrop-blur-sm rounded-lg p-1 shadow-lg ${isEditing || isFocused ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity z-10`}>
-            <button
-              onClick={(e) => handleAlignmentClick('left', e)}
-              className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${imageAlignment === 'left' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100 text-gray-600'}`}
-              title="왼쪽 정렬"
-            >
-              <AlignLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={(e) => handleAlignmentClick('center', e)}
-              className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${imageAlignment === 'center' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100 text-gray-600'}`}
-              title="가운데 정렬"
-            >
-              <AlignCenter className="w-4 h-4" />
-            </button>
-            <button
-              onClick={(e) => handleAlignmentClick('right', e)}
-              className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${imageAlignment === 'right' ? 'bg-blue-500 text-white' : 'hover:bg-gray-100 text-gray-600'}`}
-              title="오른쪽 정렬"
-            >
-              <AlignRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
         {/* Figma 스타일 4개 모서리 핸들 - 크기 조정 가능할 때만 표시 */}
         {imageUrl && onImageResize && isResizable && (
           <>
             {/* 좌상단 핸들 */}
             <div
               onMouseDown={(e) => handleResizeStart('tl', e)}
-              className={`resize-handle absolute -top-1 -left-1 w-3 h-3 bg-white border-2 border-blue-500 cursor-nwse-resize shadow-md hover:scale-125 transition-all z-20 ${isEditing || isFocused || isResizing || isMoving ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+              className={`resize-handle absolute -top-1 -left-1 w-3 h-3 bg-white border-2 border-blue-500 cursor-nwse-resize shadow-md hover:scale-125 transition-all z-20 ${isEditing || isFocused || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
               title="좌상단 모서리 드래그"
             />
 
             {/* 우상단 핸들 */}
             <div
               onMouseDown={(e) => handleResizeStart('tr', e)}
-              className={`resize-handle absolute -top-1 -right-1 w-3 h-3 bg-white border-2 border-blue-500 cursor-nesw-resize shadow-md hover:scale-125 transition-all z-20 ${isEditing || isFocused || isResizing || isMoving ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+              className={`resize-handle absolute -top-1 -right-1 w-3 h-3 bg-white border-2 border-blue-500 cursor-nesw-resize shadow-md hover:scale-125 transition-all z-20 ${isEditing || isFocused || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
               title="우상단 모서리 드래그"
             />
 
             {/* 좌하단 핸들 */}
             <div
               onMouseDown={(e) => handleResizeStart('bl', e)}
-              className={`resize-handle absolute -bottom-1 -left-1 w-3 h-3 bg-white border-2 border-blue-500 cursor-nesw-resize shadow-md hover:scale-125 transition-all z-20 ${isEditing || isFocused || isResizing || isMoving ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+              className={`resize-handle absolute -bottom-1 -left-1 w-3 h-3 bg-white border-2 border-blue-500 cursor-nesw-resize shadow-md hover:scale-125 transition-all z-20 ${isEditing || isFocused || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
               title="좌하단 모서리 드래그"
             />
 
             {/* 우하단 핸들 */}
             <div
               onMouseDown={(e) => handleResizeStart('br', e)}
-              className={`resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-white border-2 border-blue-500 cursor-nwse-resize shadow-md hover:scale-125 transition-all z-20 ${isEditing || isFocused || isResizing || isMoving ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+              className={`resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-white border-2 border-blue-500 cursor-nwse-resize shadow-md hover:scale-125 transition-all z-20 ${isEditing || isFocused || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
               title="우하단 모서리 드래그"
             />
 
-            {/* 크기/위치 표시 */}
-            <div className={`absolute top-2 left-2 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg ${isResizing || isMoving ? 'opacity-100' : 'opacity-0'} transition-opacity z-10 pointer-events-none`}>
+            {/* 크기 표시 */}
+            <div className={`absolute top-2 left-2 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg ${isResizing ? 'opacity-100' : 'opacity-0'} transition-opacity z-10 pointer-events-none`}>
               <span className="text-white text-xs font-bold">
                 {imageSize}%
-                {(imagePosition.x !== 0 || imagePosition.y !== 0) && (
-                  <span className="ml-2 text-blue-300">
-                    X:{Math.round(imagePosition.x)} Y:{Math.round(imagePosition.y)}
-                  </span>
-                )}
               </span>
             </div>
 
             {/* 편집 중 오버레이 */}
-            {(isResizing || isMoving) && (
+            {isResizing && (
               <div className="absolute inset-0 border-2 border-blue-500 rounded pointer-events-none z-20">
                 <div className="absolute inset-0 bg-blue-500/10"></div>
               </div>

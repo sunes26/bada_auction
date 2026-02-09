@@ -253,37 +253,6 @@ export default function PropertiesPanel({
             </div>
           </div>
 
-          {/* 위치 */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-3">위치</label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">X</label>
-                <input
-                  type="number"
-                  value={Math.round(imagePosition.x)}
-                  onChange={(e) => onImageMove(imageKey, { ...imagePosition, x: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Y</label>
-                <input
-                  type="number"
-                  value={Math.round(imagePosition.y)}
-                  onChange={(e) => onImageMove(imageKey, { x: imagePosition.x, y: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-            <button
-              onClick={() => onImageMove(imageKey, { x: 0, y: 0 })}
-              className="w-full mt-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors"
-            >
-              위치 초기화
-            </button>
-          </div>
-
           {/* 이미지 키 정보 */}
           <div className="pt-4 border-t border-gray-200">
             <p className="text-xs text-gray-500 break-all">
