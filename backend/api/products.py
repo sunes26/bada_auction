@@ -479,6 +479,9 @@ async def get_product(product_id: int):
 async def update_product(product_id: int, request: UpdateProductRequest):
     """판매 상품 수정"""
     try:
+        # 디버그: request 내용 로깅
+        logger.info(f"[상품수정] ID={product_id}, request.keywords={request.keywords}, type={type(request.keywords)}")
+
         db = get_db()
 
         # 상품 존재 확인
