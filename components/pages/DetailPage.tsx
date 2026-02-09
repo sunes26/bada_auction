@@ -58,8 +58,12 @@ export default function DetailPage() {
   // 외부 클릭 시 편집 모드 해제
   const handleOutsideClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    // 편집 가능한 요소나 그 자식이 아닌 경우에만 해제
-    if (!target.closest('[data-editable]') && !target.closest('.editable-container')) {
+    // 편집 가능한 요소, 편집 컨테이너, 또는 속성 패널 내부 클릭은 무시
+    if (
+      !target.closest('[data-editable]') &&
+      !target.closest('.editable-container') &&
+      !target.closest('.properties-panel')
+    ) {
       setEditingField(null);
       setEditingImage(null);
       setEditingTextStyle(null);

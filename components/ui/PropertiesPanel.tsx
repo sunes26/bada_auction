@@ -36,7 +36,7 @@ export default function PropertiesPanel({
   // 빈 상태
   if (!selectedElement.field) {
     return (
-      <div className="w-[350px] bg-white border-l border-gray-200 p-6 flex flex-col items-center justify-center text-center min-h-screen">
+      <div className="properties-panel w-[350px] bg-white border-l border-gray-200 p-6 flex flex-col items-center justify-center text-center min-h-screen">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
           <Type className="w-8 h-8 text-gray-400" />
         </div>
@@ -57,7 +57,7 @@ export default function PropertiesPanel({
     const textAlign = styles.textAlign || 'left';
 
     return (
-      <div className="w-[350px] bg-white border-l border-gray-200 min-h-screen overflow-y-auto">
+      <div className="properties-panel w-[350px] bg-white border-l border-gray-200 min-h-screen overflow-y-auto">
         {/* 헤더 */}
         <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -204,7 +204,7 @@ export default function PropertiesPanel({
     const imageUrl = uploadedImages[imageKey];
 
     return (
-      <div className="w-[350px] bg-white border-l border-gray-200 min-h-screen overflow-y-auto">
+      <div className="properties-panel w-[350px] bg-white border-l border-gray-200 min-h-screen overflow-y-auto">
         {/* 헤더 */}
         <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
