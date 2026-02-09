@@ -1555,7 +1555,7 @@ function AddProductFromDetailPageModal({
   const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
-  // 컴포넌트 마운트 시 자동으로 키워드 생성
+  // 컴포넌트 마운트 시 자동으로 키워드 생성 (Next.js API Route 사용)
   useEffect(() => {
     const generateKeywordsOnMount = async () => {
       if (!productName) return;
@@ -1566,7 +1566,7 @@ function AddProductFromDetailPageModal({
           ? `${category.level1} > ${category.level2} > ${category.level3} > ${category.level4}`
           : undefined;
 
-        const response = await fetch(`${API_BASE_URL}/api/products/generate-keywords`, {
+        const response = await fetch('/api/generate-keywords', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from 'react';
 import { X, Plus, RefreshCw, Tag } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api';
 
 interface KeywordEditorProps {
   keywords: string[];
@@ -26,7 +25,7 @@ export default function KeywordEditor({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
-  // GPT로 키워드 생성
+  // GPT로 키워드 생성 (Next.js API Route 사용)
   const generateKeywords = useCallback(async () => {
     if (!productName) {
       alert('상품명이 필요합니다.');
@@ -35,7 +34,7 @@ export default function KeywordEditor({
 
     setIsGenerating(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products/generate-keywords`, {
+      const response = await fetch('/api/generate-keywords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -53,7 +52,7 @@ export default function KeywordEditor({
         const unique = [...new Set(combined)].slice(0, maxKeywords);
         onKeywordsChange(unique);
       } else {
-        alert('키워드 생성에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
+        alert('키워드 생성에 실패했습니다: ' + (data.error || '알 수 없는 오류'));
       }
     } catch (error) {
       console.error('키워드 생성 실패:', error);
