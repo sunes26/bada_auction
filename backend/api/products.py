@@ -534,6 +534,8 @@ async def update_product(product_id: int, request: UpdateProductRequest):
         if request.keywords is not None:
             keywords_json = json.dumps(request.keywords[:40], ensure_ascii=False)
             logger.info(f"[상품수정] 키워드 저장: {len(request.keywords)}개 -> {keywords_json[:100]}...")
+            # PlayAuto에도 키워드 전송 (배열 형태로)
+            playauto_changes['keywords'] = request.keywords[:40]
         else:
             logger.info(f"[상품수정] 키워드 없음 (request.keywords is None)")
 
@@ -561,9 +563,10 @@ async def update_product(product_id: int, request: UpdateProductRequest):
         )
 
         # 플레이오토 API 업데이트 (변경사항 + 플레이오토 상품인 경우)
-        # 두 채널 모두 업데이트
+        # 세 채널 모두 업데이트
         playauto_updated_gmk = False
         playauto_updated_smart = False
+        playauto_updated_coupang = False
 
         if playauto_changes:
             from playauto.products import edit_playauto_product
@@ -615,6 +618,29 @@ async def update_product(product_id: int, request: UpdateProductRequest):
                 except Exception as e:
                     logger.error(f"[상품수정] 스마트스토어 PlayAuto 업데이트 실패: {str(e)}")
 
+            # 3. 쿠팡 상품 업데이트
+            if c_sale_cd_coupang:
+                try:
+                    logger.info(f"[상품수정] 쿠팡 PlayAuto 업데이트 시작: c_sale_cd={c_sale_cd_coupang}, 변경항목={changed_fields}")
+
+                    result_coupang = await edit_playauto_product(
+                        c_sale_cd=c_sale_cd_coupang,
+                        shop_cd="master",
+                        shop_id="master",
+                        edit_slave_all=True,
+                        **playauto_changes
+                    )
+
+                    if result_coupang.get('success'):
+                        playauto_updated_coupang = True
+                        logger.info(f"[상품수정] 쿠팡 PlayAuto 업데이트 성공")
+                    else:
+                        error_msg = result_coupang.get('message', '알 수 없는 오류')
+                        logger.error(f"[상품수정] 쿠팡 PlayAuto 업데이트 실패: {error_msg}")
+
+                except Exception as e:
+                    logger.error(f"[상품수정] 쿠팡 PlayAuto 업데이트 실패: {str(e)}")
+
         # 캐시 무효화
         clear_all_cache()
 
@@ -623,6 +649,7 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             "message": "상품이 수정되었습니다.",
             "playauto_updated_gmk": playauto_updated_gmk,
             "playauto_updated_smart": playauto_updated_smart,
+            "playauto_updated_coupang": playauto_updated_coupang,
             "playauto_changes": list(playauto_changes.keys()) if playauto_changes else []
         }
 
