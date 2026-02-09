@@ -1487,14 +1487,19 @@ async def sync_product_marketplace_codes(product_id: int):
         # 상품 리스트 API로 조회 (shop_sale_no 포함)
         all_shops = []
         try:
+            logger.info(f"[마켓코드동기화] 검색할 c_sale_cd 목록: {c_sale_cd_list}")
             result = await api.search_products_by_c_sale_cd(c_sale_cd_list)
             results = result.get("results", {})
+            logger.info(f"[마켓코드동기화] API 응답 results 키 목록: {list(results.keys())}")
 
             for c_sale_cd, items in results.items():
+                logger.info(f"[마켓코드동기화] c_sale_cd '{c_sale_cd}' 에서 {len(items)}개 항목 발견")
                 for item in items:
                     shop_cd = item.get("shop_cd")
                     shop_sale_no = item.get("shop_sale_no")
                     shop_name = item.get("shop_name", "")
+
+                    logger.info(f"[마켓코드동기화] 항목: shop_cd={shop_cd}, shop_name={shop_name}, shop_sale_no={shop_sale_no}")
 
                     # Z000(마스터)은 shop_sale_no가 없으므로 스킵
                     if shop_cd and shop_cd != "Z000" and shop_sale_no:
@@ -1503,7 +1508,9 @@ async def sync_product_marketplace_codes(product_id: int):
                             "shop_sale_no": shop_sale_no,
                             "shop_name": shop_name
                         })
-                        logger.info(f"[마켓코드동기화] 발견: {shop_name} ({shop_cd}): {shop_sale_no}")
+                        logger.info(f"[마켓코드동기화] ✓ 추가됨: {shop_name} ({shop_cd}): {shop_sale_no}")
+                    else:
+                        logger.info(f"[마켓코드동기화] ✗ 스킵됨: {shop_name} ({shop_cd}) - shop_sale_no 없음 또는 마스터")
 
         except Exception as e:
             logger.error(f"[마켓코드동기화] 상품 리스트 조회 실패: {e}")
