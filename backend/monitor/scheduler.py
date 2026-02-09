@@ -19,8 +19,8 @@ scheduler = AsyncIOScheduler()
 # 상품별 연속 가격 추출 실패 횟수 추적
 price_fetch_fail_counts: dict[int, int] = {}
 
-# 연속 실패 알림 임계값
-CONSECUTIVE_FAIL_THRESHOLD = 5
+# 연속 실패 알림 임계값 (20회 = 30분 × 20 = 10시간 연속 실패 시 알림)
+CONSECUTIVE_FAIL_THRESHOLD = 20
 
 
 async def update_selling_products_sourcing_price():
