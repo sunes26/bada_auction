@@ -489,6 +489,7 @@ class DatabaseWrapper:
         ol_shop_no: Optional[str] = None,
         ol_shop_no_gmk: Optional[str] = None,
         ol_shop_no_smart: Optional[str] = None,
+        ol_shop_no_coupang: Optional[str] = None,
         c_sale_cd_gmk: Optional[str] = None,
         c_sale_cd_smart: Optional[str] = None,
         c_sale_cd_coupang: Optional[str] = None,
@@ -532,6 +533,8 @@ class DatabaseWrapper:
                 product.ol_shop_no_gmk = ol_shop_no_gmk
             if ol_shop_no_smart is not None:
                 product.ol_shop_no_smart = ol_shop_no_smart
+            if ol_shop_no_coupang is not None:
+                product.ol_shop_no_coupang = ol_shop_no_coupang
             if c_sale_cd_gmk is not None:
                 product.c_sale_cd_gmk = c_sale_cd_gmk
             if c_sale_cd_smart is not None:

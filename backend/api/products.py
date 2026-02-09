@@ -1002,9 +1002,10 @@ async def register_products_to_playauto(request: dict):
                     # 디버깅: site_list 전체 구조 로깅
                     logger.info(f"[상품등록] site_list 응답: {site_list_result}")
 
-                    # ol_shop_no를 GMK와 SmartStore로 분리하여 저장
+                    # ol_shop_no를 채널별로 분리하여 저장
                     ol_shop_no_gmk = None
                     ol_shop_no_smart = None
+                    ol_shop_no_coupang = None
                     ol_shop_no_fallback = None  # 하위 호환성
 
                     if site_list_result:
@@ -1024,11 +1025,17 @@ async def register_products_to_playauto(request: dict):
                                 # 채널별로 분류하여 저장
                                 # GMK 채널: Z000(마스터), A001(옥션), A002(지마켓)
                                 # SmartStore 채널: A027(스마트스토어) 등
+                                # Coupang 채널: B378
                                 if shop_cd in ["Z000", "A001", "A002"] and c_sale_cd_gmk:
                                     # GMK 등록에서 나온 ol_shop_no
                                     if not ol_shop_no_gmk or shop_cd == "Z000":  # Z000(마스터) 우선
                                         ol_shop_no_gmk = ol_no
                                         logger.info(f"[상품등록] GMK ol_shop_no 발견: {ol_no} (shop_cd: {shop_cd})")
+                                elif shop_cd == "B378" and c_sale_cd_coupang:
+                                    # 쿠팡 등록에서 나온 ol_shop_no
+                                    if not ol_shop_no_coupang:
+                                        ol_shop_no_coupang = ol_no
+                                        logger.info(f"[상품등록] 쿠팡 ol_shop_no 발견: {ol_no} (shop_cd: {shop_cd})")
                                 elif c_sale_cd_smart:
                                     # SmartStore 등록에서 나온 ol_shop_no
                                     if not ol_shop_no_smart or shop_cd == "Z000":  # Z000(마스터) 우선
@@ -1064,6 +1071,9 @@ async def register_products_to_playauto(request: dict):
                     if ol_shop_no_smart:
                         update_params["ol_shop_no_smart"] = ol_shop_no_smart
                         logger.info(f"[상품등록] SmartStore 온라인 쇼핑몰 번호 저장: {ol_shop_no_smart}")
+                    if ol_shop_no_coupang:
+                        update_params["ol_shop_no_coupang"] = ol_shop_no_coupang
+                        logger.info(f"[상품등록] 쿠팡 온라인 쇼핑몰 번호 저장: {ol_shop_no_coupang}")
 
                     # 하위 호환성: ol_shop_no 필드에도 저장 (우선순위: gmk > smart)
                     if ol_shop_no_fallback:

@@ -334,6 +334,7 @@ class MySellingProduct(Base):
     ol_shop_no = Column(Text)  # 하위 호환성 유지
     ol_shop_no_gmk = Column(Text)  # 지마켓/옥션용 온라인 쇼핑몰 번호
     ol_shop_no_smart = Column(Text)  # 스마트스토어용 온라인 쇼핑몰 번호
+    ol_shop_no_coupang = Column(Text)  # 쿠팡용 온라인 쇼핑몰 번호
     c_sale_cd_gmk = Column(Text)  # 지마켓/옥션용 판매자 관리코드
     c_sale_cd_smart = Column(Text)  # 스마트스토어용 판매자 관리코드
     c_sale_cd_coupang = Column(Text)  # 쿠팡용 판매자 관리코드

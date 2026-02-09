@@ -257,6 +257,7 @@ CREATE TABLE IF NOT EXISTS my_selling_products (
     ol_shop_no TEXT,  -- 온라인 쇼핑몰 번호 (PlayAuto 등록 시, 하위 호환성)
     ol_shop_no_gmk TEXT,  -- 지마켓/옥션용 온라인 쇼핑몰 번호
     ol_shop_no_smart TEXT,  -- 스마트스토어용 온라인 쇼핑몰 번호
+    ol_shop_no_coupang TEXT,  -- 쿠팡용 온라인 쇼핑몰 번호
     c_sale_cd_gmk TEXT,  -- 지마켓/옥션용 판매자 관리코드
     c_sale_cd_smart TEXT,  -- 스마트스토어용 판매자 관리코드
     c_sale_cd_coupang TEXT,  -- 쿠팡용 판매자 관리코드

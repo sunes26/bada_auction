@@ -244,6 +244,7 @@ CREATE TABLE IF NOT EXISTS my_selling_products (
     ol_shop_no TEXT,
     ol_shop_no_gmk TEXT,
     ol_shop_no_smart TEXT,
+    ol_shop_no_coupang TEXT,
     c_sale_cd_gmk TEXT,
     c_sale_cd_smart TEXT,
     c_sale_cd_coupang TEXT,  -- 쿠팡용 판매자 관리코드
