@@ -60,11 +60,17 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
 
   // 키워드 파싱 함수
   const parseKeywords = (keywordsJson?: string): string[] => {
-    if (!keywordsJson) return [];
+    console.log('[EditProductModal] 키워드 파싱 - 원본:', keywordsJson);
+    if (!keywordsJson) {
+      console.log('[EditProductModal] 키워드 없음 (빈 배열 반환)');
+      return [];
+    }
     try {
       const parsed = JSON.parse(keywordsJson);
+      console.log('[EditProductModal] 파싱 결과:', parsed);
       return Array.isArray(parsed) ? parsed : [];
-    } catch {
+    } catch (e) {
+      console.log('[EditProductModal] 파싱 실패:', e);
       return [];
     }
   };
@@ -362,6 +368,11 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
     setLoading(true);
     try {
       const categoryString = `${category.level1} > ${category.level2} > ${category.level3} > ${category.level4}`;
+
+      // 디버그: 전송할 데이터 로깅
+      console.log('[상품수정] 전송할 keywords:', keywords);
+      console.log('[상품수정] keywords.length:', keywords.length);
+      console.log('[상품수정] 전송 여부:', keywords.length > 0 ? '전송함' : '전송 안함 (undefined)');
 
       // 공통 API 클라이언트 사용
       const data = await productsApi.update(product.id, {
