@@ -107,6 +107,45 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
   // 이미지 업로드 상태
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // 옵션 관련 상태
+  interface MarketOption {
+    c_sale_cd: string;
+    shop_cd: string;
+    shop_name: string;
+    opt_type: string;
+    opts: any[];
+    sale_price?: number;
+    stock_cnt?: number;
+  }
+  const [coupangOptions, setCoupangOptions] = useState<MarketOption | null>(null);
+  const [smartstoreOptions, setSmartstoreOptions] = useState<MarketOption | null>(null);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+  const [savingOptions, setSavingOptions] = useState(false);
+
+  // 옵션 편집 상태
+  const [editCoupangOpts, setEditCoupangOpts] = useState<{
+    opt_sort1: string;
+    opt_sort1_desc: string;
+    opt_sort2: string;
+    opt_sort2_desc: string;
+    stock_cnt: number;
+  }>({
+    opt_sort1: '수량',
+    opt_sort1_desc: '1개',
+    opt_sort2: '',
+    opt_sort2_desc: '',
+    stock_cnt: 999
+  });
+  const [editSmartOpts, setEditSmartOpts] = useState<{
+    opt_sort1: string;
+    opt_sort1_desc: string;
+    stock_cnt: number;
+  }>({
+    opt_sort1: '상품선택',
+    opt_sort1_desc: '',
+    stock_cnt: 999
+  });
+
   const level1Options = Object.keys(categoryStructure);
   const level2Options = category.level1 ? Object.keys((categoryStructure as any)[category.level1] || {}) : [];
   const level3Options = category.level1 && category.level2 ? Object.keys((categoryStructure as any)[category.level1]?.[category.level2] || {}) : [];
@@ -179,6 +218,131 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
       setLoadingMarketplaceCodes(false);
     }
   }, [product.id]);
+
+  // 상품 옵션 조회
+  const loadProductOptions = useCallback(async () => {
+    setLoadingOptions(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/products/${product.id}/options`);
+      const data = await response.json();
+
+      if (data.success) {
+        // 쿠팡 옵션
+        if (data.coupang) {
+          setCoupangOptions(data.coupang);
+          // 옵션 편집 상태 초기화
+          const opts = data.coupang.opts || [];
+          if (opts.length > 0) {
+            setEditCoupangOpts({
+              opt_sort1: opts[0]?.opt_sort1 || '수량',
+              opt_sort1_desc: opts[0]?.opt_sort1_desc || '1개',
+              opt_sort2: opts[0]?.opt_sort2 || '',
+              opt_sort2_desc: opts[0]?.opt_sort2_desc || '',
+              stock_cnt: opts[0]?.stock_cnt || 999
+            });
+          }
+        }
+
+        // 스마트스토어 옵션
+        if (data.smartstore) {
+          setSmartstoreOptions(data.smartstore);
+          // 옵션 편집 상태 초기화
+          const opts = data.smartstore.opts || [];
+          if (opts.length > 0) {
+            setEditSmartOpts({
+              opt_sort1: opts[0]?.opt_sort1 || '상품선택',
+              opt_sort1_desc: opts[0]?.opt_sort1_desc || '',
+              stock_cnt: opts[0]?.stock_cnt || 999
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('상품 옵션 조회 실패:', error);
+    } finally {
+      setLoadingOptions(false);
+    }
+  }, [product.id]);
+
+  // 쿠팡 옵션 저장
+  const handleSaveCoupangOptions = async () => {
+    if (!coupangOptions?.c_sale_cd) {
+      alert('쿠팡 판매자관리코드가 없습니다.');
+      return;
+    }
+
+    setSavingOptions(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/products/${product.id}/options`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          c_sale_cd: coupangOptions.c_sale_cd,
+          opt_type: '조합형',
+          opts: [{
+            opt_sort1: editCoupangOpts.opt_sort1,
+            opt_sort1_desc: editCoupangOpts.opt_sort1_desc,
+            opt_sort2: editCoupangOpts.opt_sort2 || undefined,
+            opt_sort2_desc: editCoupangOpts.opt_sort2_desc || undefined,
+            stock_cnt: editCoupangOpts.stock_cnt,
+            status: '정상'
+          }]
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ 쿠팡 옵션이 수정되었습니다.');
+        await loadProductOptions();
+      } else {
+        alert('❌ 옵션 수정 실패: ' + (data.detail || data.message));
+      }
+    } catch (error) {
+      console.error('쿠팡 옵션 저장 실패:', error);
+      alert('옵션 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingOptions(false);
+    }
+  };
+
+  // 스마트스토어 옵션 저장
+  const handleSaveSmartOptions = async () => {
+    if (!smartstoreOptions?.c_sale_cd) {
+      alert('스마트스토어 판매자관리코드가 없습니다.');
+      return;
+    }
+
+    setSavingOptions(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/products/${product.id}/options`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          c_sale_cd: smartstoreOptions.c_sale_cd,
+          opt_type: '독립형',
+          opts: [{
+            opt_sort1: editSmartOpts.opt_sort1,
+            opt_sort1_desc: editSmartOpts.opt_sort1_desc,
+            stock_cnt: editSmartOpts.stock_cnt,
+            status: '정상'
+          }]
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ 스마트스토어 옵션이 수정되었습니다.');
+        await loadProductOptions();
+      } else {
+        alert('❌ 옵션 수정 실패: ' + (data.detail || data.message));
+      }
+    } catch (error) {
+      console.error('스마트스토어 옵션 저장 실패:', error);
+      alert('옵션 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingOptions(false);
+    }
+  };
 
   // 마켓 코드 동기화
   const handleSyncMarketplaceCodes = async () => {
@@ -358,10 +522,11 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
     }
   };
 
-  // 모달 열릴 때 마켓 코드 조회
+  // 모달 열릴 때 마켓 코드 및 옵션 조회
   useEffect(() => {
     loadMarketplaceCodes();
-  }, [loadMarketplaceCodes]);
+    loadProductOptions();
+  }, [loadMarketplaceCodes, loadProductOptions]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -937,6 +1102,143 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                 💡 PlayAuto에서 마켓 전송 시 자동으로 부여되는 각 쇼핑몰의 고유 상품번호입니다.
                 주문 수집 시 자동으로 매칭됩니다.
               </p>
+            </div>
+
+            {/* 마켓별 옵션 편집 */}
+            <div className="mt-6 border-t border-purple-200 pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="w-4 h-4 text-orange-600" />
+                <h4 className="text-sm font-bold text-orange-800">마켓별 옵션 수정</h4>
+                {loadingOptions && <span className="text-xs text-gray-500">(로딩 중...)</span>}
+              </div>
+
+              {/* 쿠팡 옵션 */}
+              {(coupangOptions || formData.c_sale_cd_coupang) && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-orange-800">🚀 쿠팡 옵션 (조합형)</span>
+                    <button
+                      type="button"
+                      onClick={handleSaveCoupangOptions}
+                      disabled={savingOptions || !coupangOptions}
+                      className="px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingOptions ? '저장 중...' : '옵션 저장'}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-gray-600">옵션명1</label>
+                      <input
+                        type="text"
+                        value={editCoupangOpts.opt_sort1}
+                        onChange={(e) => setEditCoupangOpts(prev => ({ ...prev, opt_sort1: e.target.value }))}
+                        className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
+                        placeholder="수량"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">옵션값1</label>
+                      <input
+                        type="text"
+                        value={editCoupangOpts.opt_sort1_desc}
+                        onChange={(e) => setEditCoupangOpts(prev => ({ ...prev, opt_sort1_desc: e.target.value }))}
+                        className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
+                        placeholder="1개"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">옵션명2 (선택)</label>
+                      <input
+                        type="text"
+                        value={editCoupangOpts.opt_sort2}
+                        onChange={(e) => setEditCoupangOpts(prev => ({ ...prev, opt_sort2: e.target.value }))}
+                        className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
+                        placeholder="개당 중량"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">옵션값2 (선택)</label>
+                      <input
+                        type="text"
+                        value={editCoupangOpts.opt_sort2_desc}
+                        onChange={(e) => setEditCoupangOpts(prev => ({ ...prev, opt_sort2_desc: e.target.value }))}
+                        className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
+                        placeholder="500g"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">재고수량</label>
+                      <input
+                        type="number"
+                        value={editCoupangOpts.stock_cnt}
+                        onChange={(e) => setEditCoupangOpts(prev => ({ ...prev, stock_cnt: parseInt(e.target.value) || 999 }))}
+                        className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
+                      />
+                    </div>
+                  </div>
+                  {!coupangOptions && (
+                    <p className="text-xs text-orange-600 mt-2">⚠️ 쿠팡 판매자관리코드는 있지만 옵션 정보를 가져오지 못했습니다.</p>
+                  )}
+                </div>
+              )}
+
+              {/* 스마트스토어 옵션 */}
+              {(smartstoreOptions || formData.c_sale_cd_smart) && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-green-800">🛒 스마트스토어 옵션 (독립형)</span>
+                    <button
+                      type="button"
+                      onClick={handleSaveSmartOptions}
+                      disabled={savingOptions || !smartstoreOptions}
+                      className="px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingOptions ? '저장 중...' : '옵션 저장'}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-gray-600">옵션명</label>
+                      <input
+                        type="text"
+                        value={editSmartOpts.opt_sort1}
+                        onChange={(e) => setEditSmartOpts(prev => ({ ...prev, opt_sort1: e.target.value }))}
+                        className="w-full px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500"
+                        placeholder="상품선택"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">옵션값</label>
+                      <input
+                        type="text"
+                        value={editSmartOpts.opt_sort1_desc}
+                        onChange={(e) => setEditSmartOpts(prev => ({ ...prev, opt_sort1_desc: e.target.value }))}
+                        className="w-full px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500"
+                        placeholder="상품명"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">재고수량</label>
+                      <input
+                        type="number"
+                        value={editSmartOpts.stock_cnt}
+                        onChange={(e) => setEditSmartOpts(prev => ({ ...prev, stock_cnt: parseInt(e.target.value) || 999 }))}
+                        className="w-full px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+                  {!smartstoreOptions && (
+                    <p className="text-xs text-green-600 mt-2">⚠️ 스마트스토어 판매자관리코드는 있지만 옵션 정보를 가져오지 못했습니다.</p>
+                  )}
+                </div>
+              )}
+
+              {!coupangOptions && !smartstoreOptions && !formData.c_sale_cd_coupang && !formData.c_sale_cd_smart && (
+                <p className="text-xs text-gray-500 text-center py-3">
+                  쿠팡 또는 스마트스토어 판매자관리코드가 등록되면 옵션을 수정할 수 있습니다.
+                </p>
+              )}
             </div>
           </div>
 

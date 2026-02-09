@@ -229,6 +229,68 @@ class PlayautoProductAPI:
             logger.error(f"[플레이오토] 상품 상세 조회 실패: {str(e)}")
             raise
 
+    async def get_product_with_options(
+        self,
+        c_sale_cd: str
+    ) -> Dict:
+        """
+        판매자관리코드로 상품 정보 및 옵션 조회
+
+        Args:
+            c_sale_cd: 판매자관리코드
+
+        Returns:
+            상품 정보 및 옵션
+        """
+        try:
+            endpoint = "/product/online/list/v1.2"
+
+            data = {
+                "start": 0,
+                "length": 10,
+                "sdate": "2020-01-01",
+                "edate": "2030-12-31",
+                "date_type": "wdate",
+                "multi_type": "c_sale_cd",
+                "multi_search_word": [c_sale_cd],
+                "view_master": True
+            }
+
+            logger.info(f"[플레이오토] 상품 옵션 조회: c_sale_cd={c_sale_cd}")
+
+            async with self.client as client:
+                result = await client.post(endpoint, data=data)
+
+            # 결과에서 옵션 정보 추출
+            results = result.get("results", {})
+            items = results.get(c_sale_cd, [])
+
+            product_info = {
+                "c_sale_cd": c_sale_cd,
+                "shops": []
+            }
+
+            for item in items:
+                shop_cd = item.get("shop_cd")
+                shop_info = {
+                    "shop_cd": shop_cd,
+                    "shop_name": item.get("shop_name", ""),
+                    "shop_sale_no": item.get("shop_sale_no"),
+                    "ol_shop_no": item.get("ol_shop_no"),
+                    "opt_type": item.get("opt_type", ""),
+                    "opts": item.get("opts", []),
+                    "sale_price": item.get("sale_price"),
+                    "stock_cnt": item.get("stock_cnt")
+                }
+                product_info["shops"].append(shop_info)
+                logger.info(f"[플레이오토] 샵 정보: {shop_cd} - opt_type={shop_info['opt_type']}, opts={len(shop_info['opts'])}개")
+
+            return product_info
+
+        except Exception as e:
+            logger.error(f"[플레이오토] 상품 옵션 조회 실패: {str(e)}")
+            raise
+
 
 def calculate_selling_price_with_margin(
     sourcing_price: float,

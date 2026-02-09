@@ -1555,6 +1555,20 @@ function AddProductFromDetailPageModal({
   const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
+  // 마켓별 옵션 상태 (등록 시 사용)
+  const [coupangOpts, setCoupangOpts] = useState({
+    opt_sort1: '수량',
+    opt_sort1_desc: '1개',
+    opt_sort2: '개당 중량',
+    opt_sort2_desc: '',  // formData.weight와 연동
+    stock_cnt: 999
+  });
+  const [smartOpts, setSmartOpts] = useState({
+    opt_sort1: '상품선택',
+    opt_sort1_desc: productName || '',  // 상품명으로 초기화
+    stock_cnt: 999
+  });
+
   // 컴포넌트 마운트 시 자동으로 키워드 생성 (Next.js API Route 사용)
   useEffect(() => {
     const generateKeywordsOnMount = async () => {
@@ -1892,21 +1906,110 @@ function AddProductFromDetailPageModal({
             )}
           </div>
 
-          {/* 상품 중량 (쿠팡용) */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <label className="block text-sm font-semibold text-orange-800 mb-2">
-              상품 중량 <span className="text-xs text-gray-500">(쿠팡 전송용)</span>
-            </label>
-            <input
-              type="text"
-              value={formData.weight}
-              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-              className="w-full px-4 py-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              placeholder="예: 500g, 1kg, 200g"
-            />
-            <p className="text-xs text-orange-600 mt-2">
-              💡 쿠팡 등록 시 필수 옵션입니다. 단위는 g 또는 kg으로 입력하세요.
+          {/* 마켓별 옵션 설정 */}
+          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <ShoppingCart className="w-5 h-5 text-orange-600" />
+              <h3 className="text-lg font-bold text-orange-800">마켓별 옵션 설정</h3>
+            </div>
+            <p className="text-xs text-orange-600 mb-4 bg-white/70 rounded-lg p-2 border border-orange-200">
+              💡 상품 등록 시 각 마켓에 전송되는 옵션값입니다. 기본값이 설정되어 있으며 필요시 수정하세요.
             </p>
+
+            {/* 쿠팡 옵션 */}
+            <div className="bg-white border border-orange-200 rounded-lg p-4 mb-4">
+              <h4 className="text-sm font-semibold text-orange-800 mb-3">🚀 쿠팡 옵션 (조합형)</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-600">옵션명1</label>
+                  <input
+                    type="text"
+                    value={coupangOpts.opt_sort1}
+                    onChange={(e) => setCoupangOpts(prev => ({ ...prev, opt_sort1: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-orange-300 rounded-lg focus:ring-1 focus:ring-orange-500"
+                    placeholder="수량"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">옵션값1</label>
+                  <input
+                    type="text"
+                    value={coupangOpts.opt_sort1_desc}
+                    onChange={(e) => setCoupangOpts(prev => ({ ...prev, opt_sort1_desc: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-orange-300 rounded-lg focus:ring-1 focus:ring-orange-500"
+                    placeholder="1개"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">옵션명2</label>
+                  <input
+                    type="text"
+                    value={coupangOpts.opt_sort2}
+                    onChange={(e) => setCoupangOpts(prev => ({ ...prev, opt_sort2: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-orange-300 rounded-lg focus:ring-1 focus:ring-orange-500"
+                    placeholder="개당 중량"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">옵션값2 (중량)</label>
+                  <input
+                    type="text"
+                    value={formData.weight}
+                    onChange={(e) => {
+                      setFormData({ ...formData, weight: e.target.value });
+                      setCoupangOpts(prev => ({ ...prev, opt_sort2_desc: e.target.value }));
+                    }}
+                    className="w-full px-3 py-2 text-sm border border-orange-300 rounded-lg focus:ring-1 focus:ring-orange-500"
+                    placeholder="500g, 1kg"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">재고수량</label>
+                  <input
+                    type="number"
+                    value={coupangOpts.stock_cnt}
+                    onChange={(e) => setCoupangOpts(prev => ({ ...prev, stock_cnt: parseInt(e.target.value) || 999 }))}
+                    className="w-full px-3 py-2 text-sm border border-orange-300 rounded-lg focus:ring-1 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 스마트스토어 옵션 */}
+            <div className="bg-white border border-green-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-green-800 mb-3">🛒 스마트스토어 옵션 (독립형)</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-600">옵션명</label>
+                  <input
+                    type="text"
+                    value={smartOpts.opt_sort1}
+                    onChange={(e) => setSmartOpts(prev => ({ ...prev, opt_sort1: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg focus:ring-1 focus:ring-green-500"
+                    placeholder="상품선택"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">옵션값</label>
+                  <input
+                    type="text"
+                    value={smartOpts.opt_sort1_desc}
+                    onChange={(e) => setSmartOpts(prev => ({ ...prev, opt_sort1_desc: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg focus:ring-1 focus:ring-green-500"
+                    placeholder="상품명"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">재고수량</label>
+                  <input
+                    type="number"
+                    value={smartOpts.stock_cnt}
+                    onChange={(e) => setSmartOpts(prev => ({ ...prev, stock_cnt: parseInt(e.target.value) || 999 }))}
+                    className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg focus:ring-1 focus:ring-green-500"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* 소싱 정보 */}

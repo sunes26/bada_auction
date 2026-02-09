@@ -2037,3 +2037,170 @@ async def update_product_keywords(product_id: int, request: UpdateKeywordsReques
     except Exception as e:
         logger.error(f"[키워드 수정] 상품 {product_id} 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=f"키워드 수정 실패: {str(e)}")
+
+
+# ==================== 상품 옵션 관리 API ====================
+
+class ProductOptionItem(BaseModel):
+    """옵션 아이템"""
+    opt_sort1: Optional[str] = None  # 옵션명1
+    opt_sort1_desc: Optional[str] = None  # 옵션값1
+    opt_sort2: Optional[str] = None  # 옵션명2
+    opt_sort2_desc: Optional[str] = None  # 옵션값2
+    stock_cnt: Optional[int] = 999  # 재고수량
+    status: Optional[str] = "정상"  # 상태
+
+class UpdateProductOptionsRequest(BaseModel):
+    """상품 옵션 수정 요청"""
+    c_sale_cd: str  # 판매자관리코드
+    opt_type: Optional[str] = None  # 옵션타입 (조합형, 독립형)
+    opts: List[ProductOptionItem]  # 옵션 목록
+
+
+@router.get("/{product_id}/options")
+async def get_product_options(product_id: int):
+    """
+    상품의 마켓별 옵션 조회
+
+    Returns:
+        쿠팡, 스마트스토어의 옵션 정보
+    """
+    try:
+        db = get_db()
+
+        # 상품 조회
+        product = db.get_selling_product(product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
+
+        c_sale_cd_coupang = product.get("c_sale_cd_coupang")
+        c_sale_cd_smart = product.get("c_sale_cd_smart")
+
+        from playauto.products import PlayautoProductAPI
+        api = PlayautoProductAPI()
+
+        result = {
+            "success": True,
+            "coupang": None,
+            "smartstore": None
+        }
+
+        # 쿠팡 옵션 조회
+        if c_sale_cd_coupang:
+            try:
+                coupang_info = await api.get_product_with_options(c_sale_cd_coupang)
+                # B378 (쿠팡) 정보 추출
+                for shop in coupang_info.get("shops", []):
+                    if shop.get("shop_cd") == "B378":
+                        result["coupang"] = {
+                            "c_sale_cd": c_sale_cd_coupang,
+                            "shop_cd": "B378",
+                            "shop_name": shop.get("shop_name", "쿠팡"),
+                            "opt_type": shop.get("opt_type", "조합형"),
+                            "opts": shop.get("opts", []),
+                            "sale_price": shop.get("sale_price"),
+                            "stock_cnt": shop.get("stock_cnt")
+                        }
+                        break
+                logger.info(f"[옵션조회] 쿠팡 옵션: {result['coupang']}")
+            except Exception as e:
+                logger.error(f"[옵션조회] 쿠팡 옵션 조회 실패: {e}")
+
+        # 스마트스토어 옵션 조회
+        if c_sale_cd_smart:
+            try:
+                smart_info = await api.get_product_with_options(c_sale_cd_smart)
+                # A077 (스마트스토어) 정보 추출
+                for shop in smart_info.get("shops", []):
+                    if shop.get("shop_cd") == "A077":
+                        result["smartstore"] = {
+                            "c_sale_cd": c_sale_cd_smart,
+                            "shop_cd": "A077",
+                            "shop_name": shop.get("shop_name", "스마트스토어"),
+                            "opt_type": shop.get("opt_type", "독립형"),
+                            "opts": shop.get("opts", []),
+                            "sale_price": shop.get("sale_price"),
+                            "stock_cnt": shop.get("stock_cnt")
+                        }
+                        break
+                logger.info(f"[옵션조회] 스마트스토어 옵션: {result['smartstore']}")
+            except Exception as e:
+                logger.error(f"[옵션조회] 스마트스토어 옵션 조회 실패: {e}")
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[옵션조회] 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"옵션 조회 실패: {str(e)}")
+
+
+@router.put("/{product_id}/options")
+async def update_product_options(product_id: int, request: UpdateProductOptionsRequest):
+    """
+    상품 옵션 수정 (PlayAuto 연동)
+
+    쿠팡 또는 스마트스토어의 옵션을 수정합니다.
+    """
+    try:
+        db = get_db()
+
+        # 상품 조회
+        product = db.get_selling_product(product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
+
+        # 옵션 데이터 변환
+        opts_data = []
+        for opt in request.opts:
+            opt_item = {
+                "stock_cnt": opt.stock_cnt or 999,
+                "status": opt.status or "정상"
+            }
+            if opt.opt_sort1:
+                opt_item["opt_sort1"] = opt.opt_sort1
+            if opt.opt_sort1_desc:
+                opt_item["opt_sort1_desc"] = opt.opt_sort1_desc
+            if opt.opt_sort2:
+                opt_item["opt_sort2"] = opt.opt_sort2
+            if opt.opt_sort2_desc:
+                opt_item["opt_sort2_desc"] = opt.opt_sort2_desc
+            opts_data.append(opt_item)
+
+        logger.info(f"[옵션수정] c_sale_cd={request.c_sale_cd}, opt_type={request.opt_type}, opts={opts_data}")
+
+        # PlayAuto API로 옵션 수정
+        from playauto.products import edit_playauto_product
+
+        playauto_data = {
+            "opts": opts_data
+        }
+        if request.opt_type:
+            playauto_data["opt_type"] = request.opt_type
+
+        result = await edit_playauto_product(
+            c_sale_cd=request.c_sale_cd,
+            shop_cd="master",
+            shop_id="master",
+            edit_slave_all=True,
+            **playauto_data
+        )
+
+        if result.get("success"):
+            logger.info(f"[옵션수정] PlayAuto 업데이트 성공")
+            return {
+                "success": True,
+                "message": "옵션이 수정되었습니다.",
+                "playauto_result": result
+            }
+        else:
+            error_msg = result.get("message", "알 수 없는 오류")
+            logger.error(f"[옵션수정] PlayAuto 업데이트 실패: {error_msg}")
+            raise HTTPException(status_code=400, detail=f"PlayAuto 옵션 수정 실패: {error_msg}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[옵션수정] 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"옵션 수정 실패: {str(e)}")
