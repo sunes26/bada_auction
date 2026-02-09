@@ -32,6 +32,9 @@ interface EditableImageProps {
   onImageAlignment?: (imageKey: string, alignment: 'left' | 'center' | 'right') => void;
   isResizable?: boolean; // 크기 조정 가능 여부
   fillContainer?: boolean; // 컨테이너 꽉 채우기
+  autoFitHeight?: boolean; // + 버튼 이미지용: 가로에 맞추고 세로는 비율에 따라 자동 조정
+  containerWidth?: number; // 컨테이너 가로 크기 (% 단위, 기본값 100)
+  onContainerWidthChange?: (imageKey: string, width: number) => void;
 }
 
 export default function EditableImage({
@@ -56,6 +59,9 @@ export default function EditableImage({
   onImageAlignment,
   isResizable = true, // 기본값: 크기 조정 가능
   fillContainer = false, // 기본값: 컨테이너 꽉 채우지 않음
+  autoFitHeight = false, // + 버튼 이미지용
+  containerWidth = 100, // 컨테이너 가로 크기 (%)
+  onContainerWidthChange,
 }: EditableImageProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -63,11 +69,24 @@ export default function EditableImage({
   const [isResizing, setIsResizing] = useState(false);
   const [resizeCorner, setResizeCorner] = useState<'tl' | 'tr' | 'bl' | 'br' | null>(null);
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, size: 100 });
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null); // 이미지 비율 (height/width)
   const containerRef = useRef<HTMLDivElement>(null);
   const imageUrl = uploadedImages[imageKey];
   const settings = imageStyleSettings[imageKey] || {};
   const isEditing = editingImage === imageKey;
   const imageSize = imageSizes[imageKey] || 100;
+
+  // 이미지 로드 시 비율 계산 (autoFitHeight 모드에서만)
+  useEffect(() => {
+    if (autoFitHeight && imageUrl) {
+      const img = new Image();
+      img.onload = () => {
+        const ratio = img.height / img.width;
+        setImageAspectRatio(ratio);
+      };
+      img.src = imageUrl;
+    }
+  }, [autoFitHeight, imageUrl]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -237,6 +256,11 @@ export default function EditableImage({
     };
   }, [isResizing, resizeCorner, resizeStart, imageKey, onImageResize]);
 
+  // autoFitHeight 모드: 컨테이너 가로 크기에 따른 높이 계산
+  const calculatedHeight = autoFitHeight && imageAspectRatio
+    ? `calc(860px * ${containerWidth / 100} * ${imageAspectRatio})` // 860px은 템플릿 너비
+    : undefined;
+
   // 컨테이너 스타일 - 가운데 정렬, 이미지가 컨테이너 안에 유지되도록 overflow: hidden
   const containerStyle: React.CSSProperties = {
     ...style,
@@ -244,11 +268,18 @@ export default function EditableImage({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',  // 이미지가 컨테이너를 벗어나지 않도록
+    // autoFitHeight 모드: 가로 크기와 높이 자동 조정
+    ...(autoFitHeight && {
+      width: `${containerWidth}%`,
+      height: calculatedHeight || 'auto',
+      minHeight: imageUrl ? undefined : '200px', // 이미지 없을 때 최소 높이
+    }),
   };
 
   const imageStyle: React.CSSProperties = {
     backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
-    backgroundSize: fillContainer ? 'cover' : 'contain',
+    // autoFitHeight 모드: 가로에 맞추고 세로는 비율 유지
+    backgroundSize: autoFitHeight ? '100% auto' : (fillContainer ? 'cover' : 'contain'),
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
     boxShadow: settings.shadow || undefined,
@@ -261,8 +292,8 @@ export default function EditableImage({
     // 크기 조정: 컨테이너 내에서 비율 적용 (최대 100%)
     width: '100%',
     height: '100%',
-    // 이미지 크기 조정은 scale로 처리 (컨테이너 안에서 확대/축소)
-    transform: isResizable && !fillContainer ? `scale(${imageSize / 100})` : undefined,
+    // autoFitHeight 모드에서는 scale 사용 안 함
+    transform: isResizable && !fillContainer && !autoFitHeight ? `scale(${imageSize / 100})` : undefined,
     transition: isResizing ? 'none' : 'all 0.15s ease-out',
     position: 'relative' as const,
   };

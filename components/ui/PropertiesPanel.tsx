@@ -18,6 +18,8 @@ interface PropertiesPanelProps {
   onImageResize: (imageKey: string, size: number) => void;
   onImageMove: (imageKey: string, position: { x: number; y: number }) => void;
   onClose: () => void;
+  containerWidths?: Record<string, number>;
+  onContainerWidthChange?: (imageKey: string, width: number) => void;
 }
 
 export default function PropertiesPanel({
@@ -32,6 +34,8 @@ export default function PropertiesPanel({
   onImageResize,
   onImageMove,
   onClose,
+  containerWidths = {},
+  onContainerWidthChange,
 }: PropertiesPanelProps) {
   // 빈 상태
   if (!selectedElement.field) {
@@ -203,6 +207,10 @@ export default function PropertiesPanel({
     const imagePosition = imagePositions[imageKey] || { x: 0, y: 0 };
     const imageUrl = uploadedImages[imageKey];
 
+    // + 버튼으로 추가한 이미지인지 확인
+    const isAdditionalImage = imageKey.startsWith('additional_product_image_');
+    const containerWidth = containerWidths[imageKey] || 100;
+
     return (
       <div className="properties-panel w-[350px] bg-white border-l border-gray-200 min-h-screen overflow-y-auto">
         {/* 헤더 */}
@@ -233,25 +241,50 @@ export default function PropertiesPanel({
             </div>
           )}
 
-          {/* 크기 */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-2">
-              크기
-              <span className="ml-2 text-purple-600 font-mono">{imageSize}%</span>
-            </label>
-            <input
-              type="range"
-              min="50"
-              max="300"
-              value={imageSize}
-              onChange={(e) => onImageResize(imageKey, parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>50%</span>
-              <span>300%</span>
+          {/* + 버튼 이미지: 가로 크기 조절 */}
+          {isAdditionalImage && onContainerWidthChange ? (
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2">
+                가로 크기
+                <span className="ml-2 text-purple-600 font-mono">{containerWidth}%</span>
+              </label>
+              <input
+                type="range"
+                min="30"
+                max="100"
+                value={containerWidth}
+                onChange={(e) => onContainerWidthChange(imageKey, parseInt(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>30%</span>
+                <span>100%</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                💡 이미지는 가로에 맞춰지고, 세로는 비율에 따라 자동 조정됩니다.
+              </p>
             </div>
-          </div>
+          ) : (
+            /* 일반 이미지: 크기 조절 */
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2">
+                크기
+                <span className="ml-2 text-purple-600 font-mono">{imageSize}%</span>
+              </label>
+              <input
+                type="range"
+                min="50"
+                max="300"
+                value={imageSize}
+                onChange={(e) => onImageResize(imageKey, parseInt(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>50%</span>
+                <span>300%</span>
+              </div>
+            </div>
+          )}
 
           {/* 이미지 키 정보 */}
           <div className="pt-4 border-t border-gray-200">

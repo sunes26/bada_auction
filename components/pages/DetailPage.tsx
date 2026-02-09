@@ -53,6 +53,7 @@ export default function DetailPage() {
   const [imageSizes, setImageSizes] = useState<Record<string, number>>({});
   const [imagePositions, setImagePositions] = useState<Record<string, { x: number; y: number }>>({});
   const [imageAlignments, setImageAlignments] = useState<Record<string, 'left' | 'center' | 'right'>>({});
+  const [containerWidths, setContainerWidths] = useState<Record<string, number>>({}); // 컨테이너 가로 크기 (%)
   const templateRef = useRef<HTMLDivElement>(null);
 
   // 외부 클릭 시 편집 모드 해제
@@ -74,6 +75,11 @@ export default function DetailPage() {
   // 이미지 정렬 변경
   const handleImageAlignment = (imageKey: string, alignment: 'left' | 'center' | 'right') => {
     setImageAlignments(prev => ({ ...prev, [imageKey]: alignment }));
+  };
+
+  // 컨테이너 가로 크기 변경 (+ 버튼 이미지용)
+  const handleContainerWidthChange = (imageKey: string, width: number) => {
+    setContainerWidths(prev => ({ ...prev, [imageKey]: width }));
   };
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -927,6 +933,8 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       onImageMove: handleImageMove,
       imageAlignments,
       onImageAlignment: handleImageAlignment,
+      containerWidths,
+      onContainerWidthChange: handleContainerWidthChange,
       onImageDelete: (key: string) => {
         setUploadedImages(prev => {
           const newImages = { ...prev };
@@ -1045,6 +1053,8 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
               onStyleChange={handleStyleChange}
               onImageResize={handleImageResize}
               onImageMove={handleImageMove}
+              containerWidths={containerWidths}
+              onContainerWidthChange={handleContainerWidthChange}
               onClose={() => setSelectedElement({ type: null, field: null })}
             />
           </div>

@@ -31,6 +31,8 @@ export default function DailyTemplate(props: TemplateProps) {
     onImageMove,
     imageAlignments = {},
     onImageAlignment,
+    containerWidths = {},
+    onContainerWidthChange,
   } = props;
   return (
     <>
@@ -464,37 +466,43 @@ export default function DailyTemplate(props: TemplateProps) {
           />
 
           {/* 추가 이미지 슬롯 */}
-          {Array.from({ length: additionalImageSlots }).map((_, index) => (
-            <div key={index} className="relative mt-6">
-              <EditableImage
-                imageKey={`additional_product_image_${index}`}
-                uploadedImages={uploadedImages}
-                className="w-full h-[600px] rounded-lg bg-contain bg-no-repeat"
-                onImageUpload={onImageUpload}
-                onImageRefresh={onImageRefresh}
-                onImageDrop={onImageDrop}
-                onImageClick={onImageClick}
-                editingImage={editingImage}
-                imageStyleSettings={imageStyleSettings}
-                onImageDelete={onImageDelete}
-                imageSizes={imageSizes}
-                onImageResize={onImageResize}
-                imagePositions={imagePositions}
-                onImageMove={onImageMove}
-                fillContainer={false}
-                isResizable={true}
-              />
-              {onRemoveImageSlot && (
-                <button
-                  onClick={() => onRemoveImageSlot(index)}
-                  className="absolute top-2 left-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg z-10"
-                  title="이미지 슬롯 삭제"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
+          {Array.from({ length: additionalImageSlots }).map((_, index) => {
+            const imageKey = `additional_product_image_${index}`;
+            return (
+              <div key={index} className="relative mt-6 flex justify-center">
+                <EditableImage
+                  imageKey={imageKey}
+                  uploadedImages={uploadedImages}
+                  className="rounded-lg"
+                  onImageUpload={onImageUpload}
+                  onImageRefresh={onImageRefresh}
+                  onImageDrop={onImageDrop}
+                  onImageClick={onImageClick}
+                  editingImage={editingImage}
+                  imageStyleSettings={imageStyleSettings}
+                  onImageDelete={onImageDelete}
+                  imageSizes={imageSizes}
+                  onImageResize={onImageResize}
+                  imagePositions={imagePositions}
+                  onImageMove={onImageMove}
+                  fillContainer={false}
+                  isResizable={false}
+                  autoFitHeight={true}
+                  containerWidth={containerWidths[imageKey] || 100}
+                  onContainerWidthChange={onContainerWidthChange}
+                />
+                {onRemoveImageSlot && (
+                  <button
+                    onClick={() => onRemoveImageSlot(index)}
+                    className="absolute top-2 left-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg z-10"
+                    title="이미지 슬롯 삭제"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            );
+          })}
 
           {/* + 버튼 */}
           {onAddImageSlot && (
