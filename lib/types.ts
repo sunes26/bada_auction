@@ -214,6 +214,7 @@ export interface CreateProductRequest {
   detail_page_data?: string;
   category?: string;
   thumbnail_url?: string;
+  weight?: string;  // 상품 중량 (쿠팡 옵션용, 예: "500g", "1kg")
   notes?: string;
 }
 
@@ -222,6 +223,7 @@ export interface UpdateProductRequest extends Partial<CreateProductRequest> {
   c_sale_cd?: string;  // 하위 호환성
   c_sale_cd_gmk?: string;  // 지마켓/옥션용
   c_sale_cd_smart?: string;  // 스마트스토어용
+  c_sale_cd_coupang?: string;  // 쿠팡용
 }
 
 export interface CreateOrderRequest {
