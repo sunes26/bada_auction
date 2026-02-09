@@ -414,9 +414,9 @@ class ProductMonitor:
         return 'available'
 
     def _check_ssg_status(self, soup: BeautifulSoup) -> Dict:
-        """SSG 상품 상태 체크"""
+        """SSG 상품 상태 체크 - 구매 버튼 영역만 확인"""
         try:
-            status = self._check_status_common(soup)
+            status = 'available'
             price = self._extract_price(soup, 'ssg.com')
 
             # 정가 추출
@@ -424,6 +424,32 @@ class ProductMonitor:
             old_price_elem = soup.select_one('.cdtl_old_price .ssg_price')
             if old_price_elem:
                 original_price = self._parse_price(old_price_elem.get_text())
+
+            # 1. 구매 버튼 영역에서 품절 확인
+            buy_button_selectors = [
+                '.cdtl_btn_wrap',     # 버튼 영역
+                '.btn_buy',           # 구매 버튼
+                '.btn_cart',          # 장바구니 버튼
+                '[class*="soldout"]', # 품절 클래스
+            ]
+
+            for selector in buy_button_selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    elem_text = elem.get_text().lower()
+                    if '품절' in elem_text or '일시품절' in elem_text or 'soldout' in elem.get('class', []):
+                        status = 'out_of_stock'
+                        break
+                    if '구매' in elem_text or '장바구니' in elem_text:
+                        status = 'available'
+                        break
+
+            # 2. 가격이 정상 추출되면 판매 중일 가능성 높음
+            if status == 'out_of_stock' and price and price > 1000:
+                buy_btn = soup.select_one('.btn_buy, .cdtl_btn_buy')
+                if buy_btn and '품절' not in buy_btn.get_text().lower():
+                    status = 'available'
+                    print(f"[SSG] 가격 있고 구매버튼 정상 → 판매중으로 판정")
 
             return {
                 'status': status,
@@ -440,10 +466,36 @@ class ProductMonitor:
             }
 
     def _check_homeplus_status(self, soup: BeautifulSoup) -> Dict:
-        """홈플러스/Traders 상품 상태 체크"""
+        """홈플러스/Traders 상품 상태 체크 - 구매 버튼 영역만 확인"""
         try:
-            status = self._check_status_common(soup)
+            status = 'available'
             price = self._extract_price(soup, 'homeplus.co.kr')
+
+            # 1. 구매 버튼 영역에서 품절 확인
+            buy_button_selectors = [
+                '.btn-buy',           # 구매 버튼
+                '.btn-cart',          # 장바구니 버튼
+                '.product-button',    # 상품 버튼 영역
+                '[class*="soldout"]', # 품절 클래스
+            ]
+
+            for selector in buy_button_selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    elem_text = elem.get_text().lower()
+                    if '품절' in elem_text or '일시품절' in elem_text:
+                        status = 'out_of_stock'
+                        break
+                    if '구매' in elem_text or '장바구니' in elem_text:
+                        status = 'available'
+                        break
+
+            # 2. 가격이 정상 추출되면 판매 중일 가능성 높음
+            if status == 'out_of_stock' and price and price > 1000:
+                buy_btn = soup.select_one('.btn-buy, [class*="btn-buy"]')
+                if buy_btn and '품절' not in buy_btn.get_text().lower():
+                    status = 'available'
+                    print(f"[HOMEPLUS] 가격 있고 구매버튼 정상 → 판매중으로 판정")
 
             return {
                 'status': status,
@@ -460,10 +512,58 @@ class ProductMonitor:
             }
 
     def _check_11st_status(self, soup: BeautifulSoup) -> Dict:
-        """11번가 상품 상태 체크"""
+        """11번가 상품 상태 체크 - 구매 버튼 영역만 확인"""
         try:
-            status = self._check_status_common(soup)
+            status = 'available'
             price = self._extract_price(soup, '11st.co.kr')
+
+            # 1. 구매 버튼 영역에서 품절 확인 (가장 정확)
+            buy_button_selectors = [
+                '.c_product_button',  # 상품 버튼 영역
+                '.l_product_side',    # 사이드 영역
+                '.btn_buy',           # 구매 버튼
+                '.btn_cart',          # 장바구니 버튼
+                '[class*="buy"]',     # buy 포함 클래스
+            ]
+
+            for selector in buy_button_selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    elem_text = elem.get_text().lower()
+                    # 구매 버튼 영역에 품절 키워드가 있으면 품절
+                    if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
+                        status = 'out_of_stock'
+                        break
+                    # 구매하기/장바구니 버튼이 있으면 판매 중
+                    if '구매' in elem_text or '장바구니' in elem_text or '카트' in elem_text:
+                        status = 'available'
+                        break
+
+            # 2. 상품 정보 영역에서만 품절 확인 (페이지 전체 아님)
+            if status == 'available':
+                product_info_selectors = [
+                    '.c_product_info',    # 상품 정보 영역
+                    '.l_product_summary', # 상품 요약
+                    '.product_info',      # 상품 정보
+                ]
+                for selector in product_info_selectors:
+                    elem = soup.select_one(selector)
+                    if elem:
+                        elem_text = elem.get_text().lower()
+                        if '품절' in elem_text or '판매종료' in elem_text:
+                            status = 'out_of_stock'
+                            break
+
+            # 3. 가격이 정상적으로 추출되면 판매 중일 가능성 높음
+            if status == 'out_of_stock' and price and price > 1000:
+                # 가격이 있는데 품절로 감지된 경우, 페이지 다른 곳의 "품절" 일 수 있음
+                # 구매 버튼이 있는지 한번 더 확인
+                buy_btn = soup.select_one('.btn_buy, [class*="btn_buy"], button[class*="buy"]')
+                if buy_btn:
+                    btn_text = buy_btn.get_text().lower()
+                    if '품절' not in btn_text and '일시품절' not in btn_text:
+                        status = 'available'
+                        print(f"[11ST] 가격 있고 구매버튼 정상 → 판매중으로 판정")
 
             return {
                 'status': status,
@@ -480,10 +580,36 @@ class ProductMonitor:
             }
 
     def _check_lotteon_status(self, soup: BeautifulSoup) -> Dict:
-        """롯데ON 상품 상태 체크"""
+        """롯데ON 상품 상태 체크 - 구매 버튼 영역만 확인"""
         try:
-            status = self._check_status_common(soup)
+            status = 'available'
             price = self._extract_price(soup, 'lotteon.com')
+
+            # 1. 구매 버튼 영역에서 품절 확인
+            buy_button_selectors = [
+                '.btn_buy',           # 구매 버튼
+                '.btn_cart',          # 장바구니 버튼
+                '[class*="buy"]',     # buy 포함 클래스
+                '[class*="soldout"]', # 품절 클래스
+            ]
+
+            for selector in buy_button_selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    elem_text = elem.get_text().lower()
+                    if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
+                        status = 'out_of_stock'
+                        break
+                    if '구매' in elem_text or '장바구니' in elem_text:
+                        status = 'available'
+                        break
+
+            # 2. 가격이 정상 추출되면 판매 중일 가능성 높음
+            if status == 'out_of_stock' and price and price > 1000:
+                buy_btn = soup.select_one('[class*="btn_buy"], [class*="buy"]')
+                if buy_btn and '품절' not in buy_btn.get_text().lower():
+                    status = 'available'
+                    print(f"[LOTTEON] 가격 있고 구매버튼 정상 → 판매중으로 판정")
 
             return {
                 'status': status,
@@ -500,10 +626,37 @@ class ProductMonitor:
             }
 
     def _check_gmarket_status(self, soup: BeautifulSoup, url: str) -> Dict:
-        """G마켓 상품 상태 체크"""
+        """G마켓 상품 상태 체크 - 구매 버튼 영역만 확인"""
         try:
-            status = self._check_status_common(soup)
+            status = 'available'
             price = self._extract_price(soup, url)
+
+            # 1. 구매 버튼 영역에서 품절 확인
+            buy_button_selectors = [
+                '.btn_buy',           # 구매 버튼
+                '.btn_cart',          # 장바구니 버튼
+                '.box_buy',           # 구매 박스
+                '[class*="soldout"]', # 품절 클래스
+                '.item_buy',          # 구매 영역
+            ]
+
+            for selector in buy_button_selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    elem_text = elem.get_text().lower()
+                    if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
+                        status = 'out_of_stock'
+                        break
+                    if '구매' in elem_text or '장바구니' in elem_text:
+                        status = 'available'
+                        break
+
+            # 2. 가격이 정상 추출되면 판매 중일 가능성 높음
+            if status == 'out_of_stock' and price and price > 1000:
+                buy_btn = soup.select_one('.btn_buy, [class*="btn_buy"]')
+                if buy_btn and '품절' not in buy_btn.get_text().lower():
+                    status = 'available'
+                    print(f"[GMARKET] 가격 있고 구매버튼 정상 → 판매중으로 판정")
 
             return {
                 'status': status,
@@ -520,10 +673,37 @@ class ProductMonitor:
             }
 
     def _check_auction_status(self, soup: BeautifulSoup, url: str) -> Dict:
-        """옥션 상품 상태 체크"""
+        """옥션 상품 상태 체크 - 구매 버튼 영역만 확인"""
         try:
-            status = self._check_status_common(soup)
+            status = 'available'
             price = self._extract_price(soup, url)
+
+            # 1. 구매 버튼 영역에서 품절 확인
+            buy_button_selectors = [
+                '.btn_buy',           # 구매 버튼
+                '.btn_cart',          # 장바구니 버튼
+                '.box_buy',           # 구매 박스
+                '[class*="soldout"]', # 품절 클래스
+                '.item_buy',          # 구매 영역
+            ]
+
+            for selector in buy_button_selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    elem_text = elem.get_text().lower()
+                    if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
+                        status = 'out_of_stock'
+                        break
+                    if '구매' in elem_text or '장바구니' in elem_text:
+                        status = 'available'
+                        break
+
+            # 2. 가격이 정상 추출되면 판매 중일 가능성 높음
+            if status == 'out_of_stock' and price and price > 1000:
+                buy_btn = soup.select_one('.btn_buy, [class*="btn_buy"]')
+                if buy_btn and '품절' not in buy_btn.get_text().lower():
+                    status = 'available'
+                    print(f"[AUCTION] 가격 있고 구매버튼 정상 → 판매중으로 판정")
 
             return {
                 'status': status,
@@ -540,16 +720,44 @@ class ProductMonitor:
             }
 
     def _check_gsshop_status(self, soup: BeautifulSoup) -> Dict:
-        """GS샵 상품 상태 체크"""
+        """GS샵 상품 상태 체크 - 구매 버튼 영역만 확인"""
         try:
-            status = self._check_status_common(soup)
+            status = 'available'
+            price = self._extract_price(soup, 'gsshop.com')
 
-            # 방송종료 확인
-            page_text = soup.get_text()
-            if '방송종료' in page_text:
+            # 1. 구매 버튼 영역에서 품절 확인
+            buy_button_selectors = [
+                '.btn-buy',           # 구매 버튼
+                '.btn-cart',          # 장바구니 버튼
+                '.prd-btns',          # 상품 버튼 영역
+                '[class*="soldout"]', # 품절 클래스
+            ]
+
+            for selector in buy_button_selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    elem_text = elem.get_text().lower()
+                    if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
+                        status = 'out_of_stock'
+                        break
+                    if '방송종료' in elem_text:
+                        status = 'discontinued'
+                        break
+                    if '구매' in elem_text or '장바구니' in elem_text:
+                        status = 'available'
+                        break
+
+            # 2. 상품 정보 영역에서 방송종료 확인
+            product_info = soup.select_one('.prd-info, .goods-header')
+            if product_info and '방송종료' in product_info.get_text():
                 status = 'discontinued'
 
-            price = self._extract_price(soup, 'gsshop.com')
+            # 3. 가격이 정상 추출되면 판매 중일 가능성 높음
+            if status == 'out_of_stock' and price and price > 1000:
+                buy_btn = soup.select_one('.btn-buy, [class*="btn-buy"]')
+                if buy_btn and '품절' not in buy_btn.get_text().lower():
+                    status = 'available'
+                    print(f"[GSSHOP] 가격 있고 구매버튼 정상 → 판매중으로 판정")
 
             return {
                 'status': status,
@@ -566,10 +774,36 @@ class ProductMonitor:
             }
 
     def _check_cjthemarket_status(self, soup: BeautifulSoup) -> Dict:
-        """CJ제일제당 더마켓 상품 상태 체크"""
+        """CJ제일제당 더마켓 상품 상태 체크 - 구매 버튼 영역만 확인"""
         try:
-            status = self._check_status_common(soup)
+            status = 'available'
             price = self._extract_price(soup, 'cjthemarket.com')
+
+            # 1. 구매 버튼 영역에서 품절 확인
+            buy_button_selectors = [
+                '.btn-buy',           # 구매 버튼
+                '.btn-cart',          # 장바구니 버튼
+                '.prd-btn',           # 상품 버튼
+                '[class*="soldout"]', # 품절 클래스
+            ]
+
+            for selector in buy_button_selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    elem_text = elem.get_text().lower()
+                    if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
+                        status = 'out_of_stock'
+                        break
+                    if '구매' in elem_text or '장바구니' in elem_text:
+                        status = 'available'
+                        break
+
+            # 2. 가격이 정상 추출되면 판매 중일 가능성 높음
+            if status == 'out_of_stock' and price and price > 1000:
+                buy_btn = soup.select_one('.btn-buy, [class*="btn-buy"]')
+                if buy_btn and '품절' not in buy_btn.get_text().lower():
+                    status = 'available'
+                    print(f"[CJTHEMARKET] 가격 있고 구매버튼 정상 → 판매중으로 판정")
 
             return {
                 'status': status,
@@ -586,11 +820,31 @@ class ProductMonitor:
             }
 
     def _check_generic_status(self, soup: BeautifulSoup) -> Dict:
-        """범용 상품 상태 체크"""
+        """범용 상품 상태 체크 - 구매 버튼 영역 우선 확인"""
         try:
-            status = self._check_status_common(soup)
+            status = 'available'
 
-            # 가격 추출 (패턴 매칭)
+            # 1. 구매 버튼 영역에서 품절 확인
+            buy_button_selectors = [
+                '.btn-buy', '.btn_buy',
+                '.btn-cart', '.btn_cart',
+                '[class*="buy"]',
+                '[class*="cart"]',
+                '[class*="soldout"]',
+            ]
+
+            for selector in buy_button_selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    elem_text = elem.get_text().lower()
+                    if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
+                        status = 'out_of_stock'
+                        break
+                    if '구매' in elem_text or '장바구니' in elem_text:
+                        status = 'available'
+                        break
+
+            # 2. 가격 추출 (패턴 매칭)
             page_text = soup.get_text()
             price_matches = re.findall(r'(\d{1,3}(?:,\d{3})+)\s*원', page_text)
             prices = []
