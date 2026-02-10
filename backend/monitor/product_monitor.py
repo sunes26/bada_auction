@@ -347,8 +347,8 @@ class ProductMonitor:
 
         # 0. 사이트별 특수 선택자 (og:image가 로고인 경우 대비)
         site_specific_selectors = {
-            'dongwonmall.com': ['#mainImg', '.product-img img', '.prd-img img'],
-            'otokimall.com': ['#prdImage', '.product-image img', '.prd-img img'],
+            'dongwonmall.com': ['#mainImg img', '.product_image img', '.photo img'],
+            'otokimall.com': ['#prdImage img', '.product-image img', '.prd-img img'],
         }
 
         for site, selectors in site_specific_selectors.items():
