@@ -326,10 +326,12 @@ async def extract_url_info(request: dict):
             source = 'gsshop'
         elif 'cjthemarket.com' in product_url:
             source = 'cjthemarket'
+        elif 'otokimall.com' in product_url:
+            source = 'otokimall'
         elif 'smartstore.naver.com' in product_url:
             source = 'smartstore'
         else:
-            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 롯데ON, G마켓, 옥션, GS샵, CJ제일제당 URL을 입력해주세요.")
+            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 롯데ON, G마켓, 옥션, GS샵, CJ제일제당, 오뚜기몰 URL을 입력해주세요.")
 
         # 스마트스토어 경고
         if source == 'smartstore':
