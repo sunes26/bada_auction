@@ -951,3 +951,343 @@ class ProductMonitor:
                 'original_price': None,
                 'details': f"체크 오류: {str(e)}"
             }
+
+    # ========== 범용 추출 메서드 (알 수 없는 쇼핑몰용) ==========
+
+    def extract_generic_product_info(self, soup: BeautifulSoup, url: str) -> Dict:
+        """
+        범용 상품 정보 추출 - 우선순위에 따라 여러 방법 시도
+        1. JSON-LD 구조화 데이터
+        2. 표준 메타 태그 (og:, product:)
+        3. Microdata (Schema.org)
+        4. 공통 CSS 패턴
+        """
+        result = {
+            'product_name': None,
+            'price': None,
+            'thumbnail': None,
+            'status': 'available',
+            'extraction_method': None
+        }
+
+        # 1단계: JSON-LD 구조화 데이터 시도
+        json_ld_result = self._extract_from_json_ld(soup)
+        if json_ld_result.get('product_name') and json_ld_result.get('price'):
+            result.update(json_ld_result)
+            result['extraction_method'] = 'json-ld'
+            print(f"[GENERIC] JSON-LD 추출 성공: {result['product_name']}, {result['price']}원")
+            return result
+
+        # 2단계: 표준 메타 태그 시도
+        meta_result = self._extract_from_meta_tags(soup)
+        if meta_result.get('product_name') and meta_result.get('price'):
+            result.update(meta_result)
+            result['extraction_method'] = 'meta-tags'
+            print(f"[GENERIC] 메타 태그 추출 성공: {result['product_name']}, {result['price']}원")
+            return result
+
+        # 3단계: Microdata 시도
+        microdata_result = self._extract_from_microdata(soup)
+        if microdata_result.get('product_name') and microdata_result.get('price'):
+            result.update(microdata_result)
+            result['extraction_method'] = 'microdata'
+            print(f"[GENERIC] Microdata 추출 성공: {result['product_name']}, {result['price']}원")
+            return result
+
+        # 4단계: 공통 CSS 패턴 시도
+        css_result = self._extract_from_css_patterns(soup, url)
+        if css_result.get('product_name') and css_result.get('price'):
+            result.update(css_result)
+            result['extraction_method'] = 'css-patterns'
+            print(f"[GENERIC] CSS 패턴 추출 성공: {result['product_name']}, {result['price']}원")
+            return result
+
+        # 부분적 결과라도 병합 (이름만 있거나 가격만 있는 경우)
+        for partial in [json_ld_result, meta_result, microdata_result, css_result]:
+            if not result['product_name'] and partial.get('product_name'):
+                result['product_name'] = partial['product_name']
+            if not result['price'] and partial.get('price'):
+                result['price'] = partial['price']
+            if not result['thumbnail'] and partial.get('thumbnail'):
+                result['thumbnail'] = partial['thumbnail']
+
+        if result['product_name'] or result['price']:
+            result['extraction_method'] = 'partial'
+            print(f"[GENERIC] 부분 추출: 이름={result['product_name']}, 가격={result['price']}")
+            return result
+
+        print("[GENERIC] 모든 추출 방법 실패")
+        return None
+
+    def _extract_from_json_ld(self, soup: BeautifulSoup) -> Dict:
+        """JSON-LD 구조화 데이터에서 상품 정보 추출"""
+        result = {'product_name': None, 'price': None, 'thumbnail': None, 'status': 'available'}
+
+        try:
+            import json
+            scripts = soup.find_all('script', type='application/ld+json')
+
+            for script in scripts:
+                try:
+                    data = json.loads(script.string)
+
+                    # @graph 배열 처리
+                    if isinstance(data, dict) and '@graph' in data:
+                        data = data['@graph']
+
+                    # 배열인 경우 Product 타입 찾기
+                    if isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, dict) and item.get('@type') in ['Product', 'IndividualProduct']:
+                                data = item
+                                break
+                        else:
+                            continue
+
+                    # Product 타입 확인
+                    if isinstance(data, dict) and data.get('@type') in ['Product', 'IndividualProduct']:
+                        # 상품명
+                        result['product_name'] = data.get('name')
+
+                        # 이미지
+                        image = data.get('image')
+                        if isinstance(image, list) and image:
+                            result['thumbnail'] = image[0] if isinstance(image[0], str) else image[0].get('url')
+                        elif isinstance(image, str):
+                            result['thumbnail'] = image
+                        elif isinstance(image, dict):
+                            result['thumbnail'] = image.get('url')
+
+                        # 가격 (offers에서)
+                        offers = data.get('offers')
+                        if offers:
+                            if isinstance(offers, list):
+                                offers = offers[0]
+                            if isinstance(offers, dict):
+                                price = offers.get('price') or offers.get('lowPrice')
+                                if price:
+                                    try:
+                                        result['price'] = float(str(price).replace(',', ''))
+                                    except:
+                                        pass
+
+                                # 재고 상태
+                                availability = offers.get('availability', '')
+                                if 'OutOfStock' in str(availability):
+                                    result['status'] = 'out_of_stock'
+
+                        if result['product_name']:
+                            return result
+
+                except json.JSONDecodeError:
+                    continue
+                except Exception as e:
+                    print(f"[JSON-LD] 파싱 오류: {e}")
+                    continue
+
+        except Exception as e:
+            print(f"[JSON-LD] 전체 오류: {e}")
+
+        return result
+
+    def _extract_from_meta_tags(self, soup: BeautifulSoup) -> Dict:
+        """표준 메타 태그에서 상품 정보 추출"""
+        result = {'product_name': None, 'price': None, 'thumbnail': None, 'status': 'available'}
+
+        try:
+            # 상품명: og:title, twitter:title
+            for prop in ['og:title', 'twitter:title']:
+                meta = soup.find('meta', property=prop) or soup.find('meta', attrs={'name': prop})
+                if meta and meta.get('content'):
+                    name = meta['content'].strip()
+                    # 사이트명 제거
+                    for sep in [' - ', ' | ', ' :: ', ' – ']:
+                        if sep in name:
+                            name = name.split(sep)[0].strip()
+                    if len(name) > 3:
+                        result['product_name'] = name
+                        break
+
+            # 가격: og:price:amount, product:price:amount
+            for prop in ['og:price:amount', 'product:price:amount', 'product:sale_price:amount']:
+                meta = soup.find('meta', property=prop)
+                if meta and meta.get('content'):
+                    try:
+                        result['price'] = float(meta['content'].replace(',', ''))
+                        break
+                    except:
+                        pass
+
+            # 이미지: og:image
+            og_image = soup.find('meta', property='og:image')
+            if og_image and og_image.get('content'):
+                result['thumbnail'] = og_image['content']
+                if result['thumbnail'].startswith('//'):
+                    result['thumbnail'] = 'https:' + result['thumbnail']
+
+            # 재고 상태: product:availability
+            availability = soup.find('meta', property='product:availability')
+            if availability and availability.get('content'):
+                if 'out' in availability['content'].lower():
+                    result['status'] = 'out_of_stock'
+
+        except Exception as e:
+            print(f"[META] 오류: {e}")
+
+        return result
+
+    def _extract_from_microdata(self, soup: BeautifulSoup) -> Dict:
+        """Microdata (Schema.org)에서 상품 정보 추출"""
+        result = {'product_name': None, 'price': None, 'thumbnail': None, 'status': 'available'}
+
+        try:
+            # Product itemtype 찾기
+            product_elem = soup.find(itemtype=re.compile(r'schema\.org.*Product', re.I))
+            if not product_elem:
+                product_elem = soup.find(itemscope=True)
+
+            if product_elem:
+                # 상품명
+                name_elem = product_elem.find(itemprop='name')
+                if name_elem:
+                    result['product_name'] = name_elem.get_text(strip=True) or name_elem.get('content')
+
+                # 가격
+                price_elem = product_elem.find(itemprop='price')
+                if price_elem:
+                    price_text = price_elem.get('content') or price_elem.get_text(strip=True)
+                    if price_text:
+                        price = self._parse_price(price_text)
+                        if price:
+                            result['price'] = price
+
+                # 이미지
+                image_elem = product_elem.find(itemprop='image')
+                if image_elem:
+                    result['thumbnail'] = image_elem.get('src') or image_elem.get('content') or image_elem.get('href')
+
+                # 재고
+                availability_elem = product_elem.find(itemprop='availability')
+                if availability_elem:
+                    avail_text = availability_elem.get('content', '') or availability_elem.get('href', '')
+                    if 'OutOfStock' in avail_text:
+                        result['status'] = 'out_of_stock'
+
+        except Exception as e:
+            print(f"[MICRODATA] 오류: {e}")
+
+        return result
+
+    def _extract_from_css_patterns(self, soup: BeautifulSoup, url: str) -> Dict:
+        """공통 CSS 패턴에서 상품 정보 추출"""
+        result = {'product_name': None, 'price': None, 'thumbnail': None, 'status': 'available'}
+
+        try:
+            # 상품명 CSS 선택자 (우선순위 순)
+            name_selectors = [
+                'h1.product-name', 'h1.product-title', 'h1.prd-name', 'h1.goods-name',
+                '.product-name h1', '.product-title h1', '.prd-name', '.goods-name',
+                '.product_name', '.productName', '.item-name', '.item_name',
+                'h1[class*="product"]', 'h1[class*="title"]', 'h1[class*="name"]',
+                '.detail-title', '.product-detail-title', '.prd_name',
+                'h1', 'h2.product-name', 'h2.prd-name'
+            ]
+
+            for selector in name_selectors:
+                try:
+                    elem = soup.select_one(selector)
+                    if elem:
+                        name = elem.get_text(strip=True)
+                        if name and len(name) > 3 and len(name) < 200:
+                            result['product_name'] = name
+                            break
+                except:
+                    continue
+
+            # 가격 CSS 선택자 (우선순위 순)
+            price_selectors = [
+                '.sale-price', '.sale_price', '.salePrice', '.selling-price',
+                '.final-price', '.final_price', '.finalPrice',
+                '.price-value', '.price_value', '.priceValue',
+                '.product-price', '.product_price', '.productPrice',
+                '.prd-price', '.prd_price', '.item-price', '.item_price',
+                '.current-price', '.now-price', '.discount-price',
+                '[class*="sale"][class*="price"]', '[class*="final"][class*="price"]',
+                '.price strong', '.price em', '.price span',
+                '.price', '#price'
+            ]
+
+            for selector in price_selectors:
+                try:
+                    elem = soup.select_one(selector)
+                    if elem:
+                        text = elem.get_text(strip=True)
+                        price = self._parse_price(text)
+                        if price and price > 100:
+                            result['price'] = price
+                            break
+                except:
+                    continue
+
+            # 가격을 못 찾으면 휴리스틱으로 시도
+            if not result['price']:
+                page_text = soup.get_text()
+                # 한국 원화 가격 패턴
+                price_patterns = [
+                    r'(\d{1,3}(?:,\d{3})+)\s*원',  # 1,000원 ~ 999,999,999원
+                    r'₩\s*(\d{1,3}(?:,\d{3})+)',   # ₩1,000
+                    r'KRW\s*(\d{1,3}(?:,\d{3})+)', # KRW 1,000
+                ]
+                for pattern in price_patterns:
+                    matches = re.findall(pattern, page_text)
+                    if matches:
+                        for match in matches[:10]:  # 처음 10개만 확인
+                            try:
+                                p = int(match.replace(',', ''))
+                                if 100 < p < 100000000:  # 100원 ~ 1억
+                                    result['price'] = p
+                                    break
+                            except:
+                                pass
+                        if result['price']:
+                            break
+
+            # 이미지 CSS 선택자
+            image_selectors = [
+                '.product-image img', '.product_image img', '.prd-image img',
+                '.main-image img', '.main_image img', '.mainImage img',
+                '.thumb img', '.thumbnail img', '.product-photo img',
+                '#product-image', '#productImage', '#main-image',
+                '.swiper-slide img', '.slick-slide img', '.carousel img',
+                '[class*="product"][class*="image"] img',
+                '[class*="main"][class*="image"] img',
+                'img[class*="product"]', 'img[class*="main"]',
+            ]
+
+            for selector in image_selectors:
+                try:
+                    elem = soup.select_one(selector)
+                    if elem:
+                        src = elem.get('src') or elem.get('data-src') or elem.get('data-lazy')
+                        if src and not any(skip in src.lower() for skip in ['icon', 'logo', 'banner', 'btn', 'sprite', '1x1']):
+                            if src.startswith('//'):
+                                src = 'https:' + src
+                            elif not src.startswith('http'):
+                                src = urljoin(url, src)
+                            result['thumbnail'] = src
+                            break
+                except:
+                    continue
+
+            # 품절 상태 확인
+            page_text_lower = soup.get_text().lower()
+            soldout_keywords = ['품절', '일시품절', 'sold out', 'out of stock', '재고없음', '재고 없음']
+            for keyword in soldout_keywords:
+                if keyword in page_text_lower:
+                    result['status'] = 'out_of_stock'
+                    break
+
+        except Exception as e:
+            print(f"[CSS] 오류: {e}")
+
+        return result

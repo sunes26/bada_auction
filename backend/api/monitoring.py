@@ -330,8 +330,7 @@ async def extract_url_info(request: dict):
             source = 'otokimall'
         elif 'smartstore.naver.com' in product_url:
             source = 'smartstore'
-        else:
-            raise HTTPException(status_code=400, detail="지원하지 않는 URL입니다. SSG, 홈플러스/Traders, 11번가, 롯데ON, G마켓, 옥션, GS샵, CJ제일제당, 오뚜기몰 URL을 입력해주세요.")
+        # else: source는 이미 'other'로 설정되어 있음 - 범용 추출 시도
 
         # 스마트스토어 경고
         if source == 'smartstore':
@@ -385,26 +384,51 @@ async def extract_url_info(request: dict):
 
         # ProductMonitor 사용하여 데이터 추출
         monitor = ProductMonitor()
+        extraction_method = None  # 범용 추출 시에만 사용
 
-        # 상품명 추출
-        product_name = monitor._extract_product_name(soup, product_url)
-        print(f"[EXTRACT] 상품명: {product_name}")
+        # 알려진 소스인 경우: 기존 방식으로 추출
+        if source != 'other':
+            # 상품명 추출
+            product_name = monitor._extract_product_name(soup, product_url)
+            print(f"[EXTRACT] 상품명: {product_name}")
 
-        # 가격 추출
-        current_price = monitor._extract_price(soup, product_url)
-        print(f"[EXTRACT] 가격: {current_price}")
+            # 가격 추출
+            current_price = monitor._extract_price(soup, product_url)
+            print(f"[EXTRACT] 가격: {current_price}")
 
-        # 썸네일 추출
-        thumbnail_url = monitor._extract_thumbnail(soup, product_url)
-        print(f"[EXTRACT] 썸네일: {thumbnail_url}")
+            # 썸네일 추출
+            thumbnail_url = monitor._extract_thumbnail(soup, product_url)
+            print(f"[EXTRACT] 썸네일: {thumbnail_url}")
 
-        # 상태 체크
-        status = 'available'
-        page_text = soup.get_text().lower()
-        if '품절' in page_text or 'sold out' in page_text:
-            status = 'out_of_stock'
-        elif '판매종료' in page_text or '단종' in page_text:
-            status = 'discontinued'
+            # 상태 체크
+            status = 'available'
+            page_text = soup.get_text().lower()
+            if '품절' in page_text or 'sold out' in page_text:
+                status = 'out_of_stock'
+            elif '판매종료' in page_text or '단종' in page_text:
+                status = 'discontinued'
+        else:
+            # 알 수 없는 소스: 범용 추출 시도 (JSON-LD → 메타태그 → Microdata → CSS패턴)
+            print(f"[EXTRACT] 범용 추출 모드 시작...")
+            generic_result = monitor.extract_generic_product_info(soup, product_url)
+
+            if generic_result:
+                product_name = generic_result.get('product_name')
+                current_price = generic_result.get('price')
+                thumbnail_url = generic_result.get('thumbnail')
+                status = generic_result.get('status', 'available')
+                extraction_method = generic_result.get('extraction_method', 'unknown')
+                print(f"[EXTRACT] 범용 추출 성공 (방법: {extraction_method})")
+                print(f"[EXTRACT] 상품명: {product_name}")
+                print(f"[EXTRACT] 가격: {current_price}")
+                print(f"[EXTRACT] 썸네일: {thumbnail_url}")
+            else:
+                # 범용 추출도 실패
+                print(f"[EXTRACT] 범용 추출 실패")
+                raise HTTPException(
+                    status_code=400,
+                    detail="상품 정보 추출 실패: 이 사이트에서 상품 정보를 자동으로 추출할 수 없습니다. 상품명과 가격을 수동으로 입력해주세요."
+                )
 
         # 썸네일 다운로드 및 저장
         if thumbnail_url:
@@ -417,6 +441,12 @@ async def extract_url_info(request: dict):
             except Exception as e:
                 print(f"[EXTRACT] 썸네일 저장 실패: {e}")
 
+        # 추출 방법 정보 설정
+        if source == 'other':
+            details = f"범용 추출 ({extraction_method})"
+        else:
+            details = "FlareSolverr로 추출"
+
         return {
             "success": True,
             "data": {
@@ -424,7 +454,7 @@ async def extract_url_info(request: dict):
                 "product_name": product_name or "자동 감지 실패",
                 "current_price": current_price,
                 "status": status,
-                "details": "FlareSolverr로 추출",
+                "details": details,
                 "thumbnail_url": thumbnail_url
             }
         }
