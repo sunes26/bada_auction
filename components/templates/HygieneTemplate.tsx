@@ -502,59 +502,56 @@ export default function HygieneTemplate(props: TemplateProps) {
         </section>
       )}
 
-      {/* Additional Image Slots */}
-      {!hiddenSections['additionalImages'] && (
-        <section className="w-full py-16 px-8 bg-gray-50 relative">
-          <SectionDeleteButton sectionKey="additionalImages" onSectionDelete={onSectionDelete} />
-          <div className="max-w-4xl mx-auto">
-            <h3 className="text-2xl font-bold text-center mb-8 text-gray-800">추가 이미지</h3>
-            <div className="flex flex-col gap-6 items-center">
-              {Array.from({ length: additionalImageSlots }).map((_, index) => (
-                <div key={index} className="relative w-full">
-                  <EditableImage
-                    imageKey={`additional_${index}`}
-                    uploadedImages={uploadedImages}
-                    className="w-full h-[500px]"
-                    onImageUpload={onImageUpload}
-                    onImageRefresh={onImageRefresh}
-                    onImageDrop={onImageDrop}
-                    onImageClick={onImageClick}
-                    editingImage={editingImage}
-                    imageStyleSettings={imageStyleSettings}
-                    onImageDelete={onImageDelete}
-                    imageSizes={imageSizes}
-                    onImageResize={onImageResize}
-                    imagePositions={imagePositions}
-                    onImageMove={onImageMove}
-                    imageAlignments={imageAlignments}
-                    onImageAlignment={onImageAlignment}
-                    containerWidth={containerWidths[`additional_${index}`] || 100}
-                    onContainerWidthChange={onContainerWidthChange}
-                    isResizable={true}
-                  />
-                  {onRemoveImageSlot && (
-                    <button
-                      onClick={() => onRemoveImageSlot(index)}
-                      className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg z-10"
-                      title="이미지 슬롯 삭제"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              {onAddImageSlot && (
-                <button
-                  onClick={onAddImageSlot}
-                  className="w-full max-w-md py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-teal-400 hover:text-teal-600 transition-colors flex items-center justify-center gap-2"
-                >
-                  <span className="text-2xl">+</span>
-                  <span>이미지 추가</span>
-                </button>
-              )}
-            </div>
+      {/* 추가 이미지 슬롯 */}
+      {Array.from({ length: additionalImageSlots }).map((_, index) => {
+        const imageKey = `additional_product_image_${index}`;
+        return (
+          <div key={index} className="relative mt-6 flex justify-center">
+            <EditableImage
+              imageKey={imageKey}
+              uploadedImages={uploadedImages}
+              className="rounded-lg"
+              onImageUpload={onImageUpload}
+              onImageRefresh={onImageRefresh}
+              onImageDrop={onImageDrop}
+              onImageClick={onImageClick}
+              editingImage={editingImage}
+              imageStyleSettings={imageStyleSettings}
+              onImageDelete={onImageDelete}
+              imageSizes={imageSizes}
+              onImageResize={onImageResize}
+              imagePositions={imagePositions}
+              onImageMove={onImageMove}
+              fillContainer={false}
+              isResizable={false}
+              autoFitHeight={true}
+              containerWidth={containerWidths[imageKey] || 100}
+              onContainerWidthChange={onContainerWidthChange}
+            />
+            {onRemoveImageSlot && (
+              <button
+                onClick={() => onRemoveImageSlot(index)}
+                className="absolute top-2 left-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg z-10"
+                title="이미지 슬롯 삭제"
+              >
+                ×
+              </button>
+            )}
           </div>
-        </section>
+        );
+      })}
+
+      {/* + 버튼 */}
+      {onAddImageSlot && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={onAddImageSlot}
+            className="w-16 h-16 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors shadow-md"
+            title="이미지 추가"
+          >
+            <span className="text-4xl font-light">+</span>
+          </button>
+        </div>
       )}
     </>
   );
