@@ -693,6 +693,7 @@ export default function SettingsPage() {
                       <option value="gmarket">G마켓</option>
                       <option value="smartstore">스마트스토어</option>
                       <option value="otokimall">오뚜기몰</option>
+                      <option value="dongwonmall">동원몰</option>
                     </select>
                   </div>
                   <div>

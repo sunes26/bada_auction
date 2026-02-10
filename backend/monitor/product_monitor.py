@@ -68,7 +68,7 @@ class ProductMonitor:
             print(f"[FAST] 빠른 추출 시도: {product_url}")
 
             # JavaScript 렌더링이 필요한 사이트 목록
-            js_required_sites = ['ssg.com', '11st.co.kr', 'lotteon.com', 'gsshop.com', 'cjthemarket.com', 'otokimall.com']
+            js_required_sites = ['ssg.com', '11st.co.kr', 'lotteon.com', 'gsshop.com', 'cjthemarket.com', 'otokimall.com', 'dongwonmall.com']
             needs_js = any(site in product_url for site in js_required_sites)
 
             if needs_js:
@@ -167,6 +167,8 @@ class ProductMonitor:
                 selectors = ['h1', '.product-name']
             elif 'otokimall.com' in url:
                 selectors = ['.prd_name', '.product-name', 'h1', 'h2']
+            elif 'dongwonmall.com' in url:
+                selectors = ['h1', 'input[name="product_nm"]', '.product-name', '.prd-name']
 
             for selector in selectors:
                 elem = soup.select_one(selector)
@@ -288,6 +290,25 @@ class ProductMonitor:
                     if price and price > 100:
                         return price
 
+        elif 'dongwonmall.com' in url:
+            # 동원몰: userPrice input 또는 .userPriceText
+            price_input = soup.find('input', id='userPrice')
+            if price_input and price_input.get('value'):
+                try:
+                    price = float(price_input['value'].replace(',', ''))
+                    if price > 100:
+                        return price
+                except:
+                    pass
+            selectors = ['.userPriceText', '.sale-price', '.price']
+            for selector in selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    text = elem.get_text(strip=True)
+                    price = self._parse_price(text)
+                    if price and price > 100:
+                        return price
+
         # 3. 페이지에서 가격 패턴 찾기 (폴백)
         if not price:
             page_text = soup.get_text()
@@ -323,6 +344,25 @@ class ProductMonitor:
     def _extract_thumbnail(self, soup: BeautifulSoup, url: str) -> Optional[str]:
         """HTML에서 썸네일 추출"""
         thumbnail = None
+
+        # 0. 사이트별 특수 선택자 (og:image가 로고인 경우 대비)
+        site_specific_selectors = {
+            'dongwonmall.com': ['#mainImg', '.product-img img', '.prd-img img'],
+            'otokimall.com': ['#prdImage', '.product-image img', '.prd-img img'],
+        }
+
+        for site, selectors in site_specific_selectors.items():
+            if site in url:
+                for selector in selectors:
+                    img = soup.select_one(selector)
+                    if img:
+                        src = img.get('src') or img.get('data-src')
+                        if src:
+                            if src.startswith('//'):
+                                src = 'https:' + src
+                            elif not src.startswith('http'):
+                                src = urljoin(url, src)
+                            return src
 
         # 1. og:image 메타 태그
         og_image = soup.find('meta', property='og:image')
@@ -405,6 +445,8 @@ class ProductMonitor:
                 result = self._check_cjthemarket_status(soup)
             elif 'otokimall.com' in product_url:
                 result = self._check_otokimall_status(soup)
+            elif 'dongwonmall.com' in product_url:
+                result = self._check_dongwonmall_status(soup)
             else:
                 # 알 수 없는 소싱처: 범용 추출 사용
                 result = self._check_generic_status(soup, product_url)
@@ -898,6 +940,52 @@ class ProductMonitor:
                 'price': None,
                 'original_price': None,
                 'details': f"오뚜기몰 체크 오류: {str(e)}"
+            }
+
+    def _check_dongwonmall_status(self, soup: BeautifulSoup) -> Dict:
+        """동원몰 상품 상태 체크"""
+        try:
+            status = 'available'
+            price = self._extract_price(soup, 'dongwonmall.com')
+
+            # 정가 추출
+            original_price = None
+            original_elem = soup.select_one('.origin-price')
+            if original_elem:
+                original_price = self._parse_price(original_elem.get_text())
+
+            # 1. 판매상태 코드 확인 (PB_COM_CD: 01=판매중)
+            status_input = soup.find('input', id='PB_COM_CD')
+            if status_input:
+                status_code = status_input.get('value', '01')
+                if status_code != '01':
+                    status = 'out_of_stock'
+
+            # 2. soldout 클래스 확인
+            soldout_elem = soup.select_one('.soldout')
+            if soldout_elem:
+                status = 'out_of_stock'
+
+            # 3. 구매 버튼 텍스트 확인
+            buy_buttons = soup.select('.btn-buy, .btn_buy, .cart-btn')
+            for btn in buy_buttons:
+                btn_text = btn.get_text().lower()
+                if '품절' in btn_text or 'sold out' in btn_text:
+                    status = 'out_of_stock'
+                    break
+
+            return {
+                'status': status,
+                'price': price,
+                'original_price': original_price,
+                'details': '정상' if status == 'available' else status
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'price': None,
+                'original_price': None,
+                'details': f"동원몰 체크 오류: {str(e)}"
             }
 
     def _check_generic_status(self, soup: BeautifulSoup, url: str = '') -> Dict:

@@ -902,7 +902,8 @@ def format_new_order_alert(
         'traders': '🏬',
         'otokimall': '🍜',
         'ssg': '🛍️',
-        'cjthemarket': '🥘'
+        'cjthemarket': '🥘',
+        'dongwonmall': '🐟'
     }
     emoji = market_emoji.get(market.lower(), '📦')
 

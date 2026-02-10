@@ -328,6 +328,8 @@ async def extract_url_info(request: dict):
             source = 'cjthemarket'
         elif 'otokimall.com' in product_url:
             source = 'otokimall'
+        elif 'dongwonmall.com' in product_url:
+            source = 'dongwonmall'
         elif 'smartstore.naver.com' in product_url:
             source = 'smartstore'
         # else: source는 이미 'other'로 설정되어 있음 - 범용 추출 시도
