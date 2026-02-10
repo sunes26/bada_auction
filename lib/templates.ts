@@ -1,4 +1,4 @@
-import { Home, Package, Sparkles, Leaf } from 'lucide-react';
+import { Home, Package, Cpu, UtensilsCrossed, ShieldCheck, PenTool } from 'lucide-react';
 import type { Template, TemplateType } from '@/types';
 
 export const templates: Record<TemplateType, Template> = {
@@ -12,25 +12,25 @@ export const templates: Record<TemplateType, Template> = {
     description: '간편하고 맛있는',
     placeholder: '예: 컵라면, 즉석밥'
   },
-  additional: {
-    name: '템플릿C',
-    description: '특별한 디자인의',
-    placeholder: '예: 하우스감귤'
+  electronics: {
+    name: '전자제품류',
+    description: '기술과 혁신의',
+    placeholder: '예: 무선 이어폰, 충전기'
   },
-  additional2: {
-    name: '템플릿D',
-    description: '새로운 스타일의',
-    placeholder: '예: 미리 물티슈'
+  processedFood: {
+    name: '가공식품류',
+    description: '맛있고 간편한',
+    placeholder: '예: 밀키트, 냉동식품'
   },
-  fresh: {
-    name: '신선식품',
-    description: '신선하고 건강한',
-    placeholder: '예: 유기농 사과'
+  hygiene: {
+    name: '위생용품류',
+    description: '깨끗하고 안전한',
+    placeholder: '예: 물티슈, 위생용품'
   },
-  simple: {
-    name: '심플버전',
-    description: '간단하고 깔끔한',
-    placeholder: '예: 기본 상품'
+  stationery: {
+    name: '문구류',
+    description: '기록과 창작의',
+    placeholder: '예: 노트, 다이어리'
   }
 };
 
@@ -38,10 +38,10 @@ export const getTemplateIcon = (type: TemplateType) => {
   const iconMap = {
     daily: Home,
     convenience: Package,
-    additional: Sparkles,
-    additional2: Sparkles,
-    fresh: Leaf,
-    simple: Package
+    electronics: Cpu,
+    processedFood: UtensilsCrossed,
+    hygiene: ShieldCheck,
+    stationery: PenTool
   };
   return iconMap[type];
 };

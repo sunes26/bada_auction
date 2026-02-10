@@ -11,10 +11,10 @@ import { productsApi, monitorApi, cache, API_BASE_URL } from '@/lib/api';
 import EditProductModal from '@/components/modals/EditProductModal';
 import DailyTemplate from '@/components/templates/DailyTemplate';
 import FoodTemplate from '@/components/templates/FoodTemplate';
-import FreshTemplate from '@/components/templates/FreshTemplate';
-import SimpleTemplate from '@/components/templates/SimpleTemplate';
-import AdditionalTemplate from '@/components/templates/AdditionalTemplate';
-import Additional2Template from '@/components/templates/Additional2Template';
+import ElectronicsTemplate from '@/components/templates/ElectronicsTemplate';
+import ProcessedFoodTemplate from '@/components/templates/ProcessedFoodTemplate';
+import HygieneTemplate from '@/components/templates/HygieneTemplate';
+import StationeryTemplate from '@/components/templates/StationeryTemplate';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -1344,10 +1344,10 @@ function DetailPageViewerModal({ htmlContent, onClose }: {
     // 템플릿 선택
     if (template === 'daily') return <DailyTemplate {...templateProps} />;
     if (template === 'convenience') return <FoodTemplate {...templateProps} />;
-    if (template === 'fresh') return <FreshTemplate {...templateProps} />;
-    if (template === 'simple') return <SimpleTemplate {...templateProps} />;
-    if (template === 'additional') return <AdditionalTemplate {...templateProps} />;
-    if (template === 'additional2') return <Additional2Template {...templateProps} />;
+    if (template === 'electronics') return <ElectronicsTemplate {...templateProps} />;
+    if (template === 'processedFood') return <ProcessedFoodTemplate {...templateProps} />;
+    if (template === 'hygiene') return <HygieneTemplate {...templateProps} />;
+    if (template === 'stationery') return <StationeryTemplate {...templateProps} />;
 
     return null;
   };

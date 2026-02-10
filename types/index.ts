@@ -36,7 +36,7 @@ export interface ChatbotSettings {
   updated_at: string;
 }
 
-export type TemplateType = 'daily' | 'convenience' | 'additional' | 'additional2' | 'fresh' | 'simple';
+export type TemplateType = 'daily' | 'convenience' | 'electronics' | 'processedFood' | 'hygiene' | 'stationery';
 
 export interface Template {
   name: string;

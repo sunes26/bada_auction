@@ -9,10 +9,10 @@ import type { Category, TemplateType } from '@/types';
 import * as htmlToImage from 'html-to-image';
 import DailyTemplate from '@/components/templates/DailyTemplate';
 import FoodTemplate from '@/components/templates/FoodTemplate';
-import FreshTemplate from '@/components/templates/FreshTemplate';
-import SimpleTemplate from '@/components/templates/SimpleTemplate';
-import AdditionalTemplate from '@/components/templates/AdditionalTemplate';
-import Additional2Template from '@/components/templates/Additional2Template';
+import ElectronicsTemplate from '@/components/templates/ElectronicsTemplate';
+import ProcessedFoodTemplate from '@/components/templates/ProcessedFoodTemplate';
+import HygieneTemplate from '@/components/templates/HygieneTemplate';
+import StationeryTemplate from '@/components/templates/StationeryTemplate';
 import TextStyleEditor from '@/components/templates/TextStyleEditor';
 import PropertiesPanel from '@/components/ui/PropertiesPanel';
 import KeywordEditor from '@/components/ui/KeywordEditor';
@@ -408,36 +408,37 @@ JSON 객체를 생성:
     }
   };
 
-  const generateFreshContent = async () => {
-    const prompt = `당신은 신선식품 전문 마케터입니다. 순수한 한국어로만 작성하세요.
+  const generateElectronicsContent = async () => {
+    const prompt = `당신은 전자제품 전문 마케터입니다. 순수한 한국어로만 작성하세요.
 
 상품명: "${productName}"
 
-JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 작성하고, 설명이나 예시는 포함하지 마세요:
+JSON 형식으로 작성하세요:
 {
-"subtitle": "산지직송",
-"productDescription1": "신선함 설명 20-30글자",
-"goldBadgeText": "100%",
-"coreMessage1": "핵심 메시지",
-"tag1": "#태그1",
-"tag2": "#태그2",
-"tag3": "#태그3",
-"priceTitle": "가격 제목",
-"price": "가격",
-"rating": "평점",
-"advantageTitle": "장점 섹션 제목",
-"freshPoint1Title": "포인트1 제목",
-"freshPoint1Description": "포인트1 설명 150자",
-"freshPoint2Title": "포인트2 제목",
-"freshPoint2Description": "포인트2 설명 150자",
-"freshPoint3Title": "포인트3 제목",
-"freshPoint3Description": "포인트3 설명 150자",
-"cautionLabel": "주의사항",
-"cautionContent": "신선식품 보관온도, 유통기한 및 소비기한, 해동방법, 조리 전 세척방법, 알레르기 주의사항을 포함하여 200자 이상 작성",
-"compositionTitle": "상품구성",
-"checkItem1": "구성1",
-"checkItem2": "구성2",
-"checkItem3": "구성3"
+"introSubtitle": "영문 슬로건 (예: PREMIUM TECH)",
+"introTitle": "메인 타이틀 2줄",
+"introDescription": "제품 소개 한 문장",
+"feature1Title": "기능1 제목 2줄",
+"feature1Description": "기능1 설명 50자",
+"feature2Badge": "영문 배지 텍스트",
+"feature2Title": "기능2 제목",
+"feature2Description": "기능2 설명 40자",
+"feature2Card1Title": "모드1 이름",
+"feature2Card1Desc": "모드1 설명 20자",
+"feature2Card2Title": "모드2 이름",
+"feature2Card2Desc": "모드2 설명 20자",
+"feature3Title": "기능3 제목 2줄",
+"feature3Description": "기능3 설명 50자",
+"feature3Stat1Value": "수치1 (예: 254g)",
+"feature3Stat1Label": "수치1 라벨",
+"feature3Stat2Value": "수치2 (예: Soft)",
+"feature3Stat2Label": "수치2 라벨",
+"feature4Card1Title": "부가기능1 제목",
+"feature4Card1Desc": "부가기능1 설명 40자",
+"feature4Card2Title": "부가기능2 제목",
+"feature4Card2Desc": "부가기능2 설명 40자",
+"feature4BatteryValue": "배터리 수치 (예: 30H)",
+"feature5Title": "구성품 제목"
 }`;
 
     try {
@@ -445,64 +446,36 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       if (!result) throw new Error('AI 응답 파싱 실패');
       return { productName, ...result };
     } catch (error) {
-      return { productName, subtitle: "산지직송", productDescription1: "자연이 키운 신선함", goldBadgeText: "100%", coreMessage1: "건강을 위한 최고의 선택", tag1: "#당일수확", tag2: "#친환경", tag3: "#영양만점", priceTitle: "노력대비행", price: "20,000원", rating: "평점 4.8점", advantageTitle: "장점", freshPoint1Title: "산지에서 바로 수확", freshPoint1Description: "새벽에 수확하여 당일 출고하는 신선함", freshPoint2Title: "친환경 재배", freshPoint2Description: "화학농약 없이 자연 그대로", freshPoint3Title: "영양 가득", freshPoint3Description: "비타민과 미네랄이 풍부", cautionLabel: "주의사항", cautionContent: "• 신선식품은 수령 즉시 냉장(0~5°C) 또는 냉동(-18°C 이하) 보관하세요.\n• 해동 시 냉장실에서 천천히 해동하시고, 재냉동은 삼가해주세요.\n• 조리 전 흐르는 물에 깨끗이 세척해주세요.\n• 소비기한 내 섭취를 권장합니다.", compositionTitle: "상품 구성", checkItem1: "No.01내용", checkItem2: "No.02내용", checkItem3: "No.03내용" };
+      return { productName, introSubtitle: "PREMIUM TECHNOLOGY", introTitle: "기술의 혁신으로\n일상을 바꾸다", introDescription: "최첨단 기술이 담긴 프리미엄 제품을 경험하세요.", feature1Title: "차원이 다른\n성능의 차이", feature1Description: "최신 기술을 적용하여 더욱 향상된 성능을 제공합니다.", feature2Badge: "SMART TECHNOLOGY", feature2Title: "스마트한 기능", feature2Description: "편리한 사용성을 위한 다양한 스마트 기능을 갖추었습니다.", feature2Card1Title: "기본 모드", feature2Card1Desc: "일상적인 사용에 최적화", feature2Card2Title: "고급 모드", feature2Card2Desc: "더 강력한 성능이 필요할 때", feature3Title: "편안한 사용감으로\n오래 써도 부담 없이", feature3Description: "인체공학적 설계로 장시간 사용해도 편안합니다.", feature3Stat1Value: "Light", feature3Stat1Label: "가벼운 무게", feature3Stat2Value: "Soft", feature3Stat2Label: "부드러운 소재", feature4Card1Title: "빠른 충전", feature4Card1Desc: "급속 충전 기술로 짧은 시간에 충전이 완료됩니다.", feature4Card2Title: "긴 사용시간", feature4Card2Desc: "한 번 충전으로 오랫동안 사용할 수 있습니다.", feature4BatteryValue: "24H", feature5Title: "구성품 (In the Box)" };
     }
   };
 
-  const generateSimpleContent = async () => {
-    const prompt = `순수한 한국어로만 작성하세요.
+  const generateProcessedFoodContent = async () => {
+    const prompt = `당신은 가공식품 전문 마케터입니다. 순수한 한국어로만 작성하세요.
 
 상품명: "${productName}"
 
-JSON:
-{"copywriting": "한 줄 카피", "productInfoLabel": "상품정보 라벨", "productInfo": "상세 정보 300자", "cautionLabel": "주의사항 라벨", "cautionContent": "상품 사용 시 주의해야 할 점, 보관방법, 취급주의사항, 반품/교환 관련 안내를 포함하여 150자 이상 작성"}`;
-
-    try {
-      const result = await callOpenAI(prompt);
-      if (!result) throw new Error('AI 응답 파싱 실패');
-      return { productName, ...result };
-    } catch (error) {
-      return { productName, copywriting: "일상을 특별하게", productInfoLabel: "상품정보", productInfo: `${productName}은 고객 만족을 최우선으로 개발된 제품입니다. 엄선된 재료와 까다로운 품질 관리를 통해 최고의 품질을 보장합니다.`, cautionLabel: "주의사항", cautionContent: "• 사용 전 사용설명서를 반드시 확인해주세요.\n• 직사광선을 피하고 습기가 없는 서늘한 곳에 보관하세요.\n• 제품 하자 시 수령일로부터 7일 이내 교환/반품 가능합니다.\n• 고객 변심에 의한 반품 시 왕복 배송비가 발생할 수 있습니다." };
-    }
-  };
-
-  const generateAdditionalContent = async () => {
-    const prompt = `순수한 한국어로만 작성하세요.
-
-상품명: "${productName}"
-
-JSON:
-{"noticeTitle": "Notice 제목", "noticeText": "안내문구", "brandName": "브랜드", "seasonTitle": "시즌 문구", "mainProductName": "상품명", "copywriting1": "카피1", "productInfoLabel": "제품정보 라벨", "cautionLabel": "주의사항", "cautionContent": "상품 수량 및 옵션 확인사항, 배송 관련 주의사항, 반품/교환 정책, 보관방법을 포함하여 150자 이상 작성"}`;
-
-    try {
-      const result = await callOpenAI(prompt);
-      if (!result) throw new Error('AI 응답 파싱 실패');
-      return { productName, ...result };
-    } catch (error) {
-      return { productName, noticeTitle: "Notice", noticeText: "수량을 확인하세요", brandName: "브랜드", seasonTitle: "싱그러운", mainProductName: productName, copywriting1: "가장 맛있을때", productInfoLabel: "제품정보", cautionLabel: "주의사항", cautionContent: "• 주문 전 상품명, 수량, 옵션을 반드시 확인해주세요.\n• 상품 이미지와 실제 상품이 다를 수 있습니다.\n• 배송 중 파손 시 수령 당일 고객센터로 연락해주세요.\n• 교환/반품은 수령일로부터 7일 이내 가능합니다." };
-    }
-  };
-
-  const generateAdditional2Content = async () => {
-    const prompt = `순수한 한국어로만 작성하세요.
-
-상품명: "${productName}"
-
-JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 작성하고, 설명이나 예시는 포함하지 마세요:
+JSON 형식으로 작성하세요:
 {
-"introTitle": "소개 제목",
-"introCopy": "소개 카피",
-"reviewTitle": "고객만족우수",
-"reviewHashtag": "#솔직후기",
-"review1": "후기1",
-"review2": "후기2",
-"review3": "후기3",
-"healthTitle": "건강 제목",
-"healthSubtitle": "건강 부제목",
-"brandProductName": "상품명",
-"productInfoLabel": "제품정보",
-"cautionLabel": "주의사항",
-"noticeText1": "구매 전 확인해야 할 중요사항 (상품명, 수량, 옵션 등) 50자 이내로 작성"
+"introSubtitle": "영문 슬로건 (예: PREMIUM RECIPE)",
+"introTitle": "메인 타이틀 2줄",
+"introDescription": "제품 소개 2문장",
+"feature1Title": "재료 특징 제목 2줄",
+"feature1Description": "재료 설명 60자",
+"feature1Stat1Value": "수치1 (예: Fresh)",
+"feature1Stat1Label": "수치1 라벨",
+"feature1Stat2Value": "수치2 (예: Clean)",
+"feature1Stat2Label": "수치2 라벨",
+"feature2Badge": "영문 배지 텍스트",
+"feature2Title": "맛 특징 제목 2줄",
+"feature2Description": "맛 설명 2문장",
+"feature2HighlightText": "강조 문구 15자",
+"feature3Title": "조리법 제목 2줄",
+"feature3Description": "조리법 설명 2문장",
+"feature3Method1Title": "조리방법1 제목",
+"feature3Method1Desc": "조리방법1 설명 30자",
+"feature3Method2Title": "조리방법2 제목",
+"feature3Method2Desc": "조리방법2 설명 30자"
 }`;
 
     try {
@@ -510,7 +483,83 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       if (!result) throw new Error('AI 응답 파싱 실패');
       return { productName, ...result };
     } catch (error) {
-      return { productName, introTitle: productName, introCopy: "특별한 제품", reviewTitle: "고객만족우수", reviewHashtag: "#솔직후기", review1: "정말 좋아요!", review2: "추천합니다!", review3: "가성비 최고!", healthTitle: "자연의 힘으로 건강한 머릿결을", healthSubtitle: "자연 성분으로 가득한 샴푸, 당신의 머릿결을 부드럽게 돌이 아름다운 기분을 누려보세요", brandProductName: productName, productInfoLabel: "제품정보", cautionLabel: "주의사항", noticeText1: "상품명의 제품명과 수량을 꼭 확인해주세요. 옵션 선택 시 주의하세요." };
+      return { productName, introSubtitle: "PREMIUM RECIPE", introTitle: "집에서 즐기는\n완벽한 한 끼", introDescription: "엄선된 재료와 쉐프의 비법 레시피로 완성했습니다.\n복잡한 준비 없이, 데우기만 하면 근사한 요리가 됩니다.", feature1Title: "타협하지 않는\n신선한 원재료", feature1Description: "맛의 기본은 좋은 재료에서 시작됩니다. 산지에서 갓 수확한 신선한 재료만을 사용합니다.", feature1Stat1Value: "Fresh", feature1Stat1Label: "당일 입고 재료", feature1Stat2Value: "Clean", feature1Stat2Label: "위생 공정", feature2Badge: "SECRET SAUCE", feature2Title: "입안 가득 퍼지는\n깊은 풍미의 비결", feature2Description: "수많은 테스트 끝에 완성된 황금 비율.\n자극적인 맛 대신, 재료와 어우러지는 깊은 감칠맛을 냅니다.", feature2HighlightText: "재구매율 1위의 검증된 맛", feature3Title: "바쁜 일상 속\n5분이면 충분합니다", feature3Description: "요리할 시간이 부족해도 걱정하지 마세요.\n라면만큼 쉽지만, 퀄리티는 레스토랑급입니다.", feature3Method1Title: "전자레인지 조리", feature3Method1Desc: "포장을 살짝 뜯은 후 약 4분간 데워주세요.", feature3Method2Title: "직화/냄비 조리", feature3Method2Desc: "내용물을 냄비나 팬에 붓고 중약불에서 조리하세요." };
+    }
+  };
+
+  const generateHygieneContent = async () => {
+    const prompt = `당신은 위생용품 전문 마케터입니다. 순수한 한국어로만 작성하세요.
+
+상품명: "${productName}"
+
+JSON 형식으로 작성하세요:
+{
+"introSubtitle": "영문 슬로건 (예: PURE & SAFE)",
+"introTitle": "메인 타이틀 2줄",
+"introDescription": "제품 소개 2문장",
+"feature1Title": "소재 특징 제목 2줄",
+"feature1Description": "소재 설명 60자",
+"feature1Stat1Value": "수치1 (예: 100%)",
+"feature1Stat1Label": "수치1 라벨",
+"feature1Stat2Value": "수치2 (예: Zero)",
+"feature1Stat2Label": "수치2 라벨",
+"feature2Badge": "영문 배지 텍스트",
+"feature2Title": "인증 특징 제목 2줄",
+"feature2Description": "인증 설명 2문장",
+"feature2Card1": "인증1 이름",
+"feature2Card2": "인증2 이름",
+"feature3Title": "기능 특징 제목 2줄",
+"feature3Description": "기능 설명 2문장",
+"feature3Point1Title": "포인트1 제목",
+"feature3Point1Desc": "포인트1 설명 30자",
+"feature3Point2Title": "포인트2 제목",
+"feature3Point2Desc": "포인트2 설명 30자"
+}`;
+
+    try {
+      const result = await callOpenAI(prompt);
+      if (!result) throw new Error('AI 응답 파싱 실패');
+      return { productName, ...result };
+    } catch (error) {
+      return { productName, introSubtitle: "PURE & SAFE", introTitle: "매일 닿는 피부니까\n더 순수하게, 더 안전하게", introDescription: "불필요한 성분은 빼고, 자연 유래 성분으로 채웠습니다.\n온 가족이 안심하고 사용할 수 있는 데일리 케어.", feature1Title: "피부가 먼저 느끼는\n자연 유래 소재", feature1Description: "민감한 피부에도 자극 없이 부드럽게 닿습니다. 엄격한 기준의 피부 저자극 테스트를 통과했습니다.", feature1Stat1Value: "100%", feature1Stat1Label: "천연 소재", feature1Stat2Value: "Zero", feature1Stat2Label: "유해성분 불검출", feature2Badge: "CERTIFIED QUALITY", feature2Title: "깐깐하게 검증받은\n안전한 품질", feature2Description: "국제 표준 인증 기관의 까다로운 절차를 모두 통과했습니다.", feature2Card1: "안전성 인증", feature2Card2: "품질 보증", feature3Title: "탁월한 흡수력과\n산뜻한 마무리감", feature3Description: "독자적인 레이어 구조로 흡수력은 높이고,\n사용 후 잔여물 걱정 없이 깔끔합니다.", feature3Point1Title: "통기성 & 건조", feature3Point1Desc: "우수한 통기성으로 언제나 보송보송합니다.", feature3Point2Title: "강력한 흡수", feature3Point2Desc: "한 번의 사용으로도 충분한 만족감을 드립니다." };
+    }
+  };
+
+  const generateStationeryContent = async () => {
+    const prompt = `당신은 문구류 전문 마케터입니다. 순수한 한국어로만 작성하세요.
+
+상품명: "${productName}"
+
+JSON 형식으로 작성하세요:
+{
+"introSubtitle": "영문 슬로건 (예: RECORD YOUR MOMENTS)",
+"introTitle": "메인 타이틀 2줄",
+"introDescription": "제품 소개 3문장",
+"feature1Title": "품질 특징 제목 2줄",
+"feature1Description": "품질 설명 60자",
+"feature1Stat1Value": "수치1 (예: 120gsm)",
+"feature1Stat1Label": "수치1 라벨",
+"feature1Stat2Value": "수치2 (예: Acid-Free)",
+"feature1Stat2Label": "수치2 라벨",
+"feature2Badge": "영문 배지 텍스트",
+"feature2Title": "디자인 특징 제목 2줄",
+"feature2Description": "디자인 설명 3문장",
+"feature2Card1": "특징1 (예: 180° Lay-flat)",
+"feature2Card2": "특징2 (예: 견고한 하드커버)",
+"feature3Title": "활용 특징 제목 2줄",
+"feature3Description": "활용 설명 3문장",
+"feature3Point1Title": "포인트1 제목",
+"feature3Point1Desc": "포인트1 설명 30자",
+"feature3Point2Title": "포인트2 제목",
+"feature3Point2Desc": "포인트2 설명 30자"
+}`;
+
+    try {
+      const result = await callOpenAI(prompt);
+      if (!result) throw new Error('AI 응답 파싱 실패');
+      return { productName, ...result };
+    } catch (error) {
+      return { productName, introSubtitle: "RECORD YOUR MOMENTS", introTitle: "생각이 머무는 곳,\n영감이 시작되는 공간", introDescription: "스쳐 지나가는 아이디어부터 소중한 하루의 기록까지.\n사각거리는 종이의 질감과 부드러운 필기감으로\n당신의 기록을 더욱 특별하게 만들어보세요.", feature1Title: "비침 없이 완벽한\n프리미엄 내지", feature1Description: "어떤 필기구를 사용해도 뒷면 비침 걱정이 없습니다. 눈의 피로를 덜어주는 미색 용지를 사용합니다.", feature1Stat1Value: "120gsm", feature1Stat1Label: "도톰한 두께감", feature1Stat2Value: "Acid-Free", feature1Stat2Label: "중성지 사용", feature2Badge: "SMART DESIGN", feature2Title: "어떤 페이지도 평평하게\n180도 펼침 제본", feature2Description: "글씨를 쓸 때 손에 걸리는 불편함이 없습니다.\n특수 제본 기술을 적용하여\n첫 장부터 마지막 장까지 완벽하게 펼쳐집니다.", feature2Card1: "180° Lay-flat", feature2Card2: "견고한 하드커버", feature3Title: "당신의 일상을\n디자인하세요", feature3Description: "업무 미팅, 학습 노트, 다이어리 꾸미기까지.\n어떤 용도로 사용해도 만족스러운 경험을 드립니다.\n심플한 디자인으로 데스크테리어 소품으로도 훌륭합니다.", feature3Point1Title: "다양한 내지 구성", feature3Point1Desc: "줄글, 모눈, 무지 중 선택 가능", feature3Point2Title: "편리한 디테일", feature3Point2Desc: "가름끈, 수납 포켓, 밴드 클로저 포함" };
     }
   };
 
@@ -553,10 +602,10 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
       let content;
       if (selectedTemplate === 'daily') content = await generateDailyContent();
       else if (selectedTemplate === 'convenience') content = await generateFoodContent();
-      else if (selectedTemplate === 'fresh') content = await generateFreshContent();
-      else if (selectedTemplate === 'simple') content = await generateSimpleContent();
-      else if (selectedTemplate === 'additional') content = await generateAdditionalContent();
-      else if (selectedTemplate === 'additional2') content = await generateAdditional2Content();
+      else if (selectedTemplate === 'electronics') content = await generateElectronicsContent();
+      else if (selectedTemplate === 'processedFood') content = await generateProcessedFoodContent();
+      else if (selectedTemplate === 'hygiene') content = await generateHygieneContent();
+      else if (selectedTemplate === 'stationery') content = await generateStationeryContent();
       else throw new Error('지원되지 않는 템플릿');
 
       setGeneratedContent(content);
@@ -969,10 +1018,10 @@ JSON 형식으로 작성하세요. 각 필드는 실제 사용될 텍스트만 �
 
     if (selectedTemplate === 'daily') return <DailyTemplate {...templateProps} />;
     if (selectedTemplate === 'convenience') return <FoodTemplate {...templateProps} />;
-    if (selectedTemplate === 'fresh') return <FreshTemplate {...templateProps} />;
-    if (selectedTemplate === 'simple') return <SimpleTemplate {...templateProps} />;
-    if (selectedTemplate === 'additional') return <AdditionalTemplate {...templateProps} />;
-    if (selectedTemplate === 'additional2') return <Additional2Template {...templateProps} />;
+    if (selectedTemplate === 'electronics') return <ElectronicsTemplate {...templateProps} />;
+    if (selectedTemplate === 'processedFood') return <ProcessedFoodTemplate {...templateProps} />;
+    if (selectedTemplate === 'hygiene') return <HygieneTemplate {...templateProps} />;
+    if (selectedTemplate === 'stationery') return <StationeryTemplate {...templateProps} />;
     return null;
   };
 
