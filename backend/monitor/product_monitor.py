@@ -406,7 +406,8 @@ class ProductMonitor:
             elif 'otokimall.com' in product_url:
                 result = self._check_otokimall_status(soup)
             else:
-                result = self._check_generic_status(soup)
+                # 알 수 없는 소싱처: 범용 추출 사용
+                result = self._check_generic_status(soup, product_url)
 
             return result
 
@@ -899,50 +900,32 @@ class ProductMonitor:
                 'details': f"오뚜기몰 체크 오류: {str(e)}"
             }
 
-    def _check_generic_status(self, soup: BeautifulSoup) -> Dict:
-        """범용 상품 상태 체크 - 구매 버튼 영역 우선 확인"""
+    def _check_generic_status(self, soup: BeautifulSoup, url: str = '') -> Dict:
+        """범용 상품 상태 체크 - 새로운 범용 추출 기능 사용"""
         try:
-            status = 'available'
+            # 범용 추출 기능 사용 (JSON-LD → 메타태그 → Microdata → CSS패턴)
+            generic_result = self.extract_generic_product_info(soup, url)
 
-            # 1. 구매 버튼 영역에서 품절 확인
-            buy_button_selectors = [
-                '.btn-buy', '.btn_buy',
-                '.btn-cart', '.btn_cart',
-                '[class*="buy"]',
-                '[class*="cart"]',
-                '[class*="soldout"]',
-            ]
+            if generic_result:
+                price = generic_result.get('price')
+                status = generic_result.get('status', 'available')
+                method = generic_result.get('extraction_method', 'unknown')
 
-            for selector in buy_button_selectors:
-                elem = soup.select_one(selector)
-                if elem:
-                    elem_text = elem.get_text().lower()
-                    if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
-                        status = 'out_of_stock'
-                        break
-                    if '구매' in elem_text or '장바구니' in elem_text:
-                        status = 'available'
-                        break
+                return {
+                    'status': status,
+                    'price': price,
+                    'original_price': None,
+                    'details': f'범용 추출 ({method})'
+                }
 
-            # 2. 가격 추출 (패턴 매칭)
-            page_text = soup.get_text()
-            price_matches = re.findall(r'(\d{1,3}(?:,\d{3})+)\s*원', page_text)
-            prices = []
-            for match in price_matches:
-                try:
-                    p = int(match.replace(',', ''))
-                    if 100 < p < 10000000:
-                        prices.append(p)
-                except:
-                    pass
-
-            price = min(prices) if prices else None
+            # 범용 추출 실패 시 기본 상태 체크
+            status = self._check_status_common(soup)
 
             return {
                 'status': status,
-                'price': price,
+                'price': None,
                 'original_price': None,
-                'details': '범용 체크'
+                'details': '범용 추출 실패 - 가격 확인 필요'
             }
         except Exception as e:
             return {
