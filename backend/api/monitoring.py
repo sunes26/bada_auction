@@ -623,7 +623,7 @@ async def save_thumbnail(request: SaveThumbnailRequest):
         if not response.ok:
             raise HTTPException(status_code=400, detail=f"이미지 다운로드 실패: HTTP {response.status_code}")
 
-        # 이미지 열기 및 리사이즈 (600x600 미만인 경우)
+        # 이미지 열기 및 JPEG 변환 (webp 등 다른 포맷도 JPEG로 통일)
         image_data = response.content
         try:
             from PIL import ImageFilter, ImageEnhance
@@ -632,8 +632,15 @@ async def save_thumbnail(request: SaveThumbnailRequest):
             width, height = img.size
             min_size = 600
 
-            print(f"[DEBUG] 원본 이미지 크기: {width}x{height}")
+            print(f"[DEBUG] 원본 이미지 크기: {width}x{height}, 포맷: {img.format}")
 
+            # RGB 모드로 먼저 변환 (RGBA, P 모드인 경우)
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            # 리사이즈가 필요한 경우
             if width < min_size or height < min_size:
                 # 비율 유지하면서 최소 600x600으로 확대
                 scale = max(min_size / width, min_size / height)
@@ -641,10 +648,6 @@ async def save_thumbnail(request: SaveThumbnailRequest):
                 new_height = int(height * scale)
 
                 print(f"[DEBUG] 이미지 리사이즈: {width}x{height} → {new_width}x{new_height} (scale: {scale:.2f}x)")
-
-                # RGB 모드로 먼저 변환 (RGBA인 경우)
-                if img.mode in ('RGBA', 'P'):
-                    img = img.convert('RGB')
 
                 # 고품질 리사이즈 (LANCZOS 필터)
                 img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
@@ -658,13 +661,13 @@ async def save_thumbnail(request: SaveThumbnailRequest):
 
                 print(f"[DEBUG] 이미지 선명화 및 대비 보정 적용")
 
-                # 리사이즈된 이미지를 바이트로 변환 (최고 품질)
-                output = BytesIO()
-                img.save(output, format='JPEG', quality=98, subsampling=0)
-                image_data = output.getvalue()
-                print(f"[DEBUG] 리사이즈된 이미지 크기: {len(image_data)} bytes")
+            # 항상 JPEG로 변환하여 저장 (webp, png 등 모든 포맷 통일)
+            output = BytesIO()
+            img.save(output, format='JPEG', quality=98, subsampling=0)
+            image_data = output.getvalue()
+            print(f"[DEBUG] JPEG 변환 완료: {len(image_data)} bytes")
         except Exception as resize_err:
-            print(f"[DEBUG] 이미지 리사이즈 실패 (원본 사용): {resize_err}")
+            print(f"[DEBUG] 이미지 변환 실패 (원본 사용): {resize_err}")
 
         # 파일명 생성 (상품명 해시 + 타임스탬프)
         name_hash = hashlib.md5(request.product_name.encode()).hexdigest()[:8]
