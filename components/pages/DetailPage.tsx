@@ -1326,7 +1326,7 @@ function ProductInputScreen({
                 type="text"
                 value={productUrl}
                 onChange={(e) => onProductUrlChange(e.target.value)}
-                placeholder="SSG, 11번가, G마켓 등 상품 URL 입력..."
+                placeholder="SSG, 11번가, G마켓, 오뚜기몰 등 상품 URL 입력..."
                 className="flex-1 px-6 py-4 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all duration-300 text-lg focus:shadow-lg focus:shadow-purple-500/20"
               />
               <button

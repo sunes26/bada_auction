@@ -899,7 +899,10 @@ def format_new_order_alert(
         'gmarket': 'Ⓖ',
         'auction': 'Ⓐ',
         'homeplus': '🏪',
-        'traders': '🏬'
+        'traders': '🏬',
+        'otokimall': '🍜',
+        'ssg': '🛍️',
+        'cjthemarket': '🥘'
     }
     emoji = market_emoji.get(market.lower(), '📦')
 

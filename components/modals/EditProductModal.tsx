@@ -642,7 +642,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
                   value={formData.sourcing_url}
                   onChange={(e) => setFormData({ ...formData, sourcing_url: e.target.value })}
                   className="flex-1 px-4 py-3 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="예: https://www.11st.co.kr/products/... 또는 G마켓, 쿠팡 등"
+                  placeholder="예: https://www.11st.co.kr/products/... 또는 G마켓, 오뚜기몰 등"
                 />
                 <button
                   type="button"
