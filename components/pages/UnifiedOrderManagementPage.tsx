@@ -424,18 +424,23 @@ export default function UnifiedOrderManagementPage({ isMobile = false }: Unified
         return;
       }
 
-      // 배송지 정보를 로컬스토리지에 저장 (크롬 확장에서 사용)
-      localStorage.setItem('current_order_address', JSON.stringify({
-        name: order.customer_name,
-        phone: order.customer_phone || '',
-        address: order.customer_address || '',
-        bundle_no: order.playauto_order_id || order.order_number
-      }));
+      // 배송지 정보를 클립보드에 복사
+      const addressText = [
+        order.customer_name,
+        order.customer_phone || '',
+        order.customer_address || ''
+      ].filter(Boolean).join('\n');
+
+      try {
+        await navigator.clipboard.writeText(addressText);
+        toast.success('배송지가 클립보드에 복사되었습니다!\n소싱처에서 붙여넣기(Ctrl+V)하세요.');
+      } catch (clipboardError) {
+        console.error('클립보드 복사 실패:', clipboardError);
+        toast.info('배송지 정보:\n' + addressText);
+      }
 
       // 소싱처 링크 열기
       window.open(productMatch.sourcing_url, '_blank');
-
-      toast.info(`${productMatch.sourcing_source}에서 구매를 진행해주세요.\n배송지는 자동으로 입력됩니다.`);
     } catch (error) {
       console.error('구매하기 실패:', error);
       toast.error('구매 처리 중 오류가 발생했습니다');
