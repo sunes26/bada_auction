@@ -673,7 +673,7 @@ export default function SettingsPage() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">소싱처 계정 관리</h2>
-                <p className="text-gray-600">SSG, 트레이더스 등 소싱처 계정을 관리합니다</p>
+                <p className="text-gray-600">SSG, 트레이더스, 오뚜기몰 등 소싱처 계정을 관리합니다</p>
               </div>
 
               {/* 계정 추가 폼 */}
@@ -692,6 +692,7 @@ export default function SettingsPage() {
                       <option value="11st">11번가</option>
                       <option value="gmarket">G마켓</option>
                       <option value="smartstore">스마트스토어</option>
+                      <option value="otokimall">오뚜기몰</option>
                     </select>
                   </div>
                   <div>

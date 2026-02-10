@@ -68,7 +68,7 @@ class ProductMonitor:
             print(f"[FAST] 빠른 추출 시도: {product_url}")
 
             # JavaScript 렌더링이 필요한 사이트 목록
-            js_required_sites = ['ssg.com', '11st.co.kr', 'lotteon.com', 'gsshop.com', 'cjthemarket.com']
+            js_required_sites = ['ssg.com', '11st.co.kr', 'lotteon.com', 'gsshop.com', 'cjthemarket.com', 'otokimall.com']
             needs_js = any(site in product_url for site in js_required_sites)
 
             if needs_js:
@@ -165,6 +165,8 @@ class ProductMonitor:
                 selectors = ['.prodNameBox', 'h1']
             elif 'lotteon.com' in url:
                 selectors = ['h1', '.product-name']
+            elif 'otokimall.com' in url:
+                selectors = ['.prd_name', '.product-name', 'h1', 'h2']
 
             for selector in selectors:
                 elem = soup.select_one(selector)
@@ -265,6 +267,25 @@ class ProductMonitor:
                     text = elem.get_text(strip=True)
                     price = self._parse_price(text)
                     if price and price > 1000:
+                        return price
+
+        elif 'otokimall.com' in url:
+            # 오뚜기몰: hidden input의 data-finalprice 또는 .price 영역
+            price_input = soup.find('input', id='pdPrice')
+            if price_input and price_input.get('data-finalprice'):
+                try:
+                    price = float(price_input['data-finalprice'])
+                    if price > 100:
+                        return price
+                except:
+                    pass
+            selectors = ['.price', '.sale_price', '.prd_price']
+            for selector in selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    text = elem.get_text(strip=True)
+                    price = self._parse_price(text)
+                    if price and price > 100:
                         return price
 
         # 3. 페이지에서 가격 패턴 찾기 (폴백)
@@ -382,6 +403,8 @@ class ProductMonitor:
                 result = self._check_gsshop_status(soup)
             elif 'cjthemarket.com' in product_url:
                 result = self._check_cjthemarket_status(soup)
+            elif 'otokimall.com' in product_url:
+                result = self._check_otokimall_status(soup)
             else:
                 result = self._check_generic_status(soup)
 
@@ -817,6 +840,63 @@ class ProductMonitor:
                 'price': None,
                 'original_price': None,
                 'details': f"CJ더마켓 체크 오류: {str(e)}"
+            }
+
+    def _check_otokimall_status(self, soup: BeautifulSoup) -> Dict:
+        """오뚜기몰 상품 상태 체크"""
+        try:
+            status = 'available'
+            price = self._extract_price(soup, 'otokimall.com')
+
+            # 정가 추출 (할인 전 가격)
+            original_price = None
+
+            # 1. stock 속성으로 재고 확인
+            qty_input = soup.find('input', class_='item_qty_count')
+            if qty_input:
+                stock = qty_input.get('stock', '0')
+                max_qty = qty_input.get('max', '0')
+                try:
+                    if int(stock) <= 0 or int(max_qty) <= 0:
+                        status = 'out_of_stock'
+                except:
+                    pass
+
+            # 2. 구매 버튼 영역에서 품절 확인
+            buy_button_selectors = [
+                '.btn_buy', '.btn_cart',
+                '.buy_btn', '.cart_btn',
+                '[class*="soldout"]',
+            ]
+
+            for selector in buy_button_selectors:
+                elem = soup.select_one(selector)
+                if elem:
+                    elem_text = elem.get_text().lower()
+                    if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
+                        status = 'out_of_stock'
+                        break
+                    if '구매' in elem_text or '장바구니' in elem_text:
+                        if status != 'out_of_stock':  # 재고 체크에서 품절이 아닌 경우에만
+                            status = 'available'
+                        break
+
+            # 3. 가격이 정상 추출되고 품절 표시가 없으면 판매 중
+            if price and price > 100 and status == 'available':
+                print(f"[OTOKIMALL] 가격 {price}원, 판매중으로 판정")
+
+            return {
+                'status': status,
+                'price': price,
+                'original_price': original_price,
+                'details': '정상' if status == 'available' else status
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'price': None,
+                'original_price': None,
+                'details': f"오뚜기몰 체크 오류: {str(e)}"
             }
 
     def _check_generic_status(self, soup: BeautifulSoup) -> Dict:
