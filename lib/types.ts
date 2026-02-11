@@ -54,7 +54,7 @@ export interface MonitoredProduct {
   source: string;
   current_price: number;
   original_price?: number;
-  current_status: 'available' | 'out_of_stock' | 'price_changed' | 'error';
+  current_status: 'available' | 'out_of_stock' | 'discontinued';
   last_checked: string;
   created_at: string;
   check_interval_minutes: number;

@@ -694,13 +694,11 @@ def format_product_unavailable_alert(
     status_emoji = {
         'discontinued': '🚫',
         'out_of_stock': '📦',
-        'unavailable': '❌',
         'error': '⚠️'
     }
     status_text = {
         'discontinued': '판매종료',
-        'out_of_stock': '품절',
-        'unavailable': '접근불가',
+        'out_of_stock': '일시품절',
         'error': '오류'
     }
 
@@ -768,7 +766,6 @@ def format_product_unavailable_alert(
     color_map = {
         'discontinued': 15158332,  # Red
         'out_of_stock': 15844367,  # Orange
-        'unavailable': 10038562,   # Gray
         'error': 16776960          # Yellow
     }
     color = color_map.get(status, 8421504)
@@ -1092,7 +1089,7 @@ def send_notification(
                 product_id=kwargs.get('product_id', 0),
                 product_name=kwargs.get('product_name', ''),
                 sourcing_url=kwargs.get('sourcing_url', ''),
-                status=kwargs.get('status', 'unavailable'),
+                status=kwargs.get('status', 'discontinued'),
                 details=kwargs.get('details', '')
             )
 

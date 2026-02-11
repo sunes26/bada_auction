@@ -59,6 +59,7 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
   const [showEditModal, setShowEditModal] = useState(false);
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');  // 기본 필터: 전체
+  const [sourcingStatusFilter, setSourcingStatusFilter] = useState<'all' | 'available' | 'out_of_stock' | 'discontinued'>('all');  // 소싱처 상태 필터
 
   // 검색 및 정렬
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,6 +151,11 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
       );
     }
 
+    // 소싱처 상태 필터
+    if (sourcingStatusFilter !== 'all') {
+      result = result.filter(p => p.monitored_status === sourcingStatusFilter);
+    }
+
     // 정렬
     result.sort((a, b) => {
       let comparison = 0;
@@ -171,7 +177,7 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
     });
 
     return result;
-  }, [products, searchQuery, sortBy, sortOrder]);
+  }, [products, searchQuery, sortBy, sortOrder, sourcingStatusFilter]);
 
   // 페이지네이션된 상품 목록 (useMemo로 최적화)
   const paginatedProducts = useMemo(() => {
@@ -612,7 +618,9 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
     if (status === 'available') {
       return <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-xs">판매중</span>;
     } else if (status === 'out_of_stock') {
-      return <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs">품절</span>;
+      return <span className="px-2 py-1 bg-orange-100 text-orange-600 rounded-full text-xs">일시품절</span>;
+    } else if (status === 'discontinued') {
+      return <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs">판매종료</span>;
     }
     return <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">{status}</span>;
   }, []);
@@ -700,7 +708,7 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
         {/* 필터 및 일괄 작업 */}
         <div className={`flex items-center gap-4 ${isMobile ? 'flex-col items-start' : 'flex-wrap'}`}>
           <div className="flex items-center gap-2">
-            {!isMobile && <span className="text-sm font-semibold text-gray-700">필터:</span>}
+            {!isMobile && <span className="text-sm font-semibold text-gray-700">판매:</span>}
             <div className="flex gap-2">
               {(['all', 'active', 'inactive'] as const).map((filter) => (
                 <button
@@ -713,6 +721,28 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
                   } ${isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}
                 >
                   {filter === 'all' ? '전체' : filter === 'active' ? '판매중' : '중단'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 소싱처 상태 필터 */}
+          <div className="flex items-center gap-2">
+            {!isMobile && <span className="text-sm font-semibold text-gray-700">소싱:</span>}
+            <div className="flex gap-2">
+              {(['all', 'available', 'out_of_stock', 'discontinued'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setSourcingStatusFilter(filter)}
+                  className={`rounded-lg font-medium transition-all ${
+                    sourcingStatusFilter === filter
+                      ? filter === 'out_of_stock' ? 'bg-orange-500 text-white shadow-md'
+                        : filter === 'discontinued' ? 'bg-red-500 text-white shadow-md'
+                        : 'bg-green-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  } ${isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}
+                >
+                  {filter === 'all' ? '전체' : filter === 'available' ? '정상' : filter === 'out_of_stock' ? '일시품절' : '판매종료'}
                 </button>
               ))}
             </div>

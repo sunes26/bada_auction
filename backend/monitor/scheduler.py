@@ -92,8 +92,8 @@ async def update_selling_products_sourcing_price():
                 new_price = result.get('price')
                 details = result.get('details', '')
 
-                # 판매종료/품절/삭제 상태 감지 시 알림
-                if status in ['discontinued', 'out_of_stock', 'unavailable']:
+                # 판매종료/품절 상태 감지 시 알림
+                if status in ['discontinued', 'out_of_stock']:
                     print(f"[ALERT] ID#{product_id}: 상품 상태 이상 - {status} ({details})")
                     try:
                         from notifications.notifier import send_notification

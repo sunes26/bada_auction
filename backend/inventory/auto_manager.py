@@ -43,7 +43,7 @@ def check_and_update_inventory(
     elif old_status == 'out_of_stock' and new_status == 'available':
         handle_restock(product_id, product_name, current_price)
 
-    # Case 3: 기타 상태 변경 (discontinued, unavailable 등)
+    # Case 3: 기타 상태 변경 (discontinued 등)
     # 현재는 특별한 액션 없음
 
 

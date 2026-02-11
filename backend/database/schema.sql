@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS monitored_products (
     source TEXT NOT NULL,  -- 소싱처(구매처) 마켓: 'traders', 'ssg', '11st', 'gmarket' 등
     current_price REAL,
     original_price REAL,
-    current_status TEXT DEFAULT 'available',  -- 'available', 'out_of_stock', 'discontinued', 'unavailable'
+    current_status TEXT DEFAULT 'available',  -- 'available', 'out_of_stock', 'discontinued'
     last_checked_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

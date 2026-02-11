@@ -840,16 +840,38 @@ class ProductMonitor:
             }
 
     def _check_cjthemarket_status(self, soup: BeautifulSoup) -> Dict:
-        """CJ제일제당 더마켓 상품 상태 체크 - 구매 버튼 영역만 확인"""
+        """CJ제일제당 더마켓 상품 상태 체크"""
         try:
             status = 'available'
             price = self._extract_price(soup, 'cjthemarket.com')
+            details = '정상'
 
-            # 1. 구매 버튼 영역에서 품절 확인
+            # 1. 삭제된 상품 확인 (alert 메시지)
+            page_text = soup.get_text()
+            if '구매할 수 있는 상품이 존재하지 않아요' in page_text:
+                print(f"[CJTHEMARKET] 상품 삭제됨 감지")
+                return {
+                    'status': 'discontinued',
+                    'price': None,
+                    'original_price': None,
+                    'details': '상품이 삭제됨'
+                }
+
+            # 2. 재입고 알림 버튼 확인 → 일시품절
+            restock_btn = soup.select_one('.btn__restock')
+            if restock_btn:
+                print(f"[CJTHEMARKET] 재입고 알림 버튼 감지 → 일시품절")
+                return {
+                    'status': 'out_of_stock',
+                    'price': price,
+                    'original_price': None,
+                    'details': '일시품절 (재입고 알림)'
+                }
+
+            # 3. 구매 버튼 영역에서 상태 확인
             buy_button_selectors = [
-                '.btn-buy',           # 구매 버튼
-                '.btn-cart',          # 장바구니 버튼
-                '.prd-btn',           # 상품 버튼
+                '.btn__default',      # CJ더마켓 기본 버튼
+                '.btn--wrap button',  # 버튼 래퍼 내 버튼
                 '[class*="soldout"]', # 품절 클래스
             ]
 
@@ -859,23 +881,22 @@ class ProductMonitor:
                     elem_text = elem.get_text().lower()
                     if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
                         status = 'out_of_stock'
+                        details = '일시품절'
+                        break
+                    if '판매종료' in elem_text or '판매중지' in elem_text:
+                        status = 'discontinued'
+                        details = '판매종료'
                         break
                     if '구매' in elem_text or '장바구니' in elem_text:
                         status = 'available'
+                        details = '정상'
                         break
-
-            # 2. 가격이 정상 추출되면 판매 중일 가능성 높음
-            if status == 'out_of_stock' and price and price > 1000:
-                buy_btn = soup.select_one('.btn-buy, [class*="btn-buy"]')
-                if buy_btn and '품절' not in buy_btn.get_text().lower():
-                    status = 'available'
-                    print(f"[CJTHEMARKET] 가격 있고 구매버튼 정상 → 판매중으로 판정")
 
             return {
                 'status': status,
                 'price': price,
                 'original_price': None,
-                'details': '정상' if status == 'available' else status
+                'details': details
             }
         except Exception as e:
             return {
