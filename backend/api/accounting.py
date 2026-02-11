@@ -98,19 +98,21 @@ async def get_accounting_dashboard_stats(period: str = "this_month"):
     try:
         # 기간 계산
         today = datetime.now()
+        # end_date는 오늘의 끝(23:59:59)까지 포함
+        today_end = today.replace(hour=23, minute=59, second=59, microsecond=999999)
         if period == "this_month":
             start_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            end_date = today
+            end_date = today_end
         elif period == "last_month":
             last_month = today.replace(day=1) - timedelta(days=1)
             start_date = last_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            end_date = last_month.replace(hour=23, minute=59, second=59)
+            end_date = last_month.replace(hour=23, minute=59, second=59, microsecond=999999)
         elif period == "this_year":
             start_date = today.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            end_date = today
+            end_date = today_end
         else:
             start_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            end_date = today
+            end_date = today_end
 
         with get_session() as session:
             # 1. 총 매출 (주문 데이터에서) - OrderItem이 있는 경우
