@@ -658,7 +658,7 @@ export default function ElectronicsTemplate(props: TemplateProps) {
               fillContainer={false}
               isResizable={false}
               autoFitHeight={true}
-              containerWidth={containerWidths[imageKey] || 100}
+              containerWidth={containerWidths[imageKey] || 85}
               onContainerWidthChange={onContainerWidthChange}
             />
             {onRemoveImageSlot && (
