@@ -273,6 +273,15 @@ class DatabaseWrapper:
             settings = session.query(PlayautoSetting).order_by(PlayautoSetting.setting_key).all()
             return [self._model_to_dict(s) for s in settings]
 
+    def delete_playauto_setting(self, key: str) -> bool:
+        """플레이오토 설정 삭제"""
+        with self.db_manager.get_session() as session:
+            setting = session.query(PlayautoSetting).filter_by(setting_key=key).first()
+            if setting:
+                session.delete(setting)
+                return True
+            return False
+
     # ========================================
     # Category 관련 메서드
     # ========================================

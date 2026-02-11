@@ -202,6 +202,7 @@ async def fetch_playauto_orders(
     page: int = 1,
     limit: int = 100,
     auto_sync: bool = False,
+    force: bool = False,
     # 신규 파라미터 (고급 필터링)
     bundle_yn: bool = False,
     search_key: Optional[str] = None,
@@ -220,6 +221,7 @@ async def fetch_playauto_orders(
         page: 페이지 번호
         limit: 페이지당 항목 수
         auto_sync: 자동 동기화 여부
+        force: 강제 재동기화 여부 (이미 동기화된 주문도 다시 동기화)
         bundle_yn: 묶음 주문 그룹화
         search_key: 검색 필드 (order_name, shop_ord_no 등)
         search_word: 검색어
@@ -243,12 +245,13 @@ async def fetch_playauto_orders(
         start = (page - 1) * limit
 
         # 주문 수집
-        if auto_sync:
-            # 자동 동기화 모드
+        if auto_sync or force:
+            # 자동 동기화 모드 (force=True면 강제 재동기화)
             result = await fetch_and_sync_orders(
                 start_date=start_date,
                 end_date=end_date,
-                market=market
+                market=market,
+                force=force
             )
             synced_count = result.get("synced_count", 0)
             orders = []

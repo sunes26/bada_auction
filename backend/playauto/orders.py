@@ -600,7 +600,8 @@ class PlayautoOrdersAPI:
 async def fetch_and_sync_orders(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    market: Optional[str] = None
+    market: Optional[str] = None,
+    force: bool = False
 ) -> Dict:
     """
     주문 수집 및 로컬 DB 동기화
@@ -609,6 +610,7 @@ async def fetch_and_sync_orders(
         start_date: 시작 날짜 (YYYY-MM-DD)
         end_date: 종료 날짜 (YYYY-MM-DD)
         market: 마켓 필터
+        force: True일 경우 이미 동기화된 주문도 강제로 재동기화
 
     Returns:
         동기화 결과
@@ -635,6 +637,7 @@ async def fetch_and_sync_orders(
         db = get_db()
         synced_count = 0
         fail_count = 0
+        skipped_count = 0
 
         for order_data in result.get("orders", []):
             try:
@@ -642,25 +645,38 @@ async def fetch_and_sync_orders(
                 playauto_order_id = order_data.get("playauto_order_id")
                 existing = db.get_playauto_setting(f"synced_order_{playauto_order_id}")
 
-                if not existing:
-                    # 로컬 DB에 저장
-                    db.sync_playauto_order_to_local(order_data)
-                    # 동기화 완료 표시
-                    db.save_playauto_setting(f"synced_order_{playauto_order_id}", "true")
-                    synced_count += 1
+                if existing and not force:
+                    # 이미 동기화됨 (force가 아니면 건너뜀)
+                    skipped_count += 1
+                    continue
 
-                    # 개별 주문 알림은 제거 (동기화 완료 요약 알림만 발송)
-                    # 주문이 많을 때 알림 폭주 방지
+                # 강제 동기화 시 기존 설정 삭제
+                if force and existing:
+                    db.delete_playauto_setting(f"synced_order_{playauto_order_id}")
+                    print(f"[FORCE] 기존 동기화 설정 삭제: {playauto_order_id}")
+
+                # 로컬 DB에 저장
+                db.sync_playauto_order_to_local(order_data)
+                # 동기화 완료 표시
+                db.save_playauto_setting(f"synced_order_{playauto_order_id}", "true")
+                synced_count += 1
+
+                # 개별 주문 알림은 제거 (동기화 완료 요약 알림만 발송)
+                # 주문이 많을 때 알림 폭주 방지
 
             except Exception as e:
                 print(f"[ERROR] 주문 동기화 실패 ({playauto_order_id}): {e}")
+                import traceback
+                traceback.print_exc()
                 fail_count += 1
 
         return {
             "success": True,
-            "message": f"{synced_count}개 주문 동기화 완료",
+            "message": f"{synced_count}개 주문 동기화 완료" + (f" (강제 재동기화)" if force else ""),
             "total_orders": result.get("total", 0),
-            "synced_count": synced_count
+            "synced_count": synced_count,
+            "skipped_count": skipped_count,
+            "fail_count": fail_count
         }
 
     except Exception as e:
