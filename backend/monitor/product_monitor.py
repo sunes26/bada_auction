@@ -907,53 +907,54 @@ class ProductMonitor:
             }
 
     def _check_otokimall_status(self, soup: BeautifulSoup) -> Dict:
-        """오뚜기몰 상품 상태 체크"""
+        """오뚜기몰 상품 상태 체크 - 명시적 품절 표시만 확인"""
         try:
             status = 'available'
             price = self._extract_price(soup, 'otokimall.com')
-
-            # 정가 추출 (할인 전 가격)
             original_price = None
 
-            # 1. stock 속성으로 재고 확인
-            qty_input = soup.find('input', class_='item_qty_count')
-            if qty_input:
-                stock = qty_input.get('stock', '0')
-                max_qty = qty_input.get('max', '0')
-                try:
-                    if int(stock) <= 0 or int(max_qty) <= 0:
-                        status = 'out_of_stock'
-                except:
-                    pass
+            # 1. 페이지 텍스트에서 명시적 품절/판매종료 확인
+            page_text = soup.get_text()
 
-            # 2. 구매 버튼 영역에서 품절 확인
-            buy_button_selectors = [
-                '.btn_buy', '.btn_cart',
-                '.buy_btn', '.cart_btn',
-                '[class*="soldout"]',
-            ]
+            # 삭제된 상품 확인
+            if '존재하지 않는 상품' in page_text or '삭제된 상품' in page_text:
+                return {
+                    'status': 'discontinued',
+                    'price': None,
+                    'original_price': None,
+                    'details': '상품이 삭제됨'
+                }
 
-            for selector in buy_button_selectors:
-                elem = soup.select_one(selector)
-                if elem:
-                    elem_text = elem.get_text().lower()
-                    if '품절' in elem_text or '일시품절' in elem_text or 'sold out' in elem_text:
-                        status = 'out_of_stock'
-                        break
-                    if '구매' in elem_text or '장바구니' in elem_text:
-                        if status != 'out_of_stock':  # 재고 체크에서 품절이 아닌 경우에만
-                            status = 'available'
-                        break
+            # 2. soldout 클래스 확인 (명시적 품절 표시)
+            soldout_elem = soup.select_one('[class*="soldout"], [class*="sold_out"], .품절')
+            if soldout_elem:
+                print(f"[OTOKIMALL] soldout 클래스 감지 → 일시품절")
+                return {
+                    'status': 'out_of_stock',
+                    'price': price,
+                    'original_price': original_price,
+                    'details': '일시품절'
+                }
 
-            # 3. 가격이 정상 추출되고 품절 표시가 없으면 판매 중
-            if price and price > 100 and status == 'available':
+            # 3. 구매 버튼 텍스트에서 품절 확인
+            buy_buttons = soup.select('button, .btn_buy, .btn_cart, .buy_btn, .cart_btn')
+            for btn in buy_buttons:
+                btn_text = btn.get_text().lower()
+                if '품절' in btn_text or 'sold out' in btn_text:
+                    print(f"[OTOKIMALL] 버튼 텍스트에서 품절 감지")
+                    status = 'out_of_stock'
+                    break
+
+            # 4. 가격이 정상 추출되면 판매 중으로 판정
+            # (stock="0" 속성은 무시 - 실제로는 판매 가능한 경우가 많음)
+            if price and price > 100:
                 print(f"[OTOKIMALL] 가격 {price}원, 판매중으로 판정")
 
             return {
                 'status': status,
                 'price': price,
                 'original_price': original_price,
-                'details': '정상' if status == 'available' else status
+                'details': '정상' if status == 'available' else '일시품절'
             }
         except Exception as e:
             return {
