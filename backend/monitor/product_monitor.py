@@ -876,20 +876,6 @@ class ProductMonitor:
                         'details': '상품이 삭제됨 (페이지 없음)'
                     }
 
-            # 1-3. 상품명 선택자가 없는 경우
-            prd_name = soup.select_one('.prd-name, .product-name, .prd__name')
-            if not prd_name or not prd_name.get_text(strip=True):
-                # 상품 상세 영역도 확인
-                prd_detail = soup.select_one('.prd-detail, .product-detail, .prd__detail')
-                if not prd_detail:
-                    print(f"[CJTHEMARKET] 상품 삭제됨 감지 (상품명/상세 영역 없음)")
-                    return {
-                        'status': 'discontinued',
-                        'price': None,
-                        'original_price': None,
-                        'details': '상품이 삭제됨 (상품 정보 없음)'
-                    }
-
             # 2. 재입고 알림 버튼 확인 → 일시품절
             restock_btn = soup.select_one('.btn__restock')
             if restock_btn:
