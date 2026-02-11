@@ -1115,7 +1115,7 @@ class DatabaseWrapper:
                     # MarketOrderRaw 업데이트
                     existing_raw.order_status = order_status
                     existing_raw.updated_at = datetime.now()
-                    existing_raw.raw_data = json.dumps(order_data, ensure_ascii=False)
+                    existing_raw.raw_data = json.dumps(order_data, ensure_ascii=False, default=str)
 
                     # 기존 Order도 업데이트
                     if existing_raw.local_order_id:
@@ -1136,7 +1136,7 @@ class DatabaseWrapper:
                     playauto_order_id=playauto_order_id,
                     market=market,
                     order_number=order_number,
-                    raw_data=json.dumps(order_data, ensure_ascii=False),
+                    raw_data=json.dumps(order_data, ensure_ascii=False, default=str),
                     order_date=order_date,
                     created_at=datetime.now(),
                     updated_at=datetime.now()
