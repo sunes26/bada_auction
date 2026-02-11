@@ -845,17 +845,50 @@ class ProductMonitor:
             status = 'available'
             price = self._extract_price(soup, 'cjthemarket.com')
             details = '정상'
-
-            # 1. 삭제된 상품 확인 (alert 메시지)
             page_text = soup.get_text()
+
+            # 1. 삭제된 상품 확인 - 여러 패턴 체크
+            # 1-1. alert 메시지
             if '구매할 수 있는 상품이 존재하지 않아요' in page_text:
-                print(f"[CJTHEMARKET] 상품 삭제됨 감지")
+                print(f"[CJTHEMARKET] 상품 삭제됨 감지 (alert 메시지)")
                 return {
                     'status': 'discontinued',
                     'price': None,
                     'original_price': None,
                     'details': '상품이 삭제됨'
                 }
+
+            # 1-2. 상품명이 사이트 이름인 경우 (실제 상품 정보 없음)
+            og_title = soup.find('meta', property='og:title')
+            if og_title:
+                title_content = og_title.get('content', '').strip()
+                invalid_titles = [
+                    'CJ더마켓', 'CJ제일제당 공식몰', 'CJ더마켓 : CJ제일제당 공식몰',
+                    'CJ THE MARKET', 'cjthemarket'
+                ]
+                if any(title_content == invalid or title_content.lower() == invalid.lower()
+                       for invalid in invalid_titles):
+                    print(f"[CJTHEMARKET] 상품 삭제됨 감지 (og:title이 사이트명: {title_content})")
+                    return {
+                        'status': 'discontinued',
+                        'price': None,
+                        'original_price': None,
+                        'details': '상품이 삭제됨 (페이지 없음)'
+                    }
+
+            # 1-3. 상품명 선택자가 없는 경우
+            prd_name = soup.select_one('.prd-name, .product-name, .prd__name')
+            if not prd_name or not prd_name.get_text(strip=True):
+                # 상품 상세 영역도 확인
+                prd_detail = soup.select_one('.prd-detail, .product-detail, .prd__detail')
+                if not prd_detail:
+                    print(f"[CJTHEMARKET] 상품 삭제됨 감지 (상품명/상세 영역 없음)")
+                    return {
+                        'status': 'discontinued',
+                        'price': None,
+                        'original_price': None,
+                        'details': '상품이 삭제됨 (상품 정보 없음)'
+                    }
 
             # 2. 재입고 알림 버튼 확인 → 일시품절
             restock_btn = soup.select_one('.btn__restock')

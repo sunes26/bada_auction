@@ -402,13 +402,51 @@ async def extract_url_info(request: dict):
             thumbnail_url = monitor._extract_thumbnail(soup, product_url)
             print(f"[EXTRACT] 썸네일: {thumbnail_url}")
 
-            # 상태 체크
+            # 상태 체크 - 소스별 전용 함수 사용
             status = 'available'
-            page_text = soup.get_text().lower()
-            if '품절' in page_text or 'sold out' in page_text:
-                status = 'out_of_stock'
-            elif '판매종료' in page_text or '단종' in page_text:
-                status = 'discontinued'
+            status_details = '정상'
+
+            if source == 'cjthemarket':
+                status_result = monitor._check_cjthemarket_status(soup)
+                status = status_result.get('status', 'available')
+                status_details = status_result.get('details', '정상')
+                # 판매종료 상품인 경우 가격/상품명 무효화
+                if status == 'discontinued':
+                    current_price = None
+                    product_name = None
+                print(f"[EXTRACT] CJ더마켓 상태: {status} ({status_details})")
+            elif source == 'otokimall':
+                status_result = monitor._check_otokimall_status(soup)
+                status = status_result.get('status', 'available')
+                status_details = status_result.get('details', '정상')
+                print(f"[EXTRACT] 오뚜기몰 상태: {status} ({status_details})")
+            elif source == 'dongwonmall':
+                status_result = monitor._check_dongwonmall_status(soup)
+                status = status_result.get('status', 'available')
+                status_details = status_result.get('details', '정상')
+                print(f"[EXTRACT] 동원몰 상태: {status} ({status_details})")
+            elif source == 'ssg':
+                status_result = monitor._check_ssg_status(soup)
+                status = status_result.get('status', 'available')
+                status_details = status_result.get('details', '정상')
+                print(f"[EXTRACT] SSG 상태: {status} ({status_details})")
+            elif source == '11st':
+                status_result = monitor._check_11st_status(soup)
+                status = status_result.get('status', 'available')
+                status_details = status_result.get('details', '정상')
+                print(f"[EXTRACT] 11번가 상태: {status} ({status_details})")
+            elif source == 'gsshop':
+                status_result = monitor._check_gsshop_status(soup)
+                status = status_result.get('status', 'available')
+                status_details = status_result.get('details', '정상')
+                print(f"[EXTRACT] GS샵 상태: {status} ({status_details})")
+            else:
+                # 기본 키워드 체크
+                page_text = soup.get_text().lower()
+                if '품절' in page_text or 'sold out' in page_text:
+                    status = 'out_of_stock'
+                elif '판매종료' in page_text or '단종' in page_text:
+                    status = 'discontinued'
         else:
             # 알 수 없는 소스: 범용 추출 시도 (JSON-LD → 메타태그 → Microdata → CSS패턴)
             print(f"[EXTRACT] 범용 추출 모드 시작...")
