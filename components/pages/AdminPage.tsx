@@ -2213,6 +2213,10 @@ function PlayautoCategoryMappingTab() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // 동적 카테고리 구조
+  const [dynamicCategoryStructure, setDynamicCategoryStructure] = useState<Record<string, any>>({});
+  const [isCategoryLoading, setIsCategoryLoading] = useState(true);
+
   // 카테고리 4단계 선택
   const [level1, setLevel1] = useState('');
   const [level2, setLevel2] = useState('');
@@ -2224,15 +2228,40 @@ function PlayautoCategoryMappingTab() {
     playauto_category: ''
   });
 
-  // 카테고리 옵션
-  const level1Options = Object.keys(categoryStructure);
-  const level2Options = level1 ? Object.keys((categoryStructure as any)[level1] || {}) : [];
-  const level3Options = level1 && level2 ? Object.keys((categoryStructure as any)[level1]?.[level2] || {}) : [];
-  const level4Options = level1 && level2 && level3 ? (categoryStructure as any)[level1]?.[level2]?.[level3] || [] : [];
+  // 카테고리 옵션 (동적 구조 사용)
+  const level1Options = Object.keys(dynamicCategoryStructure);
+  const level2Options = level1 ? Object.keys((dynamicCategoryStructure as any)[level1] || {}) : [];
+  const level3Options = level1 && level2 ? Object.keys((dynamicCategoryStructure as any)[level1]?.[level2] || {}) : [];
+  const level4Options = level1 && level2 && level3 ? (dynamicCategoryStructure as any)[level1]?.[level2]?.[level3] || [] : [];
+
+  // 카테고리 구조 로드
+  useEffect(() => {
+    const loadCategoryStructure = async () => {
+      try {
+        setIsCategoryLoading(true);
+        const response = await fetch(`${API_BASE_URL}/api/categories/structure`);
+        if (!response.ok) throw new Error('카테고리 구조 조회 실패');
+        const data = await response.json();
+        if (data.success && data.structure) {
+          setDynamicCategoryStructure(data.structure);
+          console.log('✅ PlayAuto 매핑 탭 - 카테고리 구조 로드 완료');
+        }
+      } catch (err: any) {
+        console.error('카테고리 구조 로드 오류:', err);
+        setError('카테고리 구조를 불러오는데 실패했습니다');
+      } finally {
+        setIsCategoryLoading(false);
+      }
+    };
+
+    loadCategoryStructure();
+  }, []);
 
   useEffect(() => {
-    loadMappings();
-  }, []);
+    if (!isCategoryLoading) {
+      loadMappings();
+    }
+  }, [isCategoryLoading]);
 
   useEffect(() => {
     // 검색 필터 적용
@@ -2370,6 +2399,18 @@ function PlayautoCategoryMappingTab() {
       setLoading(false);
     }
   };
+
+  // 카테고리 로딩 중
+  if (isCategoryLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-4">
+          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+          <p className="text-gray-600">카테고리 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
