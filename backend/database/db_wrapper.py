@@ -1664,12 +1664,16 @@ class DatabaseWrapper:
 
     def _model_to_dict(self, model) -> Dict:
         """SQLAlchemy 모델을 딕셔너리로 변환"""
+        from decimal import Decimal
         result = {}
         for column in model.__table__.columns:
             value = getattr(model, column.name)
             # datetime을 문자열로 변환
             if isinstance(value, datetime):
                 result[column.name] = value.isoformat()
+            # Decimal을 float로 변환 (JSON 직렬화 호환)
+            elif isinstance(value, Decimal):
+                result[column.name] = float(value)
             else:
                 result[column.name] = value
         return result
