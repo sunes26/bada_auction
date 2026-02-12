@@ -66,10 +66,19 @@ class DynamicPricingService:
             logger.info(f"[동적가격] 이전 소싱가: {old_sourcing_price:,}원 → 새 소싱가: {new_sourcing_price:,}원")
             logger.info(f"[동적가격] 현재 판매가: {current_selling_price:,}원 (마진율 {current_margin_rate:.1f}%)")
 
+            # 상품별 마진율 사용 (없으면 기본값 30%)
+            product_target_margin = product.get('target_margin_rate')
+            if product_target_margin is not None:
+                target_margin_rate = float(product_target_margin)
+                logger.info(f"[동적가격] 상품별 마진율 적용: {target_margin_rate:.1f}%")
+            else:
+                target_margin_rate = self.target_margin_rate
+                logger.info(f"[동적가격] 기본 마진율 적용: {target_margin_rate:.1f}%")
+
             # 목표 마진율로 새 판매가 계산
             new_selling_price = calculate_selling_price_with_margin(
                 new_sourcing_price,
-                self.target_margin_rate
+                target_margin_rate
             )
 
             new_margin_rate = calculate_required_margin_rate(
@@ -145,8 +154,9 @@ class DynamicPricingService:
                 "new_selling_price": new_selling_price,
                 "old_margin_rate": round(current_margin_rate, 2),
                 "new_margin_rate": round(new_margin_rate, 2),
+                "target_margin_rate": round(target_margin_rate, 2),
                 "playauto_updated": playauto_updated,
-                "message": f"판매가 자동 조정 완료: {current_selling_price:,}원 → {new_selling_price:,}원"
+                "message": f"판매가 자동 조정 완료: {current_selling_price:,}원 → {new_selling_price:,}원 (마진율 {target_margin_rate:.1f}%)"
             }
 
         except Exception as e:
@@ -186,6 +196,7 @@ class DynamicPricingService:
                         'product_name': row.product_name,
                         'selling_price': float(row.selling_price) if row.selling_price else 0,
                         'sourcing_price': float(row.sourcing_price) if row.sourcing_price else 0,
+                        'target_margin_rate': float(row.target_margin_rate) if row.target_margin_rate else None,
                         'playauto_product_no': row.playauto_product_no
                     })
 
@@ -199,10 +210,13 @@ class DynamicPricingService:
             playauto_updates = []
 
             for product in products:
+                # 상품별 마진율 사용 (없으면 기본값 30%)
+                margin_rate = product.get('target_margin_rate') or self.target_margin_rate
+
                 # 새 판매가 계산
                 new_selling_price = calculate_selling_price_with_margin(
                     product['sourcing_price'],
-                    self.target_margin_rate
+                    margin_rate
                 )
 
                 # 가격이 변경되었으면 업데이트
@@ -216,7 +230,7 @@ class DynamicPricingService:
                     adjusted_count += 1
                     logger.info(
                         f"[동적가격] {product['product_name']}: "
-                        f"{product['selling_price']:,}원 → {new_selling_price:,}원"
+                        f"{product['selling_price']:,}원 → {new_selling_price:,}원 (마진율 {margin_rate:.1f}%)"
                     )
 
                     # 플레이오토 업데이트 목록에 추가

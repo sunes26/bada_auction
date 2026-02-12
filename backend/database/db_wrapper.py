@@ -506,6 +506,7 @@ class DatabaseWrapper:
         c_sale_cd_coupang: Optional[str] = None,
         weight: Optional[str] = None,
         keywords: Optional[str] = None,
+        target_margin_rate: Optional[float] = None,
         is_active: Optional[bool] = None,
         notes: Optional[str] = None
     ):
@@ -557,6 +558,8 @@ class DatabaseWrapper:
                 product.weight = weight
             if keywords is not None:
                 product.keywords = keywords
+            if target_margin_rate is not None:
+                product.target_margin_rate = target_margin_rate
             if is_active is not None:
                 product.is_active = is_active
             if notes is not None:

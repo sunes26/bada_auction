@@ -135,9 +135,10 @@ async def update_selling_products_sourcing_price():
 
                             if adjust_result.get('success') and adjust_result.get('changed'):
                                 price_adjusted_count += 1
-                                print(f"[OK] 판매가 자동 조정: {adjust_result['old_selling_price']:,}원 → {adjust_result['new_selling_price']:,}원 (마진율 {adjust_result['new_margin_rate']}%)")
+                                target_rate = adjust_result.get('target_margin_rate', 30)
+                                print(f"[OK] 판매가 자동 조정: {adjust_result['old_selling_price']:,}원 → {adjust_result['new_selling_price']:,}원 (마진율 {target_rate}%)")
                             else:
-                                print(f"[OK] 판매가 유지 (마진율 30% 이미 적용)")
+                                print(f"[OK] 판매가 유지 (가격 변동 없음)")
 
                         except Exception as e:
                             print(f"[WARN] 판매가 자동 조정 실패: {str(e)}")

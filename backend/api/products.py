@@ -498,9 +498,17 @@ async def update_product(product_id: int, request: UpdateProductRequest):
         if request.product_name and request.product_name != product.get('product_name'):
             playauto_changes['shop_sale_name'] = request.product_name
 
-        # 판매가 변경 확인
+        # 판매가 변경 확인 및 마진율 계산
+        calculated_margin_rate = None
         if request.selling_price is not None and request.selling_price != product.get('selling_price'):
             playauto_changes['sale_price'] = int(request.selling_price)
+
+            # 소싱가가 있으면 마진율 계산하여 저장
+            sourcing_price = product.get('sourcing_price') or 0
+            if sourcing_price > 0:
+                from playauto.products import calculate_required_margin_rate
+                calculated_margin_rate = calculate_required_margin_rate(sourcing_price, request.selling_price)
+                logger.info(f"[상품수정] 판매가 변경에 따른 마진율 저장: {calculated_margin_rate:.2f}%")
 
         # 썸네일 변경 확인
         if request.thumbnail_url and request.thumbnail_url != product.get('thumbnail_url'):
@@ -561,6 +569,7 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             category=request.category,
             thumbnail_url=request.thumbnail_url,
             weight=request.weight,
+            target_margin_rate=calculated_margin_rate,
             is_active=request.is_active,
             sol_cate_no=sol_cate_no,
             notes=request.notes,
