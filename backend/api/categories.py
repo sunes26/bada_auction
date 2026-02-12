@@ -64,11 +64,10 @@ async def get_category_structure():
             ORDER BY level1, level2, level3, level4
         """)
 
-        # SQLite와 PostgreSQL 모두 지원
-        if db_manager.is_sqlite:
-            categories = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
-        else:
-            categories = [dict(row._mapping) for row in cursor.fetchall()]
+        # SQLite와 PostgreSQL 모두 지원 (통일된 방식)
+        columns = [col[0] for col in cursor.description]
+        rows = cursor.fetchall()
+        categories = [dict(zip(columns, row)) for row in rows]
 
         conn.close()
 
@@ -229,21 +228,13 @@ async def get_category_id_mapping():
             ORDER BY folder_number
         """)
 
-        # SQLite와 PostgreSQL 모두 지원
-        if db_manager.is_sqlite:
-            rows = cursor.fetchall()
-            mapping = {}
-            for row in rows:
-                level4_name = row[0]
-                folder_number = str(row[1])
-                mapping[level4_name] = folder_number
-        else:
-            rows = cursor.fetchall()
-            mapping = {}
-            for row in rows:
-                level4_name = row[0]
-                folder_number = str(row[1])
-                mapping[level4_name] = folder_number
+        # SQLite와 PostgreSQL 모두 지원 (통일된 방식)
+        rows = cursor.fetchall()
+        mapping = {}
+        for row in rows:
+            level4_name = row[0]
+            folder_number = str(row[1])
+            mapping[level4_name] = folder_number
 
         conn.close()
 
