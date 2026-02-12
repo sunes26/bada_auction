@@ -40,6 +40,9 @@ export default function DetailPage() {
   const [sourcingPrice, setSourcingPrice] = useState<number | null>(null); // 소싱가 (원가)
   const [sellingPrice, setSellingPrice] = useState<number | null>(null); // 판매가 (30% 마진)
   const [detectedSource, setDetectedSource] = useState<string>(''); // 감지된 마켓
+  const [manualInputRequired, setManualInputRequired] = useState(false); // 수동 입력 필요 여부
+  const [manualInputMessage, setManualInputMessage] = useState(''); // 수동 입력 안내 메시지
+  const [inputType, setInputType] = useState<'auto' | 'manual'>('auto'); // 입력 방식
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
   const [uploadedImages, setUploadedImages] = useState<Record<string, string>>({});
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -173,7 +176,58 @@ export default function DetailPage() {
       }
 
       const result = await response.json();
+
+      // 도매꾹 등 수동 입력 필요한 경우
+      if (result.manual_input_required) {
+        setManualInputRequired(true);
+        setManualInputMessage(result.message || '가격 정보를 직접 입력해주세요.');
+        setInputType('manual');
+
+        // 상품명과 썸네일은 자동 추출된 경우 설정
+        if (result.product_name) {
+          setProductName(result.product_name);
+        }
+        if (result.source) {
+          setDetectedSource(result.source.toUpperCase());
+        }
+
+        // 썸네일 처리
+        if (result.thumbnail) {
+          const finalThumbnailUrl = result.thumbnail;
+          try {
+            const saveResponse = await fetch(`${API_BASE_URL}/api/monitor/save-thumbnail`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                image_url: finalThumbnailUrl,
+                product_name: result.product_name || '상품'
+              }),
+            });
+
+            if (saveResponse.ok) {
+              const saveResult = await saveResponse.json();
+              if (saveResult.success && saveResult.thumbnail_path) {
+                setExtractedThumbnail(saveResult.thumbnail_path);
+              } else {
+                setExtractedThumbnail(finalThumbnailUrl);
+              }
+            } else {
+              setExtractedThumbnail(finalThumbnailUrl);
+            }
+          } catch (uploadError) {
+            console.error('썸네일 업로드 실패:', uploadError);
+            setExtractedThumbnail(finalThumbnailUrl);
+          }
+        }
+
+        return; // 여기서 종료
+      }
+
+      // 일반적인 자동 추출 케이스
       if (result.success && result.data) {
+        setManualInputRequired(false);
+        setInputType('auto');
+
         const { product_name, current_price, source, thumbnail_url } = result.data;
 
         // 상품명 설정
@@ -1087,8 +1141,12 @@ JSON 형식으로 작성하세요:
           sourcingPrice={sourcingPrice}
           sellingPrice={sellingPrice}
           detectedSource={detectedSource}
+          manualInputRequired={manualInputRequired}
+          manualInputMessage={manualInputMessage}
           onProductNameChange={setProductName}
           onProductUrlChange={setProductUrl}
+          onSourcingPriceChange={setSourcingPrice}
+          onSellingPriceChange={setSellingPrice}
           extractedThumbnail={extractedThumbnail}
           isExtractingUrl={isExtractingUrl}
           onExtractUrlInfo={extractUrlInfo}
@@ -1328,8 +1386,12 @@ function ProductInputScreen({
   sourcingPrice,
   sellingPrice,
   detectedSource,
+  manualInputRequired,
+  manualInputMessage,
   onProductNameChange,
   onProductUrlChange,
+  onSourcingPriceChange,
+  onSellingPriceChange,
   extractedThumbnail,
   isExtractingUrl,
   onExtractUrlInfo,
@@ -1391,36 +1453,81 @@ function ProductInputScreen({
                 <span className="text-sm font-semibold text-blue-600">✓ 감지된 마켓: {detectedSource}</span>
               </div>
             )}
+            {manualInputRequired && manualInputMessage && (
+              <div className="mt-4 bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-left">
+                    <h4 className="font-semibold text-yellow-900 mb-1">수동 입력 필요</h4>
+                    <p className="text-sm text-yellow-800">{manualInputMessage}</p>
+                    <p className="text-xs text-yellow-700 mt-2">상품명과 썸네일은 자동으로 추출되었습니다. 아래 가격 정보를 직접 입력해주세요.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 가격 정보 표시 (항상 표시) */}
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border-2 border-blue-200">
             <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-blue-600" />
-              가격 정보 (30% 마진 자동 계산)
+              가격 정보 {manualInputRequired ? '(직접 입력)' : '(30% 마진 자동 계산)'}
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">소싱가 (원가)</p>
-                <p className="text-2xl font-bold text-gray-800">
-                  {sourcingPrice ? `${sourcingPrice.toLocaleString()}원` : '추출 대기 중...'}
-                </p>
+            {manualInputRequired ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <label className="block text-xs text-gray-500 mb-2">소싱가 (원가) *</label>
+                  <input
+                    type="number"
+                    value={sourcingPrice || ''}
+                    onChange={(e) => {
+                      const price = parseFloat(e.target.value);
+                      onSourcingPriceChange(price);
+                      if (price > 0) {
+                        onSellingPriceChange(Math.ceil(price * 1.3));
+                      }
+                    }}
+                    placeholder="소싱가 입력"
+                    className="w-full text-xl font-bold text-gray-800 border-b-2 border-gray-300 focus:border-blue-500 outline-none py-1"
+                  />
+                </div>
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 shadow-lg">
+                  <label className="block text-xs text-white/80 mb-2">판매가 (30% 마진) *</label>
+                  <input
+                    type="number"
+                    value={sellingPrice || ''}
+                    onChange={(e) => onSellingPriceChange(parseFloat(e.target.value))}
+                    placeholder="판매가 입력"
+                    className="w-full text-xl font-bold text-white bg-transparent border-b-2 border-white/50 focus:border-white outline-none py-1 placeholder-white/50"
+                  />
+                </div>
               </div>
-              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 shadow-lg">
-                <p className="text-xs text-white/80 mb-1">판매가 (30% 마진)</p>
-                <p className="text-2xl font-bold text-white">
-                  {sellingPrice ? `${sellingPrice.toLocaleString()}원` : '추출 대기 중...'}
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 bg-white rounded-lg p-3 border border-gray-200">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">순이익 (30% 마진)</span>
-                <span className="font-bold text-green-600">
-                  {sourcingPrice ? `+${Math.ceil(sourcingPrice * 0.3).toLocaleString()}원` : '-'}
-                </span>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">소싱가 (원가)</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {sourcingPrice ? `${sourcingPrice.toLocaleString()}원` : '추출 대기 중...'}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 shadow-lg">
+                    <p className="text-xs text-white/80 mb-1">판매가 (30% 마진)</p>
+                    <p className="text-2xl font-bold text-white">
+                      {sellingPrice ? `${sellingPrice.toLocaleString()}원` : '추출 대기 중...'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 bg-white rounded-lg p-3 border border-gray-200">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">순이익 (30% 마진)</span>
+                    <span className="font-bold text-green-600">
+                      {sourcingPrice ? `+${Math.ceil(sourcingPrice * 0.3).toLocaleString()}원` : '-'}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* 썸네일 미리보기 (항상 표시) */}
@@ -1890,6 +1997,7 @@ function AddProductFromDetailPageModal({
           ship_price: formData.ship_price_type === '선결제' ? parseInt(formData.ship_price) : undefined,  // 배송비
           notes: formData.notes || undefined,
           keywords: keywords.length > 0 ? keywords : undefined,  // 키워드 전송
+          input_type: inputType,  // 입력 방식: auto(자동추출), manual(수동입력)
         }),
       });
 

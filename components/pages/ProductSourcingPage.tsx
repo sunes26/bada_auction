@@ -60,6 +60,7 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');  // 기본 필터: 전체
   const [sourcingStatusFilter, setSourcingStatusFilter] = useState<'all' | 'available' | 'out_of_stock' | 'discontinued'>('all');  // 소싱처 상태 필터
+  const [inputTypeFilter, setInputTypeFilter] = useState<'all' | 'auto' | 'manual'>('all');  // 입력 방식 필터
 
   // 검색 및 정렬
   const [searchQuery, setSearchQuery] = useState('');
@@ -156,6 +157,14 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
       result = result.filter(p => p.monitored_status === sourcingStatusFilter);
     }
 
+    // 입력 방식 필터
+    if (inputTypeFilter !== 'all') {
+      result = result.filter(p => {
+        const productInputType = (p as any).input_type || 'auto';
+        return productInputType === inputTypeFilter;
+      });
+    }
+
     // 정렬
     result.sort((a, b) => {
       let comparison = 0;
@@ -177,7 +186,7 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
     });
 
     return result;
-  }, [products, searchQuery, sortBy, sortOrder, sourcingStatusFilter]);
+  }, [products, searchQuery, sortBy, sortOrder, sourcingStatusFilter, inputTypeFilter]);
 
   // 페이지네이션된 상품 목록 (useMemo로 최적화)
   const paginatedProducts = useMemo(() => {
@@ -748,6 +757,28 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
             </div>
           </div>
 
+          {/* 입력 방식 필터 */}
+          <div className="flex items-center gap-2">
+            {!isMobile && <span className="text-sm font-semibold text-gray-700">입력:</span>}
+            <div className="flex gap-2">
+              {(['all', 'auto', 'manual'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setInputTypeFilter(filter)}
+                  className={`rounded-lg font-medium transition-all ${
+                    inputTypeFilter === filter
+                      ? filter === 'auto' ? 'bg-blue-500 text-white shadow-md'
+                        : filter === 'manual' ? 'bg-purple-500 text-white shadow-md'
+                        : 'bg-gray-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  } ${isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}
+                >
+                  {filter === 'all' ? '전체' : filter === 'auto' ? '⚡자동추출' : '🖊️수동입력'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* 일괄 작업 버튼 - 모바일에서는 숨김 */}
           {!isMobile && selectedIds.length > 0 && (() => {
             // 선택된 상품들의 상태 확인
@@ -798,11 +829,17 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
           })()}
 
           {/* 통계 */}
-          <div className="ml-auto text-sm text-gray-600">
-            검색 결과: <span className="font-bold text-blue-600">{filteredProducts.length}</span>개
-            {filteredProducts.length !== products.length && (
-              <span className="text-gray-400"> / 전체 {products.length}개</span>
-            )}
+          <div className="ml-auto text-sm text-gray-600 flex items-center gap-3">
+            <div>
+              검색 결과: <span className="font-bold text-blue-600">{filteredProducts.length}</span>개
+              {filteredProducts.length !== products.length && (
+                <span className="text-gray-400"> / 전체 {products.length}개</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-blue-600 font-semibold">⚡{products.filter(p => (p as any).input_type !== 'manual').length}</span>
+              <span className="text-purple-600 font-semibold">🖊️{products.filter(p => (p as any).input_type === 'manual').length}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -873,6 +910,14 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
                           >
                             {product.is_active ? '판매중' : '중단'}
                           </button>
+                          {/* 입력 방식 배지 */}
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            (product as any).input_type === 'manual'
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {(product as any).input_type === 'manual' ? '🖊️수동' : '⚡자동'}
+                          </span>
                           {product.sourcing_url && (
                             <a
                               href={product.sourcing_url}
@@ -965,6 +1010,14 @@ export default function ProductSourcingPage({ isMobile = false }: ProductSourcin
                           )}
                           <div>
                             <div className="font-semibold text-gray-900">{product.product_name}</div>
+                            {/* 입력 방식 배지 */}
+                            <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              (product as any).input_type === 'manual'
+                                ? 'bg-purple-100 text-purple-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {(product as any).input_type === 'manual' ? '🖊️수동입력' : '⚡자동추출'}
+                            </span>
                           </div>
                         </div>
                       </td>
