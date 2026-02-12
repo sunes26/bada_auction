@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Download, Sparkles, CheckCircle, ShoppingCart, RefreshCw, Search, ExternalLink, DollarSign, Plus, Tag } from 'lucide-react';
+import { ArrowLeft, Download, Sparkles, CheckCircle, ShoppingCart, RefreshCw, Search, ExternalLink, DollarSign, Plus, Tag, AlertCircle } from 'lucide-react';
 import { templates, getTemplateIcon } from '@/lib/templates';
 import { imageService } from '@/lib/imageService';
 import type { Category, TemplateType } from '@/types';
