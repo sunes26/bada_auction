@@ -34,6 +34,7 @@ class CreateProductRequest(BaseModel):
     keywords: Optional[List[str]] = None  # 검색 키워드 (최대 40개)
     ship_price_type: Optional[str] = '선결제'  # 배송비 타입 (선결제/무료)
     ship_price: Optional[int] = 3000  # 배송비 (선결제인 경우)
+    input_type: Optional[str] = 'auto'  # 입력 방식: auto(자동추출), manual(수동입력)
     notes: Optional[str] = None
 
 
@@ -51,6 +52,7 @@ class UpdateProductRequest(BaseModel):
     thumbnail_url: Optional[str] = None
     weight: Optional[str] = None  # 상품 중량 (쿠팡 옵션용)
     keywords: Optional[List[str]] = None  # 검색 키워드 (최대 40개)
+    input_type: Optional[str] = None  # 입력 방식: auto(자동추출), manual(수동입력)
     is_active: Optional[bool] = None
     notes: Optional[str] = None
     sol_cate_no: Optional[int] = None  # PlayAuto 카테고리 번호 (수동 설정)
@@ -126,6 +128,7 @@ async def create_product(request: CreateProductRequest):
             keywords=keywords_json,
             ship_price_type=request.ship_price_type,
             ship_price=request.ship_price,
+            input_type=request.input_type,
             notes=request.notes
         )
 

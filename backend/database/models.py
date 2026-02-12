@@ -343,6 +343,7 @@ class MySellingProduct(Base):
     target_margin_rate = Column(Numeric(5, 2))  # 개별 목표 마진율 (NULL이면 기본값 30%)
     ship_price_type = Column(Text, default='선결제')  # 배송비 타입 (선결제/무료)
     ship_price = Column(Integer, default=3000)  # 배송비 (선결제인 경우)
+    input_type = Column(Text, default='auto', nullable=False)  # 입력 방식: auto(자동추출), manual(수동입력), semi-auto(반자동)
     is_active = Column(Boolean, default=False)  # 기본값: 중단 (상세페이지 생성기에서 추가된 상품은 중단 상태로 시작)
     created_at = Column(DateTime, default=func.current_timestamp())
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())

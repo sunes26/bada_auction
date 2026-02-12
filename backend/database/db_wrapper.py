@@ -316,6 +316,7 @@ class DatabaseWrapper:
         keywords: Optional[str] = None,
         ship_price_type: Optional[str] = '선결제',
         ship_price: Optional[int] = 3000,
+        input_type: Optional[str] = 'auto',
         notes: Optional[str] = None
     ) -> int:
         """판매 상품 추가"""
@@ -339,6 +340,7 @@ class DatabaseWrapper:
                 keywords=keywords,
                 ship_price_type=ship_price_type,
                 ship_price=ship_price,
+                input_type=input_type,
                 notes=notes
             )
             session.add(product)

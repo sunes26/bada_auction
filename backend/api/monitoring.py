@@ -332,6 +332,8 @@ async def extract_url_info(request: dict):
             source = 'dongwonmall'
         elif 'smartstore.naver.com' in product_url:
             source = 'smartstore'
+        elif 'domeggook.com' in product_url:
+            source = 'domeggook'
         # else: source는 이미 'other'로 설정되어 있음 - 범용 추출 시도
 
         # 스마트스토어 경고
@@ -341,6 +343,40 @@ async def extract_url_info(request: dict):
                 "error": "smartstore_captcha",
                 "message": "네이버 스마트스토어가 CAPTCHA로 자동 접근을 차단했습니다. 상품 정보를 수동으로 입력해주세요."
             }
+
+        # 도매꾹 수동 입력 안내
+        if source == 'domeggook':
+            # 도매꾹 스크래퍼로 상품명만 추출 시도
+            try:
+                from sourcing.domeggook import DomeggookScraper
+                scraper = DomeggookScraper()
+                result = scraper.extract_product_info(product_url)
+
+                product_name = result.get('product_name', '')
+                thumbnail = result.get('thumbnail', '')
+
+                return {
+                    "success": True,
+                    "manual_input_required": True,
+                    "source": "domeggook",
+                    "product_name": product_name,
+                    "thumbnail": thumbnail,
+                    "price": None,
+                    "original_price": None,
+                    "message": "도매꾹은 사업자 전용 사이트로 로그인이 필요합니다. 가격 정보를 직접 입력해주세요.",
+                    "note": "상품명과 썸네일은 자동으로 추출되었습니다. 소싱가와 판매가를 입력해주세요."
+                }
+            except Exception as e:
+                print(f"[DOMEGGOOK] 상품명 추출 실패: {e}")
+                return {
+                    "success": True,
+                    "manual_input_required": True,
+                    "source": "domeggook",
+                    "product_name": "",
+                    "price": None,
+                    "original_price": None,
+                    "message": "도매꾹은 사업자 전용 사이트로 로그인이 필요합니다. 상품 정보를 직접 입력해주세요."
+                }
 
         print(f"[EXTRACT] URL 정보 추출 시작: {product_url}")
         print(f"[EXTRACT] 감지된 소스: {source}")
