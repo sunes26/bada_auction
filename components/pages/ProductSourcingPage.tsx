@@ -1719,10 +1719,12 @@ function AddProductModal({ onClose, onSuccess }: {
   useEffect(() => {
     const loadCategoryStructure = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/categories/structure`);
+        const timestamp = new Date().getTime();
+        const res = await fetch(`${API_BASE_URL}/api/categories/structure?_t=${timestamp}`);
         const data = await res.json();
         if (data.success) {
           setCategoryStructure(data.structure);
+          console.log('✅ ProductSourcingPage - 카테고리 구조 로드 완료');
         }
       } catch (error) {
         console.error('카테고리 로드 실패:', error);
@@ -1730,7 +1732,23 @@ function AddProductModal({ onClose, onSuccess }: {
         setLoadingCategories(false);
       }
     };
+
+    // 초기 로드
     loadCategoryStructure();
+
+    // 페이지가 다시 보일 때 재로드
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 ProductSourcingPage - 페이지 활성화 감지, 카테고리 재로드');
+        loadCategoryStructure();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const level1Options = Object.keys(categoryStructure);
