@@ -67,10 +67,10 @@ export default function DetailPage() {
 
   // 카테고리 구조 로드
   useEffect(() => {
-    const loadCategoryStructure = async () => {
+    const loadCategoryStructure = async (useCache = true) => {
       try {
         setIsCategoryLoading(true);
-        const data = await categoriesApi.getStructure(true);
+        const data = await categoriesApi.getStructure(useCache);
         if (data.success && data.structure) {
           setCategoryStructure(data.structure);
           console.log('✅ 카테고리 구조 로드 완료:', Object.keys(data.structure).length, '개 대분류');
@@ -87,7 +87,22 @@ export default function DetailPage() {
       }
     };
 
-    loadCategoryStructure();
+    // 초기 로드
+    loadCategoryStructure(true);
+
+    // 페이지가 다시 보일 때 (다른 탭에서 돌아올 때) 재로드
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 페이지 활성화 감지 - 카테고리 재로드');
+        loadCategoryStructure(false); // 캐시 무시하고 재로드
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // 외부 클릭 시 편집 모드 해제

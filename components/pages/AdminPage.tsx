@@ -30,7 +30,7 @@ import {
   Tag
 } from 'lucide-react';
 
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, cache } from '@/lib/api';
 import { adminGet, adminPost, adminDelete, adminFetch, adminUpload } from '@/lib/adminApi';
 import { categoryStructure } from '@/lib/categories';
 import { imageService } from '@/lib/imageService';
@@ -788,6 +788,7 @@ function ImagesTab() {
 
         // 캐시 무효화: 새로 추가된 카테고리가 즉시 반영되도록
         imageService.invalidateMappingCache();
+        cache.clearCategories(); // 카테고리 API 캐시 무효화
 
         // 입력 필드 초기화
         setNewFolderName('');
@@ -2239,7 +2240,9 @@ function PlayautoCategoryMappingTab() {
     const loadCategoryStructure = async () => {
       try {
         setIsCategoryLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/categories/structure`);
+        // 캐시 무효화를 위해 timestamp 추가
+        const timestamp = new Date().getTime();
+        const response = await fetch(`${API_BASE_URL}/api/categories/structure?_t=${timestamp}`);
         if (!response.ok) throw new Error('카테고리 구조 조회 실패');
         const data = await response.json();
         if (data.success && data.structure) {
@@ -2254,7 +2257,22 @@ function PlayautoCategoryMappingTab() {
       }
     };
 
+    // 초기 로드
     loadCategoryStructure();
+
+    // 페이지가 다시 보일 때 재로드
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 PlayAuto 매핑 탭 - 페이지 활성화 감지, 카테고리 재로드');
+        loadCategoryStructure();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
