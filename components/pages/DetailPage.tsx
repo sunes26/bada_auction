@@ -1269,6 +1269,7 @@ JSON 형식으로 작성하세요:
           imagePositions={imagePositions}
           textStyles={textStyles}
           templateRef={templateRef}
+          inputType={inputType}
           onClose={() => setShowAddProductModal(false)}
           onSuccess={() => {
             setShowAddProductModal(false);
@@ -1747,6 +1748,7 @@ function AddProductFromDetailPageModal({
   imagePositions,
   textStyles,
   templateRef,
+  inputType,
   onClose,
   onSuccess
 }: {
@@ -1764,6 +1766,7 @@ function AddProductFromDetailPageModal({
   imagePositions: Record<string, { x: number; y: number }>;
   textStyles: Record<string, { fontSize?: string; color?: string; fontWeight?: string; textAlign?: string }>;
   templateRef?: React.RefObject<HTMLDivElement | null>;
+  inputType: 'auto' | 'manual';
   onClose: () => void;
   onSuccess: () => void;
 }) {
