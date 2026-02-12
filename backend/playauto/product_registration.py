@@ -547,7 +547,7 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         "c_sale_cd": product.get("c_sale_cd") or "__AUTO__",
         "sol_cate_no": sol_cate_no,
         "shop_sale_name": product.get("product_name"),
-        "adult_yn": False,
+        "adult_yn": True,
         "sale_price": int(product.get("selling_price", 0)),
         "sale_cnt_limit": 999,
         "site_list": site_list,
