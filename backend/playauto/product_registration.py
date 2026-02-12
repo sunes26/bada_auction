@@ -597,9 +597,9 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
             }
         ],
 
-        # 배송 정보 (선결제 3000원)
-        "ship_price_type": "선결제",
-        "ship_price": 3000,
+        # 배송 정보 (상품별 설정, 기본값: 선결제 3000원)
+        "ship_price_type": product.get("ship_price_type", "선결제"),
+        **({} if product.get("ship_price_type") == "무료" else {"ship_price": product.get("ship_price", 3000)}),
 
         # 가격 정보
         "supply_price": int(product.get("sourcing_price", 0)),

@@ -32,6 +32,8 @@ class CreateProductRequest(BaseModel):
     original_thumbnail_url: Optional[str] = None  # 원본 외부 URL
     weight: Optional[str] = None  # 상품 중량 (쿠팡 옵션용, 예: "500g", "1kg")
     keywords: Optional[List[str]] = None  # 검색 키워드 (최대 40개)
+    ship_price_type: Optional[str] = '선결제'  # 배송비 타입 (선결제/무료)
+    ship_price: Optional[int] = 3000  # 배송비 (선결제인 경우)
     notes: Optional[str] = None
 
 
@@ -122,6 +124,8 @@ async def create_product(request: CreateProductRequest):
             sol_cate_no=sol_cate_no,
             weight=request.weight,
             keywords=keywords_json,
+            ship_price_type=request.ship_price_type,
+            ship_price=request.ship_price,
             notes=request.notes
         )
 

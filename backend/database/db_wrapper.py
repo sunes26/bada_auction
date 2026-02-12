@@ -314,6 +314,8 @@ class DatabaseWrapper:
         ol_shop_no: Optional[str] = None,
         weight: Optional[str] = None,
         keywords: Optional[str] = None,
+        ship_price_type: Optional[str] = '선결제',
+        ship_price: Optional[int] = 3000,
         notes: Optional[str] = None
     ) -> int:
         """판매 상품 추가"""
@@ -335,6 +337,8 @@ class DatabaseWrapper:
                 ol_shop_no=ol_shop_no,
                 weight=weight,
                 keywords=keywords,
+                ship_price_type=ship_price_type,
+                ship_price=ship_price,
                 notes=notes
             )
             session.add(product)
@@ -507,6 +511,8 @@ class DatabaseWrapper:
         weight: Optional[str] = None,
         keywords: Optional[str] = None,
         target_margin_rate: Optional[float] = None,
+        ship_price_type: Optional[str] = None,
+        ship_price: Optional[int] = None,
         is_active: Optional[bool] = None,
         notes: Optional[str] = None
     ):
@@ -560,6 +566,10 @@ class DatabaseWrapper:
                 product.keywords = keywords
             if target_margin_rate is not None:
                 product.target_margin_rate = target_margin_rate
+            if ship_price_type is not None:
+                product.ship_price_type = ship_price_type
+            if ship_price is not None:
+                product.ship_price = ship_price
             if is_active is not None:
                 product.is_active = is_active
             if notes is not None:

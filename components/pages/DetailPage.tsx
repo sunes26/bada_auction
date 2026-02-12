@@ -1617,6 +1617,8 @@ function AddProductFromDetailPageModal({
     sourcing_source: detectedSource.toLowerCase() || '',
     thumbnail_url: extractedThumbnail,
     weight: '',  // 상품 중량 (쿠팡 옵션용)
+    ship_price_type: '선결제' as '선결제' | '무료',  // 배송비 타입
+    ship_price: '3000',  // 배송비 (선결제인 경우)
     notes: '',
   });
   const [keywords, setKeywords] = useState<string[]>([]);
@@ -1848,6 +1850,8 @@ function AddProductFromDetailPageModal({
           category: categoryString,
           detail_page_data: detailPageData,
           weight: formData.weight || undefined,  // 상품 중량 (쿠팡 옵션용)
+          ship_price_type: formData.ship_price_type,  // 배송비 타입
+          ship_price: formData.ship_price_type === '선결제' ? parseInt(formData.ship_price) : undefined,  // 배송비
           notes: formData.notes || undefined,
           keywords: keywords.length > 0 ? keywords : undefined,  // 키워드 전송
         }),
@@ -2080,6 +2084,49 @@ function AddProductFromDetailPageModal({
                   />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* 배송비 설정 */}
+          <div className="bg-white border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-blue-800 mb-3">🚚 배송비 설정</h4>
+            <div className="space-y-3">
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="ship_price_type"
+                    value="선결제"
+                    checked={formData.ship_price_type === '선결제'}
+                    onChange={(e) => setFormData({ ...formData, ship_price_type: e.target.value as '선결제' | '무료' })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm text-gray-700">선결제</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="ship_price_type"
+                    value="무료"
+                    checked={formData.ship_price_type === '무료'}
+                    onChange={(e) => setFormData({ ...formData, ship_price_type: e.target.value as '선결제' | '무료' })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm text-gray-700">무료배송</span>
+                </label>
+              </div>
+              {formData.ship_price_type === '선결제' && (
+                <div>
+                  <label className="text-xs text-gray-600">배송비 (원)</label>
+                  <input
+                    type="number"
+                    value={formData.ship_price}
+                    onChange={(e) => setFormData({ ...formData, ship_price: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                    placeholder="3000"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
