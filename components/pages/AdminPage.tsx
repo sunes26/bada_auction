@@ -33,6 +33,7 @@ import {
 import { API_BASE_URL } from '@/lib/api';
 import { adminGet, adminPost, adminDelete, adminFetch, adminUpload } from '@/lib/adminApi';
 import { categoryStructure } from '@/lib/categories';
+import { imageService } from '@/lib/imageService';
 type TabType = 'dashboard' | 'images' | 'database' | 'logs' | 'settings' | 'cleanup' | 'performance' | 'devtools' | 'activity' | 'mappings' | 'playauto-mappings';
 
 interface SystemStatus {
