@@ -3,9 +3,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Search, Package, RefreshCw, Upload, X, Tag } from 'lucide-react';
 import KeywordEditor from '@/components/ui/KeywordEditor';
-import { categoryStructure } from '@/lib/categories';
 import type { Category } from '@/types';
-import { productsApi, monitorApi, API_BASE_URL } from '@/lib/api';
+import { productsApi, monitorApi, API_BASE_URL, categoriesApi } from '@/lib/api';
 
 interface Product {
   id: number;
@@ -94,10 +93,53 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
   const [keywords, setKeywords] = useState<string[]>(parseKeywords((product as any).keywords));
   const [category, setCategory] = useState<Category>(parseCategory(product.category));
 
+  // 동적 카테고리 구조
+  const [categoryStructure, setCategoryStructure] = useState<Record<string, any>>({});
+  const [isCategoryLoading, setIsCategoryLoading] = useState(true);
+
   // 디버그: keywords state 변경 감지
   useEffect(() => {
     console.log('[EditProductModal] keywords state 변경됨:', keywords.length, '개', keywords);
   }, [keywords]);
+
+  // 카테고리 구조 로드
+  useEffect(() => {
+    const loadCategoryStructure = async (useCache = true) => {
+      try {
+        setIsCategoryLoading(true);
+        const data = await categoriesApi.getStructure(useCache);
+        if (data.success && data.structure) {
+          setCategoryStructure(data.structure);
+          console.log('✅ EditProductModal - 카테고리 구조 로드 완료');
+        } else {
+          setCategoryStructure({});
+        }
+      } catch (error) {
+        console.error('카테고리 구조 로드 오류:', error);
+        setCategoryStructure({});
+      } finally {
+        setIsCategoryLoading(false);
+      }
+    };
+
+    // 초기 로드
+    loadCategoryStructure(true);
+
+    // 페이지가 다시 보일 때 재로드
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 EditProductModal - 페이지 활성화 감지, 카테고리 재로드');
+        loadCategoryStructure(false);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const [loading, setLoading] = useState(false);
   const [extractingUrl, setExtractingUrl] = useState(false);
 
