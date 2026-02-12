@@ -681,10 +681,26 @@ async def save_thumbnail(request: SaveThumbnailRequest):
                 image_url = high_res_url
 
         # 이미지 다운로드 (Railway 환경 고려하여 타임아웃 증가)
+        # URL에 따라 동적으로 Referer 설정 (핫링킹 방지 우회)
+        referer = 'https://www.gmarket.co.kr/'  # 기본값
+        if 'domeggook.com' in image_url:
+            referer = 'https://domeggook.com/'
+        elif 'ssgcdn.com' in image_url or 'ssg.com' in image_url:
+            referer = 'https://www.ssg.com/'
+        elif 'smartstore.naver.com' in image_url or 'shopping.naver.com' in image_url:
+            referer = 'https://smartstore.naver.com/'
+        elif '11st.co.kr' in image_url:
+            referer = 'https://www.11st.co.kr/'
+        elif 'auction.co.kr' in image_url:
+            referer = 'https://www.auction.co.kr/'
+        elif 'coupang.com' in image_url:
+            referer = 'https://www.coupang.com/'
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-            'Referer': 'https://www.gmarket.co.kr/',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Referer': referer,
         }
 
         # 고해상도 URL 먼저 시도, 실패 시 원본 URL
@@ -695,6 +711,15 @@ async def save_thumbnail(request: SaveThumbnailRequest):
         print(f"[DEBUG] 이미지 다운로드 응답: status={response.status_code}, size={len(response.content)}")
 
         if not response.ok:
+            # 403 에러 (핫링킹 방지) 시 원본 URL 그대로 사용
+            if response.status_code == 403:
+                print(f"[WARN] 이미지 다운로드 차단됨 (403) - 원본 URL 그대로 사용")
+                print(f"[WARN] 브라우저에서는 정상적으로 표시될 수 있습니다: {request.image_url}")
+                return {
+                    "success": True,
+                    "thumbnail_path": request.image_url,  # 원본 URL 그대로 반환
+                    "message": "이미지가 핫링킹 방지로 차단되어 원본 URL을 사용합니다"
+                }
             raise HTTPException(status_code=400, detail=f"이미지 다운로드 실패: HTTP {response.status_code}")
 
         # 이미지 열기 및 JPEG 변환 (webp 등 다른 포맷도 JPEG로 통일)
