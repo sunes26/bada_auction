@@ -570,4 +570,44 @@ export const cache = {
   clearNotifications: () => apiCache.clearPattern('/api/monitor/notifications'),
   clearPlayauto: () => apiCache.clearPattern('/api/playauto'),
   clearAccounting: () => apiCache.clearPattern('/api/accounting'),
+  clearCategories: () => apiCache.clearPattern('/api/categories'),
+};
+
+// ============================================
+// Categories API
+// ============================================
+
+export const categoriesApi = {
+  /**
+   * 카테고리 계층 구조 조회 (상세페이지 생성기용)
+   */
+  getStructure: (cache = true) =>
+    apiCall<{ success: boolean; structure: Record<string, any> }>(
+      '/api/categories/structure',
+      { useCache: cache, cacheTTL: 300000 } // 5분 캐싱
+    ),
+
+  /**
+   * level4 카테고리명 -> folder_number 매핑 조회
+   */
+  getIdMapping: (cache = true) =>
+    apiCall<{ success: boolean; mapping: Record<string, string> }>(
+      '/api/categories/id-mapping',
+      { useCache: cache, cacheTTL: 300000 } // 5분 캐싱
+    ),
+
+  /**
+   * 계층별 카테고리 옵션 조회
+   */
+  getLevels: (level1?: string, level2?: string, level3?: string, cache = true) => {
+    const params = new URLSearchParams();
+    if (level1) params.append('level1', level1);
+    if (level2) params.append('level2', level2);
+    if (level3) params.append('level3', level3);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiCall<{ success: boolean; options: any[] }>(
+      `/api/categories/levels${query}`,
+      { useCache: cache, cacheTTL: 300000 }
+    );
+  },
 };

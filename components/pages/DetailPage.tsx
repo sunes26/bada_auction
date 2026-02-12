@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowLeft, Download, Sparkles, CheckCircle, ShoppingCart, RefreshCw, Search, ExternalLink, DollarSign, Plus, Tag } from 'lucide-react';
-import { categoryStructure } from '@/lib/categories';
 import { templates, getTemplateIcon } from '@/lib/templates';
 import { imageService } from '@/lib/imageService';
 import type { Category, TemplateType } from '@/types';
@@ -16,7 +15,7 @@ import StationeryTemplate from '@/components/templates/StationeryTemplate';
 import TextStyleEditor from '@/components/templates/TextStyleEditor';
 import PropertiesPanel from '@/components/ui/PropertiesPanel';
 import KeywordEditor from '@/components/ui/KeywordEditor';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, categoriesApi } from '@/lib/api';
 
 type Screen = 'category-selection' | 'product-input' | 'generating' | 'result';
 
@@ -29,6 +28,11 @@ export default function DetailPage() {
   const [screen, setScreen] = useState<Screen>('category-selection');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateType | null>(null);
   const [category, setCategory] = useState<Category>({ level1: '', level2: '', level3: '', level4: '' });
+
+  // 동적 카테고리 구조 state 추가
+  const [categoryStructure, setCategoryStructure] = useState<Record<string, any>>({});
+  const [isCategoryLoading, setIsCategoryLoading] = useState(true);
+
   const [productName, setProductName] = useState('');
   const [productUrl, setProductUrl] = useState('');
   const [isExtractingUrl, setIsExtractingUrl] = useState(false);
@@ -57,6 +61,31 @@ export default function DetailPage() {
   const [containerWidths, setContainerWidths] = useState<Record<string, number>>({}); // 컨테이너 가로 크기 (%)
   const [hiddenSections, setHiddenSections] = useState<Record<string, boolean>>({}); // 숨겨진(삭제된) 섹션
   const templateRef = useRef<HTMLDivElement>(null);
+
+  // 카테고리 구조 로드
+  useEffect(() => {
+    const loadCategoryStructure = async () => {
+      try {
+        setIsCategoryLoading(true);
+        const data = await categoriesApi.getStructure(true);
+        if (data.success && data.structure) {
+          setCategoryStructure(data.structure);
+          console.log('✅ 카테고리 구조 로드 완료:', Object.keys(data.structure).length, '개 대분류');
+        } else {
+          console.error('카테고리 구조 로드 실패');
+          // 폴백: 빈 객체 사용
+          setCategoryStructure({});
+        }
+      } catch (error) {
+        console.error('카테고리 구조 로드 오류:', error);
+        setCategoryStructure({});
+      } finally {
+        setIsCategoryLoading(false);
+      }
+    };
+
+    loadCategoryStructure();
+  }, []);
 
   // 외부 클릭 시 편집 모드 해제
   const handleOutsideClick = (e: React.MouseEvent) => {
@@ -1029,7 +1058,14 @@ JSON 형식으로 작성하세요:
 
   return (
     <div className="w-full">
-      {screen === 'category-selection' && (
+      {screen === 'category-selection' && isCategoryLoading ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-gray-600">카테고리 정보를 불러오는 중...</p>
+          </div>
+        </div>
+      ) : screen === 'category-selection' ? (
         <CategorySelectionScreen
           category={category}
           level1Options={level1Options}
@@ -1041,7 +1077,7 @@ JSON 형식으로 작성하세요:
           onCategoryChange={handleCategoryChange}
           onTemplateSelect={handleTemplateSelect}
         />
-      )}
+      ) : null}
 
       {screen === 'product-input' && (
         <ProductInputScreen

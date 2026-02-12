@@ -784,6 +784,10 @@ function ImagesTab() {
       const data = await adminPost(`/api/admin/images/create-folder?${params}`);
       if (data.success) {
         alert(data.message);
+
+        // 캐시 무효화: 새로 추가된 카테고리가 즉시 반영되도록
+        imageService.invalidateMappingCache();
+
         // 입력 필드 초기화
         setNewFolderName('');
         setNewLevel1('');

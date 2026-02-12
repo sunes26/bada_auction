@@ -1,15 +1,59 @@
-import { categoryIdMapping } from './categories';
 import type { Category } from '@/types';
 import { adminGet } from './adminApi';
+import { categoriesApi } from './api';
 
 class ImageService {
   private static instance: ImageService;
+  private categoryIdMappingCache: Record<string, string> | null = null;
+  private mappingLoadPromise: Promise<Record<string, string>> | null = null;
 
   static getInstance(): ImageService {
     if (!ImageService.instance) {
       ImageService.instance = new ImageService();
     }
     return ImageService.instance;
+  }
+
+  /**
+   * 동적으로 categoryIdMapping 로드 (싱글톤 캐싱)
+   */
+  async getCategoryIdMapping(): Promise<Record<string, string>> {
+    // 이미 로드된 경우
+    if (this.categoryIdMappingCache) {
+      return this.categoryIdMappingCache;
+    }
+
+    // 로딩 중인 경우 기존 Promise 반환
+    if (this.mappingLoadPromise) {
+      return this.mappingLoadPromise;
+    }
+
+    // 새로운 로드 시작
+    this.mappingLoadPromise = (async () => {
+      try {
+        const data = await categoriesApi.getIdMapping(true);
+        if (data.success && data.mapping) {
+          this.categoryIdMappingCache = data.mapping;
+          return data.mapping;
+        }
+        throw new Error('Failed to load category ID mapping');
+      } catch (error) {
+        console.error('Error loading category ID mapping:', error);
+        // 폴백: 빈 객체 반환
+        return {};
+      } finally {
+        this.mappingLoadPromise = null;
+      }
+    })();
+
+    return this.mappingLoadPromise;
+  }
+
+  /**
+   * 캐시 무효화 (폴더 추가 시 호출)
+   */
+  invalidateMappingCache(): void {
+    this.categoryIdMappingCache = null;
   }
 
   async getImagesFromFolder(folderId: string): Promise<string[]> {
@@ -46,6 +90,9 @@ class ImageService {
 
   async getAutoImages(category: Category): Promise<Record<string, string>> {
     const { level4 } = category;
+
+    // 동적으로 매핑 로드
+    const categoryIdMapping = await this.getCategoryIdMapping();
     const folderId = categoryIdMapping[level4];
 
     if (!folderId) {
@@ -85,7 +132,8 @@ class ImageService {
     return result;
   }
 
-  getFolderPath(categoryName: string): string | null {
+  async getFolderPath(categoryName: string): Promise<string | null> {
+    const categoryIdMapping = await this.getCategoryIdMapping();
     return categoryIdMapping[categoryName] || null;
   }
 }

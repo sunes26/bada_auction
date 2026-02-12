@@ -212,6 +212,49 @@ async def get_next_folder_number():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/id-mapping")
+@async_cached(ttl=300)  # 5분 캐싱
+async def get_category_id_mapping():
+    """
+    level4 카테고리명 -> folder_number 매핑 조회
+    (imageService.ts의 categoryIdMapping 대체용)
+    """
+    try:
+        db_manager = get_database_manager()
+        conn = db_manager.engine.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT level4, folder_number
+            FROM categories
+            ORDER BY folder_number
+        """)
+
+        # SQLite와 PostgreSQL 모두 지원
+        if db_manager.is_sqlite:
+            rows = cursor.fetchall()
+            mapping = {}
+            for row in rows:
+                level4_name = row[0]
+                folder_number = str(row[1])
+                mapping[level4_name] = folder_number
+        else:
+            rows = cursor.fetchall()
+            mapping = {}
+            for row in rows:
+                level4_name = row[0]
+                folder_number = str(row[1])
+                mapping[level4_name] = folder_number
+
+        conn.close()
+
+        return {
+            "success": True,
+            "mapping": mapping
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/distinct-values")
 @async_cached(ttl=300)  # 5분 캐싱
 async def get_distinct_category_values():

@@ -1,3 +1,15 @@
+/**
+ * @deprecated
+ * 이 파일은 더 이상 사용되지 않습니다.
+ * 대신 `/api/categories/structure` 및 `/api/categories/id-mapping` API를 사용하세요.
+ *
+ * - categoryStructure는 categoriesApi.getStructure()로 대체됨
+ * - categoryIdMapping은 categoriesApi.getIdMapping()로 대체됨
+ *
+ * 하위 호환성을 위해 파일은 유지되지만, 새로운 코드에서는 사용하지 마세요.
+ * 모든 카테고리 데이터는 이제 데이터베이스에서 동적으로 관리됩니다.
+ */
+
 // 카테고리 ID 매핑 (148개 - supabase-images 폴더와 일치)
 export const categoryIdMapping: Record<string, string> = {
   흰밥: "1", 흑미: "2", 잡곡: "3", 현미: "4", 렌틸콩현미: "5",
