@@ -2126,15 +2126,7 @@ function AddProductFromDetailPageModal({
         }
       }
 
-      // 옵션 데이터를 변환 (opt_name, opt_value → opt_sortN, opt_sortN_desc)
-      const convertOptions = (opts: any[]) => {
-        const result: any = { stock_cnt: opts[0]?.stock_cnt || 999, status: '정상' };
-        opts.forEach((opt, index) => {
-          result[`opt_sort${index + 1}`] = opt.opt_name;
-          result[`opt_sort${index + 1}_desc`] = opt.opt_value;
-        });
-        return result;
-      };
+      // 옵션은 원본 형태로 DB에 저장 (PlayAuto API 호출 시에만 변환)
 
       // 상품 등록 API 호출
       const response = await fetch(`${API_BASE_URL}/api/products/create`, {
@@ -2157,12 +2149,10 @@ function AddProductFromDetailPageModal({
           notes: formData.notes || undefined,
           keywords: keywords.length > 0 ? keywords : undefined,  // 키워드 전송
           input_type: inputType,  // 입력 방식: auto(자동추출), manual(수동입력)
-          // 마켓별 옵션 저장 (JSON)
-          // gmk, smart: 각 옵션을 개별 객체로 (독립형은 옵션마다 별도 등록)
-          // coupang: 모든 옵션을 하나의 객체로 (조합형은 하나로 묶음)
-          gmk_opts: gmkOpts.length > 0 ? JSON.stringify(gmkOpts.map(opt => convertOptions([opt]))) : undefined,
-          coupang_opts: coupangOpts.length > 0 ? JSON.stringify([convertOptions(coupangOpts)]) : undefined,
-          smart_opts: smartOpts.length > 0 ? JSON.stringify(smartOpts.map(opt => convertOptions([opt]))) : undefined,
+          // 마켓별 옵션 저장 (원본 형태 그대로 저장)
+          gmk_opts: gmkOpts.length > 0 ? JSON.stringify(gmkOpts) : undefined,
+          coupang_opts: coupangOpts.length > 0 ? JSON.stringify(coupangOpts) : undefined,
+          smart_opts: smartOpts.length > 0 ? JSON.stringify(smartOpts) : undefined,
         }),
       });
 

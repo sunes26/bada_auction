@@ -502,26 +502,26 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         gmk_opts_json = product.get("gmk_opts")
 
         if gmk_opts_json:
-            # 옵션이 있으면 독립형으로 처리
+            # 옵션이 있으면 조합형 단일상품으로 처리
             try:
                 gmk_opts_list = json.loads(gmk_opts_json)
 
-                # 독립형: 각 옵션이 개별 객체
+                # 조합형: 여러 옵션을 하나의 객체로 합침
                 # DB 형태: [{"opt_name": "색상", "opt_value": "빨강", "stock_cnt": 999}, ...]
-                # API 형태: [{"opt_sort1": "색상", "opt_sort1_desc": "빨강", "stock_cnt": 999, "status": "정상"}, ...]
-                converted_opts = []
-                for opt in gmk_opts_list:
-                    converted_opts.append({
-                        "opt_sort1": opt.get("opt_name", ""),
-                        "opt_sort1_desc": opt.get("opt_value", ""),
-                        "stock_cnt": opt.get("stock_cnt", 999),
-                        "status": "정상"
-                    })
+                # API 형태: [{"opt_sort1": "색상", "opt_sort1_desc": "빨강", "opt_sort2": "사이즈", "opt_sort2_desc": "L", "stock_cnt": 999, "status": "정상"}]
+                combined_opt = {
+                    "stock_cnt": gmk_opts_list[0].get("stock_cnt", 999) if gmk_opts_list else 999,
+                    "status": "정상"
+                }
+
+                for idx, opt in enumerate(gmk_opts_list, start=1):
+                    combined_opt[f"opt_sort{idx}"] = opt.get("opt_name", "")
+                    combined_opt[f"opt_sort{idx}_desc"] = opt.get("opt_value", "")
 
                 std_ol_yn = "Y"
                 opt_type = "조합형"
-                opts = converted_opts
-                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=조합형, 옵션 {len(opts)}개")
+                opts = [combined_opt]
+                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=조합형 (단일상품), 옵션 {len(gmk_opts_list)}개 조합")
             except Exception as e:
                 logger.error(f"[플레이오토] 지마켓/옥션 옵션 파싱 실패: {e}")
                 std_ol_yn = "Y"

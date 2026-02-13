@@ -611,15 +611,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
       console.log('[상품수정] keywords.length:', keywords.length);
       console.log('[상품수정] 전송 여부:', keywords.length > 0 ? '전송함' : '전송 안함 (undefined)');
 
-      // 옵션 데이터 변환 (opt_name, opt_value → opt_sortN, opt_sortN_desc)
-      const convertOptions = (opts: any[]) => {
-        const result: any = { stock_cnt: opts[0]?.stock_cnt || 999, status: '정상' };
-        opts.forEach((opt: any, index: number) => {
-          result[`opt_sort${index + 1}`] = opt.opt_name;
-          result[`opt_sort${index + 1}_desc`] = opt.opt_value;
-        });
-        return result;
-      };
+      // 옵션은 원본 형태로 DB에 저장 (PlayAuto API 호출 시에만 변환)
 
       // 공통 API 클라이언트 사용
       const data = await productsApi.update(product.id, {
@@ -638,10 +630,10 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
         c_sale_cd_smart: formData.c_sale_cd_smart || undefined,
         c_sale_cd_coupang: formData.c_sale_cd_coupang || undefined,
         keywords: keywords.length > 0 ? keywords : undefined,  // 키워드 전송
-        // 마켓별 옵션 저장 (JSON)
-        gmk_opts: gmkOpts.length > 0 ? JSON.stringify(gmkOpts.map(opt => convertOptions([opt]))) : undefined,
-        coupang_opts: coupangOpts.length > 0 ? JSON.stringify([convertOptions(coupangOpts)]) : undefined,
-        smart_opts: smartOpts.length > 0 ? JSON.stringify(smartOpts.map(opt => convertOptions([opt]))) : undefined,
+        // 마켓별 옵션 저장 (원본 형태 그대로 저장)
+        gmk_opts: gmkOpts.length > 0 ? JSON.stringify(gmkOpts) : undefined,
+        coupang_opts: coupangOpts.length > 0 ? JSON.stringify(coupangOpts) : undefined,
+        smart_opts: smartOpts.length > 0 ? JSON.stringify(smartOpts) : undefined,
       });
 
       if (data.success) {
