@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SonicPure X1 - 프리미엄 노이즈 캔슬링 헤드폰</title>
+    <!-- Tailwind CSS (디자인 프레임워크) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome (아이콘) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans KR) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        /* 스크롤 부드럽게 */
+        html {
+            scroll-behavior: smooth;
+        }
+        /* 수량 버튼 스피너 제거 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        /* 모바일 하단 구매바 애니메이션 */
+        .slide-up {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        /* 페이드인 효과 */
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-800 antialiased">
+
+    <!-- 상단 네비게이션 (헤더) -->
+    <header class="sticky top-0 z-50 bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- 로고 -->
+                <div class="flex-shrink-0 flex items-center cursor-pointer">
+                    <span class="text-2xl font-black tracking-tighter text-indigo-600">STORE.</span>
+                </div>
+                <!-- 메뉴 (데스크탑) -->
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#" class="text-gray-900 font-medium hover:text-indigo-600">BEST</a>
+                    <a href="#" class="text-gray-500 font-medium hover:text-indigo-600">신상품</a>
+                    <a href="#" class="text-gray-500 font-medium hover:text-indigo-600">기획전</a>
+                    <a href="#" class="text-gray-500 font-medium hover:text-indigo-600">이벤트</a>
+                </nav>
+                <!-- 아이콘 -->
+                <div class="flex items-center space-x-5 text-gray-500">
+                    <button class="hover:text-indigo-600"><i class="fas fa-search text-xl"></i></button>
+                    <button class="hover:text-indigo-600 relative">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span id="cart-badge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center opacity-0 transition-opacity">1</span>
+                    </button>
+                    <button class="hover:text-indigo-600"><i class="far fa-user text-xl"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 상품 메인 섹션 (Above the Fold) -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-x-12 lg:items-start">
+            
+            <!-- 왼쪽: 이미지 갤러리 -->
+            <div class="flex flex-col-reverse lg:flex-row gap-4">
+                <!-- 썸네일 -->
+                <div class="flex lg:flex-col gap-3 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 w-full lg:w-20 shrink-0">
+                    <button onclick="changeImage(this, 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80')" class="thumbnail-btn border-2 border-indigo-600 rounded-lg overflow-hidden h-20 w-20 relative">
+                        <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=200&q=80" class="object-cover w-full h-full" alt="썸네일1">
+                    </button>
+                    <button onclick="changeImage(this, 'https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=800&q=80')" class="thumbnail-btn border-2 border-transparent hover:border-gray-300 rounded-lg overflow-hidden h-20 w-20 relative">
+                        <img src="https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=200&q=80" class="object-cover w-full h-full" alt="썸네일2">
+                    </button>
+                    <button onclick="changeImage(this, 'https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=800&q=80')" class="thumbnail-btn border-2 border-transparent hover:border-gray-300 rounded-lg overflow-hidden h-20 w-20 relative">
+                        <img src="https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=200&q=80" class="object-cover w-full h-full" alt="썸네일3">
+                    </button>
+                </div>
+                <!-- 메인 이미지 -->
+                <div class="w-full aspect-square bg-gray-100 rounded-xl overflow-hidden relative group">
+                    <img id="main-image" src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80" alt="상품 메인 이미지" class="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105">
+                    <div class="absolute top-4 right-4">
+                        <button class="bg-white/80 p-2 rounded-full shadow hover:text-red-500 transition-colors">
+                            <i class="far fa-heart text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 오른쪽: 상품 정보 및 구매 옵션 -->
+            <div class="mt-8 lg:mt-0 lg:sticky lg:top-24">
+                <!-- 브랜드 & 타이틀 -->
+                <div class="mb-6">
+                    <p class="text-sm text-indigo-600 font-bold mb-1">SONICPURE</p>
+                    <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl mb-2">SonicPure X1 노이즈 캔슬링</h1>
+                    <div class="flex items-center space-x-2">
+                        <div class="flex text-yellow-400 text-sm">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                        </div>
+                        <span class="text-sm text-gray-500 underline decoration-gray-300 cursor-pointer">리뷰 1,248개 보기</span>
+                    </div>
+                </div>
+
+                <!-- 가격 -->
+                <div class="mb-6 pb-6 border-b border-gray-100">
+                    <div class="flex items-baseline space-x-3">
+                        <span class="text-3xl font-black text-gray-900">289,000<span class="text-xl font-normal">원</span></span>
+                        <span class="text-lg text-gray-400 line-through">350,000원</span>
+                        <span class="text-lg font-bold text-red-500">17%</span>
+                    </div>
+                    <!-- 혜택 뱃지 -->
+                    <div class="mt-3 flex gap-2">
+                        <span class="px-2 py-1 bg-gray-100 text-xs font-semibold text-gray-600 rounded">무료배송</span>
+                        <span class="px-2 py-1 bg-indigo-50 text-xs font-semibold text-indigo-600 rounded">N페이 적립</span>
+                        <span class="px-2 py-1 bg-red-50 text-xs font-semibold text-red-600 rounded">쿠폰할인</span>
+                    </div>
+                </div>
+
+                <!-- 옵션 선택 -->
+                <div class="space-y-5">
+                    <!-- 컬러 -->
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 mb-2">컬러 선택: <span id="selected-color-name" class="font-bold text-indigo-600">미드나잇 블랙</span></h3>
+                        <div class="flex space-x-3">
+                            <button onclick="selectColor(this, '미드나잇 블랙')" class="color-btn w-10 h-10 rounded-full bg-gray-900 ring-2 ring-offset-2 ring-indigo-600 focus:outline-none shadow-sm"></button>
+                            <button onclick="selectColor(this, '클라우드 화이트')" class="color-btn w-10 h-10 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 hover:ring-2 hover:ring-gray-300 shadow-sm"></button>
+                            <button onclick="selectColor(this, '로즈 골드')" class="color-btn w-10 h-10 rounded-full bg-pink-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 hover:ring-2 hover:ring-pink-300 shadow-sm"></button>
+                        </div>
+                    </div>
+
+                    <!-- 수량 -->
+                    <div class="flex items-center justify-between border border-gray-300 rounded-lg p-2 w-32">
+                        <button onclick="updateQuantity(-1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded">-</button>
+                        <input type="number" id="quantity" value="1" readonly class="w-10 text-center font-semibold text-gray-900 focus:outline-none">
+                        <button onclick="updateQuantity(1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded">+</button>
+                    </div>
+
+                    <!-- 총 금액 -->
+                    <div class="flex justify-between items-center py-4 border-t border-gray-100">
+                        <span class="font-medium text-gray-900">총 상품 금액</span>
+                        <span class="text-2xl font-black text-indigo-600"><span id="total-price">289,000</span>원</span>
+                    </div>
+
+                    <!-- CTA 버튼 (데스크탑) -->
+                    <div class="hidden md:grid grid-cols-2 gap-3">
+                        <button class="w-full bg-white border border-gray-300 text-gray-700 py-4 px-8 rounded-lg font-bold hover:bg-gray-50 transition-colors">
+                            장바구니
+                        </button>
+                        <button onclick="addToCart()" class="w-full bg-indigo-600 text-white py-4 px-8 rounded-lg font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
+                            구매하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 스티키 헤더 (단일 탭) -->
+    <div id="sticky-header" class="sticky top-16 z-40 bg-white border-y border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-center h-14">
+                <span class="text-gray-900 font-bold border-b-2 border-gray-900 h-full flex items-center px-4">상품 상세 정보</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상세 콘텐츠 영역 -->
+    <div class="bg-white pb-24">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-32">
+            
+            <!-- Intro Section -->
+            <section class="text-center fade-in-up">
+                <p class="text-indigo-600 font-bold tracking-widest mb-4 uppercase">Silence Redefined</p>
+                <h2 class="text-4xl md:text-6xl font-black text-gray-900 mb-8 leading-tight">세상의 소음을 끄고<br>오직 음악만 남기다.</h2>
+                <p class="text-xl text-gray-500 max-w-2xl mx-auto mb-12 font-light">
+                    SonicPure X1은 당신이 어디에 있든, 가장 완벽한 청취 환경을 제공합니다.<br>
+                    압도적인 몰입감을 지금 경험해보세요.
+                </p>
+                <div class="rounded-3xl overflow-hidden shadow-2xl">
+                    <img src="https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=1200&q=80" alt="라이프스타일" class="w-full h-auto transform hover:scale-105 transition-transform duration-700">
+                </div>
+            </section>
+
+            <!-- Feature 1: Sound Quality -->
+            <section class="flex flex-col md:flex-row items-center gap-12 md:gap-20">
+                <div class="w-full md:w-1/2 rounded-2xl overflow-hidden shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80" alt="드라이버" class="w-full h-full object-cover">
+                </div>
+                <div class="w-full md:w-1/2 space-y-6">
+                    <div class="w-12 h-12 bg-gray-900 text-white rounded-lg flex items-center justify-center text-xl mb-4">
+                        <i class="fas fa-music"></i>
+                    </div>
+                    <h3 class="text-3xl md:text-4xl font-bold text-gray-900">원음 그대로의 감동<br>40mm HD 드라이버</h3>
+                    <p class="text-gray-600 leading-relaxed text-lg">
+                        정밀하게 튜닝된 40mm 다이내믹 드라이버가 깊고 풍부한 저음부터 
+                        섬세한 고음까지 완벽한 밸런스를 선사합니다. 
+                        스튜디오에서 아티스트가 의도한 사운드를 그대로 느껴보세요.
+                    </p>
+                    <ul class="space-y-3 mt-4 text-gray-500 font-medium">
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-indigo-600"></i> Hi-Res Audio 인증</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-indigo-600"></i> 왜곡 없는 선명한 사운드</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-indigo-600"></i> 공간감 있는 스테레오 분리도</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Feature 2: Noise Cancellation (Dark Mode Block) -->
+            <section class="bg-gray-900 rounded-3xl p-10 md:p-16 text-white text-center shadow-xl relative overflow-hidden group">
+                <!-- Background Decoration -->
+                <div class="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
+                     <img src="https://images.unsplash.com/photo-1557683311-eac922347aa1?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover">
+                </div>
+
+                <div class="relative z-10 max-w-3xl mx-auto">
+                    <div class="inline-block px-4 py-1 border border-indigo-400 text-indigo-300 rounded-full text-sm font-bold mb-6">ANC PRO TECHNOLOGY</div>
+                    <h3 class="text-3xl md:text-5xl font-bold mb-6">주변 소음 99.8% 차단</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed mb-10">
+                        지하철, 비행기, 시끄러운 카페에서도 나만의 공간을 만드세요.<br>
+                        업그레이드된 4개의 마이크가 외부 소음을 실시간으로 분석하여 제거합니다.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+                            <i class="fas fa-volume-mute text-3xl mb-3 text-indigo-400"></i>
+                            <h4 class="text-xl font-bold mb-2">노이즈 캔슬링 모드</h4>
+                            <p class="text-sm text-gray-400">완벽한 몰입이 필요할 때</p>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+                            <i class="fas fa-volume-up text-3xl mb-3 text-indigo-400"></i>
+                            <h4 class="text-xl font-bold mb-2">주변 소리 듣기 모드</h4>
+                            <p class="text-sm text-gray-400">대화나 안내방송을 들어야 할 때</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Feature 3: Comfort -->
+            <section class="flex flex-col-reverse md:flex-row items-center gap-12 md:gap-20">
+                <div class="w-full md:w-1/2 space-y-6">
+                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-xl mb-4">
+                        <i class="fas fa-feather-alt"></i>
+                    </div>
+                    <h3 class="text-3xl md:text-4xl font-bold text-gray-900">하루 종일 편안한<br>클라우드 핏 착용감</h3>
+                    <p class="text-gray-600 leading-relaxed text-lg">
+                        안경을 써도 불편하지 않습니다. 프리미엄 메모리폼 이어패드가 
+                        귀 모양에 맞춰 부드럽게 밀착됩니다. 
+                        254g의 초경량 설계로 착용했다는 사실조차 잊게 됩니다.
+                    </p>
+                    <div class="flex gap-4 mt-6">
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <span class="block text-2xl font-black text-indigo-600">254g</span>
+                            <span class="text-xs text-gray-500">초경량 무게</span>
+                        </div>
+                         <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <span class="block text-2xl font-black text-indigo-600">Soft</span>
+                            <span class="text-xs text-gray-500">단백질 가죽</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/2 rounded-2xl overflow-hidden shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1599669454699-248893623440?auto=format&fit=crop&w=800&q=80" alt="편안한 착용" class="w-full h-full object-cover">
+                </div>
+            </section>
+
+             <!-- Feature 4: Call Quality & Battery -->
+             <section class="grid md:grid-cols-2 gap-8">
+                <div class="bg-gray-50 p-10 rounded-3xl">
+                    <i class="fas fa-microphone-alt text-4xl text-indigo-600 mb-6"></i>
+                    <h3 class="text-2xl font-bold mb-4">선명한 통화 품질</h3>
+                    <p class="text-gray-600 mb-6">
+                        AI 기반의 통화 소음 감소 기술이 목소리만 선명하게 전달합니다. 
+                        재택근무 화상회의나 시끄러운 야외 통화도 문제없습니다.
+                    </p>
+                    <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=600&q=80" class="rounded-xl w-full h-48 object-cover opacity-80 mix-blend-multiply">
+                </div>
+                <div class="bg-gray-50 p-10 rounded-3xl">
+                    <i class="fas fa-bolt text-4xl text-yellow-500 mb-6"></i>
+                    <h3 class="text-2xl font-bold mb-4">멈추지 않는 플레이</h3>
+                    <p class="text-gray-600 mb-6">
+                        한 번 충전으로 최대 30시간(ANC ON) 연속 재생이 가능합니다. 
+                        급할 땐 10분 충전으로 5시간을 사용할 수 있습니다.
+                    </p>
+                    <div class="flex items-center gap-4 mt-8">
+                        <div class="h-4 w-full bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-yellow-400 w-4/5"></div>
+                        </div>
+                        <span class="font-bold text-gray-700">30H</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Feature 5: In the Box -->
+            <section class="pt-10">
+                <h3 class="text-3xl font-bold text-center mb-12">구성품 (In the Box)</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div class="bg-gray-50 p-6 rounded-xl text-center hover:shadow-md transition-shadow">
+                        <div class="h-32 flex items-center justify-center mb-4 text-6xl text-gray-300">
+                            <i class="fas fa-headphones"></i>
+                        </div>
+                        <p class="font-medium">헤드폰 본체</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-xl text-center hover:shadow-md transition-shadow">
+                        <div class="h-32 flex items-center justify-center mb-4 text-6xl text-gray-300">
+                            <i class="fas fa-suitcase"></i>
+                        </div>
+                        <p class="font-medium">하드 케이스</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-xl text-center hover:shadow-md transition-shadow">
+                        <div class="h-32 flex items-center justify-center mb-4 text-6xl text-gray-300">
+                            <i class="fas fa-plug"></i>
+                        </div>
+                        <p class="font-medium">충전 케이블</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-xl text-center hover:shadow-md transition-shadow">
+                        <div class="h-32 flex items-center justify-center mb-4 text-6xl text-gray-300">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <p class="font-medium">사용 설명서</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tech Specs Table -->
+            <section>
+                <h3 class="text-2xl font-bold text-gray-900 mb-6 border-l-4 border-indigo-600 pl-4">제품 상세 사양 (Specification)</h3>
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <tbody class="divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700 w-1/3">모델명</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">SonicPure X1 (SP-X1)</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700">블루투스 버전</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">Bluetooth 5.2 (SBC, AAC, aptX)</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700">드라이버 유닛</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">40mm Dynamic Driver</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700">재생 시간</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">ANC ON: 30시간 / ANC OFF: 40시간</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700">무게</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">254g</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700">충전 단자</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">USB Type-C (고속 충전 지원)</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700">주파수 응답</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">20Hz - 20,000Hz</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- 모바일 하단 고정 구매 바 (데스크탑에선 숨김) -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 pb-safe z-50 shadow-inner flex items-center justify-between slide-up">
+        <button class="flex flex-col items-center justify-center w-12 text-gray-500">
+            <i class="far fa-heart text-xl"></i>
+            <span class="text-[10px] mt-1">찜</span>
+        </button>
+        <button onclick="addToCart()" class="flex-1 bg-indigo-600 text-white font-bold h-12 rounded-lg ml-3 shadow-lg shadow-indigo-200">
+            구매하기
+        </button>
+    </div>
+
+    <!-- 토스트 알림 (장바구니 담기 성공 시) -->
+    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none z-50 flex items-center gap-2">
+        <i class="fas fa-check-circle text-green-400"></i>
+        <span>장바구니에 담았습니다.</span>
+    </div>
+
+    <script>
+        // 가격 포맷팅 함수
+        function formatPrice(price) {
+            return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // 상태 변수
+        let currentPrice = 289000;
+        let quantity = 1;
+
+        // 수량 변경 함수
+        function updateQuantity(change) {
+            quantity += change;
+            if (quantity < 1) quantity = 1;
+            
+            document.getElementById('quantity').value = quantity;
+            document.getElementById('total-price').innerText = formatPrice(currentPrice * quantity);
+        }
+
+        // 이미지 변경 함수
+        function changeImage(el, src) {
+            // 메인 이미지 변경
+            const mainImg = document.getElementById('main-image');
+            mainImg.style.opacity = '0.5';
+            setTimeout(() => {
+                mainImg.src = src;
+                mainImg.style.opacity = '1';
+            }, 150);
+
+            // 썸네일 활성화 스타일
+            document.querySelectorAll('.thumbnail-btn').forEach(btn => {
+                btn.classList.remove('border-indigo-600');
+                btn.classList.add('border-transparent');
+            });
+            el.classList.remove('border-transparent');
+            el.classList.add('border-indigo-600');
+        }
+
+        // 컬러 선택 함수
+        function selectColor(el, colorName) {
+            document.getElementById('selected-color-name').innerText = colorName;
+            
+            // 버튼 스타일 초기화 및 활성화
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-indigo-600');
+            });
+            el.classList.add('ring-2', 'ring-offset-2', 'ring-indigo-600');
+        }
+
+        // 장바구니 담기 (토스트 알림)
+        function addToCart() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2000);
+        }
+        
+        // 스크롤 애니메이션 (간단한 Fade In)
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in-up');
+                    entry.target.style.opacity = 1; 
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            section.style.opacity = 0; // 초기 상태 숨김
+            section.classList.add('transform', 'translate-y-4', 'transition', 'duration-700');
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>

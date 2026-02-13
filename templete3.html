@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프리미엄 라이프 케어 - 상품 상세</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans KR only for universal look) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        .slide-up {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-800 antialiased">
+
+    <!-- 상단 네비게이션 -->
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- 로고: 텍스트 로고로 심플하게 -->
+                <div class="flex-shrink-0 flex items-center cursor-pointer">
+                    <span class="text-2xl font-black tracking-tighter text-teal-700">PURE LIVING.</span>
+                </div>
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#" class="text-gray-900 font-bold hover:text-teal-600">베스트</a>
+                    <a href="#" class="text-gray-500 font-medium hover:text-teal-600">신상품</a>
+                    <a href="#" class="text-gray-500 font-medium hover:text-teal-600">정기배송</a>
+                </nav>
+                <div class="flex items-center space-x-5 text-gray-500">
+                    <button class="hover:text-teal-600"><i class="fas fa-search text-xl"></i></button>
+                    <button class="hover:text-teal-600 relative">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span class="absolute -top-2 -right-2 bg-teal-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                    </button>
+                    <button class="hover:text-teal-600"><i class="far fa-user text-xl"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 상품 메인 섹션 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-x-12 lg:items-start">
+            
+            <!-- 왼쪽: 이미지 갤러리 -->
+            <div class="flex flex-col-reverse lg:flex-row gap-4">
+                <div class="flex lg:flex-col gap-3 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 w-full lg:w-20 shrink-0">
+                    <button onclick="changeImage(this, 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=800&q=80')" class="thumbnail-btn border-2 border-teal-600 rounded-lg overflow-hidden h-20 w-20 relative">
+                        <img src="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=200&q=80" class="object-cover w-full h-full" alt="메인 연출컷">
+                    </button>
+                    <button onclick="changeImage(this, 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=800&q=80')" class="thumbnail-btn border-2 border-transparent hover:border-gray-300 rounded-lg overflow-hidden h-20 w-20 relative">
+                        <img src="https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=200&q=80" class="object-cover w-full h-full" alt="텍스처/재질">
+                    </button>
+                    <button onclick="changeImage(this, 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80')" class="thumbnail-btn border-2 border-transparent hover:border-gray-300 rounded-lg overflow-hidden h-20 w-20 relative">
+                        <img src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=200&q=80" class="object-cover w-full h-full" alt="패키지">
+                    </button>
+                </div>
+                <div class="w-full aspect-square bg-gray-50 rounded-xl overflow-hidden relative group shadow-sm border border-gray-100">
+                    <img id="main-image" src="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=800&q=80" alt="상품 메인 이미지" class="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105">
+                </div>
+            </div>
+
+            <!-- 오른쪽: 상품 정보 -->
+            <div class="mt-8 lg:mt-0 lg:sticky lg:top-24">
+                <div class="mb-6">
+                    <p class="text-sm text-teal-600 font-bold mb-1 tracking-wide">DAILY ESSENTIAL</p>
+                    <h1 class="text-3xl font-bold text-gray-900 tracking-tight sm:text-4xl mb-3 break-keep">데일리 퓨어 소프트 케어 (대용량/세트)</h1>
+                    <div class="flex items-center space-x-2">
+                        <div class="flex text-teal-400 text-sm">
+                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                        </div>
+                        <span class="text-sm text-gray-500 underline decoration-gray-300 cursor-pointer">후기 8,420개</span>
+                    </div>
+                </div>
+
+                <div class="mb-6 pb-6 border-b border-gray-100">
+                    <div class="flex items-baseline space-x-3">
+                        <span class="text-3xl font-black text-gray-900">18,900<span class="text-xl font-normal">원</span></span>
+                        <span class="text-lg text-gray-400 line-through">24,000원</span>
+                        <span class="text-lg font-bold text-teal-600">21%</span>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <span class="px-2 py-1 bg-gray-100 text-xs font-semibold text-gray-600 rounded">무료배송</span>
+                        <span class="px-2 py-1 bg-teal-50 text-xs font-semibold text-teal-700 rounded">더마테스트 완료</span>
+                        <span class="px-2 py-1 bg-blue-50 text-xs font-semibold text-blue-700 rounded">친환경 포장</span>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- 옵션 선택 -->
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 mb-2">옵션 선택: <span id="selected-flavor" class="font-bold text-teal-700">기본 구성 (오리지널)</span></h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="selectFlavor(this, '기본 구성 (오리지널)')" class="flavor-btn px-4 py-2 border-2 border-teal-600 bg-teal-50 text-teal-800 rounded-lg text-sm font-medium focus:outline-none transition-all">기본 구성</button>
+                            <button onclick="selectFlavor(this, '대용량 패밀리팩 (+5,000원)')" class="flavor-btn px-4 py-2 border-2 border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:border-gray-400 focus:outline-none transition-all">대용량 패밀리팩 (+5,000원)</button>
+                            <button onclick="selectFlavor(this, '선물 세트 포장 (+3,000원)')" class="flavor-btn px-4 py-2 border-2 border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:border-gray-400 focus:outline-none transition-all">선물 세트 (+3,000원)</button>
+                        </div>
+                    </div>
+
+                    <!-- 수량 -->
+                    <div class="flex items-center justify-between border border-gray-300 rounded-lg p-2 w-32 bg-white">
+                        <button onclick="updateQuantity(-1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded">-</button>
+                        <input type="number" id="quantity" value="1" readonly class="w-10 text-center font-bold text-gray-900 focus:outline-none">
+                        <button onclick="updateQuantity(1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded">+</button>
+                    </div>
+
+                    <div class="flex justify-between items-center py-4 border-t border-gray-100">
+                        <span class="font-medium text-gray-900">총 결제 금액</span>
+                        <span class="text-2xl font-black text-teal-700"><span id="total-price">18,900</span>원</span>
+                    </div>
+
+                    <div class="hidden md:grid grid-cols-2 gap-3">
+                        <button class="w-full bg-white border border-gray-300 text-gray-700 py-4 px-8 rounded-lg font-bold hover:bg-gray-50 transition-colors">
+                            장바구니
+                        </button>
+                        <button onclick="addToCart()" class="w-full bg-teal-600 text-white py-4 px-8 rounded-lg font-bold hover:bg-teal-700 transition-colors shadow-lg shadow-teal-200">
+                            구매하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 스티키 헤더 -->
+    <div id="sticky-header" class="sticky top-16 z-40 bg-white border-y border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-center h-14">
+                <span class="text-gray-900 font-bold border-b-2 border-gray-900 h-full flex items-center px-4">상품 상세 정보</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상세 콘텐츠 -->
+    <div class="bg-white pb-24">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-28">
+            
+            <!-- 섹션 1: 인트로 (순수/깨끗함 강조) -->
+            <section class="text-center fade-in-up">
+                <p class="text-teal-600 font-bold tracking-widest mb-4">PURE & SAFE</p>
+                <h2 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight break-keep">매일 닿는 피부니까<br>더 순수하게, 더 안전하게</h2>
+                <p class="text-lg text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+                    불필요한 성분은 빼고, 자연 유래 성분으로 채웠습니다.<br>
+                    온 가족이 안심하고 사용할 수 있는 데일리 케어.<br>
+                    당신의 일상에 상쾌함을 더해보세요.
+                </p>
+                <div class="rounded-2xl overflow-hidden shadow-xl bg-gray-50">
+                    <img src="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=1200&q=80" alt="깨끗한 욕실 라이프스타일" class="w-full h-auto transform hover:scale-105 transition-transform duration-1000">
+                </div>
+            </section>
+
+            <!-- 섹션 2: 소재/안전성 (텍스처 강조) -->
+            <section class="flex flex-col md:flex-row items-center gap-12">
+                <div class="w-full md:w-1/2 rounded-2xl overflow-hidden shadow-lg aspect-[4/3] bg-gray-100">
+                    <img src="https://images.unsplash.com/photo-1517142089942-ba87601ed630?auto=format&fit=crop&w=800&q=80" alt="부드러운 텍스처" class="w-full h-full object-cover">
+                </div>
+                <div class="w-full md:w-1/2 space-y-6">
+                    <div class="w-12 h-12 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center text-xl mb-2">
+                        <i class="fas fa-leaf"></i>
+                    </div>
+                    <h3 class="text-3xl font-bold text-gray-900">피부가 먼저 느끼는<br>자연 유래 소재</h3>
+                    <p class="text-gray-600 leading-relaxed text-lg">
+                        민감한 피부에도 자극 없이 부드럽게 닿습니다. 엄격한 기준의 피부 저자극 테스트를 통과했으며, 형광증백제나 인공 색소를 전혀 사용하지 않은 순수함 그 자체입니다.
+                    </p>
+                    <div class="flex gap-4 mt-4">
+                        <div class="px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                            <span class="block text-xl font-bold text-gray-900">100%</span>
+                            <span class="text-xs text-gray-500">천연 펄프/소재</span>
+                        </div>
+                        <div class="px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                            <span class="block text-xl font-bold text-gray-900">Zero</span>
+                            <span class="text-xs text-gray-500">유해성분 불검출</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 섹션 3: 인증/신뢰 (배경색 변경) -->
+            <section class="bg-teal-700 rounded-3xl p-10 md:p-16 text-white text-center shadow-xl relative overflow-hidden">
+                <!-- 배경 이미지 (물방울/깨끗함) -->
+                <div class="absolute top-0 left-0 w-full h-full opacity-20 mix-blend-overlay pointer-events-none">
+                     <img src="https://images.unsplash.com/photo-1527661591475-527312dd65f5?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover">
+                </div>
+                <div class="relative z-10 max-w-3xl mx-auto">
+                    <span class="inline-block px-3 py-1 border border-teal-300 text-teal-200 rounded-full text-xs font-bold mb-6">CERTIFIED QUALITY</span>
+                    <h3 class="text-3xl md:text-4xl font-bold mb-6">깐깐하게 검증받은<br>안전한 품질</h3>
+                    <p class="text-teal-50 text-lg leading-relaxed mb-8">
+                        독일 더마테스트 최고 등급 'EXCELLENT' 획득.<br>
+                        국제 표준 인증 기관의 까다로운 절차를 모두 통과했습니다.<br>
+                        보이지 않는 곳까지 깨끗해야 진짜 위생용품입니다.
+                    </p>
+                    <div class="inline-flex items-center gap-4">
+                        <div class="bg-white/10 backdrop-blur px-6 py-3 rounded-xl border border-white/20">
+                            <i class="fas fa-shield-alt text-teal-200 text-2xl mb-1 block"></i>
+                            <span class="text-sm font-medium">안전성 인증</span>
+                        </div>
+                         <div class="bg-white/10 backdrop-blur px-6 py-3 rounded-xl border border-white/20">
+                            <i class="fas fa-check-circle text-teal-200 text-2xl mb-1 block"></i>
+                            <span class="text-sm font-medium">품질 보증</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 섹션 4: 기능성/사용감 -->
+            <section class="grid md:grid-cols-2 gap-10 items-center">
+                <div class="order-2 md:order-1 space-y-8">
+                    <div>
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="fas fa-magic text-3xl text-teal-600"></i>
+                            <h3 class="text-2xl font-bold text-gray-900">탁월한 흡수력과<br>산뜻한 마무리감</h3>
+                        </div>
+                        <p class="text-gray-600 leading-relaxed">
+                            독자적인 3중 레이어 구조로 흡수력은 높이고,<br>
+                            사용 후 잔여물 걱정 없이 깔끔합니다.<br>
+                            매일 쓰는 만큼 더 쾌적하게 사용하세요.
+                        </p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <div class="bg-white p-2 rounded shadow-sm text-teal-700"><i class="fas fa-wind text-xl"></i></div>
+                            <div>
+                                <strong class="block text-gray-900 mb-1">통기성 & 건조</strong>
+                                <p class="text-sm text-gray-500">우수한 통기성으로 눅눅함 없이 언제나 보송보송합니다.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <div class="bg-white p-2 rounded shadow-sm text-teal-700"><i class="fas fa-water text-xl"></i></div>
+                            <div>
+                                <strong class="block text-gray-900 mb-1">강력한 세정/흡수</strong>
+                                <p class="text-sm text-gray-500">한 번의 사용으로도 충분한 만족감을 드립니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="order-1 md:order-2 rounded-2xl overflow-hidden shadow-lg h-full min-h-[400px] bg-gray-100">
+                    <img src="https://images.unsplash.com/photo-1557825835-b81600678b40?auto=format&fit=crop&w=800&q=80" alt="욕실 소품" class="w-full h-full object-cover">
+                </div>
+            </section>
+
+            <!-- 제품 상세 정보 테이블 (위생용품 포맷) -->
+            <section class="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
+                <h3 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-black pb-2">제품 필수 정보</h3>
+                <div class="flex flex-col md:flex-row gap-8">
+                    <div class="w-full md:w-1/2">
+                        <p class="text-sm text-gray-600 mb-4">모델명: 퓨어 데일리 케어 / <strong class="text-black">30개입 (대용량)</strong></p>
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-gray-500 uppercase bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2">구분</th>
+                                    <th class="px-4 py-2 text-right">내용</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">주요 성분/소재</td>
+                                    <td class="px-4 py-3 text-right">천연 펄프, 식물성 글리세린 등</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">크기/용량</td>
+                                    <td class="px-4 py-3 text-right">상세페이지 참조</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">제조국</td>
+                                    <td class="px-4 py-3 text-right">대한민국</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">사용기한</td>
+                                    <td class="px-4 py-3 text-right">제조일로부터 36개월</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">피부타입</td>
+                                    <td class="px-4 py-3 text-right">모든 피부용</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="w-full md:w-1/2 border-t md:border-t-0 md:border-l border-gray-100 md:pl-8 pt-6 md:pt-0">
+                        <strong class="block text-gray-900 mb-3">사용 시 주의사항</strong>
+                        <ul class="text-xs text-gray-500 space-y-2 list-disc pl-4">
+                            <li>피부에 이상이 있을 경우 사용을 중지하고 전문의와 상담하십시오.</li>
+                            <li>직사광선을 피하고 서늘한 곳에 보관하십시오.</li>
+                            <li>영유아의 손이 닿지 않는 곳에 보관하십시오.</li>
+                            <li>본 제품은 일회용이므로 재사용하지 마십시오.</li>
+                            <li>이물질이 들어가지 않도록 사용 후 밀봉하여 보관하십시오.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- 모바일 하단 바 -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 pb-safe z-50 shadow-inner flex items-center justify-between slide-up">
+        <button class="flex flex-col items-center justify-center w-12 text-gray-400">
+            <i class="far fa-heart text-xl"></i>
+            <span class="text-[10px] mt-1">찜</span>
+        </button>
+        <button onclick="addToCart()" class="flex-1 bg-teal-600 text-white font-bold h-12 rounded-lg ml-3 shadow-md hover:bg-teal-700">
+            구매하기
+        </button>
+    </div>
+
+    <!-- 토스트 -->
+    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-800/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none z-50 flex items-center gap-2">
+        <i class="fas fa-check-circle text-teal-400"></i>
+        <span>장바구니에 담았습니다.</span>
+    </div>
+
+    <script>
+        // 가격 포맷팅
+        function formatPrice(price) {
+            return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        let basePrice = 18900;
+        let optionPrice = 0;
+        let quantity = 1;
+
+        // 수량 변경
+        function updateQuantity(change) {
+            quantity += change;
+            if (quantity < 1) quantity = 1;
+            
+            updateTotal();
+        }
+
+        // 옵션 선택 (범용 로직)
+        function selectFlavor(el, flavorName) {
+            document.getElementById('selected-flavor').innerText = flavorName;
+            
+            // 옵션 가격 추출
+            if (flavorName.includes('+5,000')) {
+                optionPrice = 5000;
+            } else if (flavorName.includes('+3,000')) {
+                optionPrice = 3000;
+            } else {
+                optionPrice = 0;
+            }
+
+            // 스타일 토글
+            document.querySelectorAll('.flavor-btn').forEach(btn => {
+                btn.classList.remove('bg-teal-50', 'text-teal-800', 'border-teal-600');
+                btn.classList.add('text-gray-600', 'border-gray-200');
+            });
+            el.classList.remove('text-gray-600', 'border-gray-200');
+            el.classList.add('bg-teal-50', 'text-teal-800', 'border-teal-600');
+
+            updateTotal();
+        }
+
+        // 총액 업데이트
+        function updateTotal() {
+            document.getElementById('quantity').value = quantity;
+            const total = (basePrice + optionPrice) * quantity;
+            document.getElementById('total-price').innerText = formatPrice(total);
+        }
+
+        // 이미지 변경
+        function changeImage(el, src) {
+            const mainImg = document.getElementById('main-image');
+            mainImg.parentElement.classList.add('opacity-50');
+            setTimeout(() => {
+                mainImg.src = src;
+                mainImg.parentElement.classList.remove('opacity-50');
+            }, 150);
+
+            document.querySelectorAll('.thumbnail-btn').forEach(btn => {
+                btn.classList.remove('border-teal-600');
+                btn.classList.add('border-transparent');
+            });
+            el.classList.remove('border-transparent');
+            el.classList.add('border-teal-600');
+        }
+
+        function addToCart() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2000);
+        }
+        
+        // 스크롤 옵저버
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in-up');
+                    entry.target.style.opacity = 1;
+                }
+            });
+        });
+
+        document.querySelectorAll('section').forEach(section => {
+            section.style.opacity = 0;
+            section.classList.add('transform', 'translate-y-4', 'transition', 'duration-700');
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>

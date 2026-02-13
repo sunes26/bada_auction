@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프리미엄 미식 마켓 - 상품 상세</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans KR only for universal look) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        .slide-up {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-800 antialiased">
+
+    <!-- 상단 네비게이션 -->
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- 로고: 텍스트 로고로 심플하게 -->
+                <div class="flex-shrink-0 flex items-center cursor-pointer">
+                    <span class="text-2xl font-black tracking-tighter text-gray-900">FOOD MARKET.</span>
+                </div>
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#" class="text-gray-900 font-bold hover:text-orange-600">베스트</a>
+                    <a href="#" class="text-gray-500 font-medium hover:text-orange-600">신상품</a>
+                    <a href="#" class="text-gray-500 font-medium hover:text-orange-600">특가세일</a>
+                </nav>
+                <div class="flex items-center space-x-5 text-gray-500">
+                    <button class="hover:text-orange-600"><i class="fas fa-search text-xl"></i></button>
+                    <button class="hover:text-orange-600 relative">
+                        <i class="fas fa-shopping-basket text-xl"></i>
+                        <span class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                    </button>
+                    <button class="hover:text-orange-600"><i class="far fa-user text-xl"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 상품 메인 섹션 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-x-12 lg:items-start">
+            
+            <!-- 왼쪽: 이미지 갤러리 -->
+            <div class="flex flex-col-reverse lg:flex-row gap-4">
+                <div class="flex lg:flex-col gap-3 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 w-full lg:w-20 shrink-0">
+                    <button onclick="changeImage(this, 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80')" class="thumbnail-btn border-2 border-gray-900 rounded-lg overflow-hidden h-20 w-20 relative">
+                        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80" class="object-cover w-full h-full" alt="메인 연출컷">
+                    </button>
+                    <button onclick="changeImage(this, 'https://images.unsplash.com/photo-1467003909585-2f8a7270028d?auto=format&fit=crop&w=800&q=80')" class="thumbnail-btn border-2 border-transparent hover:border-gray-300 rounded-lg overflow-hidden h-20 w-20 relative">
+                        <img src="https://images.unsplash.com/photo-1467003909585-2f8a7270028d?auto=format&fit=crop&w=200&q=80" class="object-cover w-full h-full" alt="재료/조리">
+                    </button>
+                    <button onclick="changeImage(this, 'https://images.unsplash.com/photo-1599940778173-e276d4acb2bf?auto=format&fit=crop&w=800&q=80')" class="thumbnail-btn border-2 border-transparent hover:border-gray-300 rounded-lg overflow-hidden h-20 w-20 relative">
+                        <img src="https://images.unsplash.com/photo-1599940778173-e276d4acb2bf?auto=format&fit=crop&w=200&q=80" class="object-cover w-full h-full" alt="패키지">
+                    </button>
+                </div>
+                <div class="w-full aspect-square bg-gray-100 rounded-xl overflow-hidden relative group shadow-sm border border-gray-100">
+                    <img id="main-image" src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80" alt="상품 메인 이미지" class="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105">
+                </div>
+            </div>
+
+            <!-- 오른쪽: 상품 정보 -->
+            <div class="mt-8 lg:mt-0 lg:sticky lg:top-24">
+                <div class="mb-6">
+                    <p class="text-sm text-orange-600 font-bold mb-1 tracking-wide">BEST CHOICE</p>
+                    <h1 class="text-3xl font-bold text-gray-900 tracking-tight sm:text-4xl mb-3 break-keep">프리미엄 쉐프의 요리 키트 (2인분)</h1>
+                    <div class="flex items-center space-x-2">
+                        <div class="flex text-yellow-400 text-sm">
+                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                        </div>
+                        <span class="text-sm text-gray-500 underline decoration-gray-300 cursor-pointer">후기 5,200개</span>
+                    </div>
+                </div>
+
+                <div class="mb-6 pb-6 border-b border-gray-100">
+                    <div class="flex items-baseline space-x-3">
+                        <span class="text-3xl font-black text-gray-900">14,900<span class="text-xl font-normal">원</span></span>
+                        <span class="text-lg text-gray-400 line-through">18,900원</span>
+                        <span class="text-lg font-bold text-orange-500">21%</span>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <span class="px-2 py-1 bg-gray-100 text-xs font-semibold text-gray-600 rounded">냉동보관</span>
+                        <span class="px-2 py-1 bg-gray-100 text-xs font-semibold text-gray-600 rounded">HACCP인증</span>
+                        <span class="px-2 py-1 bg-orange-50 text-xs font-semibold text-orange-600 rounded">무료배송</span>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- 옵션 선택 -->
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900 mb-2">옵션 선택: <span id="selected-flavor" class="font-bold text-orange-600">오리지널 (기본)</span></h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="selectFlavor(this, '오리지널 (기본)')" class="flavor-btn px-4 py-2 border-2 border-orange-600 bg-orange-50 text-orange-700 rounded-lg text-sm font-medium focus:outline-none transition-all">오리지널</button>
+                            <button onclick="selectFlavor(this, '매운맛 (+1,000원)')" class="flavor-btn px-4 py-2 border-2 border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:border-gray-400 focus:outline-none transition-all">매운맛 (+1,000원)</button>
+                            <button onclick="selectFlavor(this, '더블 치즈 (+2,000원)')" class="flavor-btn px-4 py-2 border-2 border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:border-gray-400 focus:outline-none transition-all">더블 치즈 (+2,000원)</button>
+                        </div>
+                    </div>
+
+                    <!-- 수량 -->
+                    <div class="flex items-center justify-between border border-gray-300 rounded-lg p-2 w-32 bg-white">
+                        <button onclick="updateQuantity(-1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded">-</button>
+                        <input type="number" id="quantity" value="1" readonly class="w-10 text-center font-bold text-gray-900 focus:outline-none">
+                        <button onclick="updateQuantity(1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded">+</button>
+                    </div>
+
+                    <div class="flex justify-between items-center py-4 border-t border-gray-100">
+                        <span class="font-medium text-gray-900">총 결제 금액</span>
+                        <span class="text-2xl font-black text-orange-600"><span id="total-price">14,900</span>원</span>
+                    </div>
+
+                    <div class="hidden md:grid grid-cols-2 gap-3">
+                        <button class="w-full bg-white border border-gray-300 text-gray-700 py-4 px-8 rounded-lg font-bold hover:bg-gray-50 transition-colors">
+                            장바구니
+                        </button>
+                        <button onclick="addToCart()" class="w-full bg-orange-600 text-white py-4 px-8 rounded-lg font-bold hover:bg-orange-700 transition-colors shadow-lg shadow-orange-200">
+                            바로 구매하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 스티키 헤더 -->
+    <div id="sticky-header" class="sticky top-16 z-40 bg-white border-y border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-center h-14">
+                <span class="text-gray-900 font-bold border-b-2 border-gray-900 h-full flex items-center px-4">상품 상세 정보</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상세 콘텐츠 -->
+    <div class="bg-white pb-24">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-28">
+            
+            <!-- 섹션 1: 인트로 (보편적인 카피) -->
+            <section class="text-center fade-in-up">
+                <p class="text-orange-600 font-bold tracking-widest mb-4">PREMIUM RECIPE</p>
+                <h2 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight break-keep">집에서 즐기는<br>완벽한 한 끼</h2>
+                <p class="text-lg text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+                    엄선된 재료와 쉐프의 비법 레시피로 완성했습니다.<br>
+                    복잡한 준비 없이, 데우기만 하면 근사한 요리가 됩니다.<br>
+                    당신의 식탁을 더욱 특별하게 만들어보세요.
+                </p>
+                <div class="rounded-2xl overflow-hidden shadow-2xl bg-gray-100">
+                    <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1200&q=80" alt="조리예" class="w-full h-auto transform hover:scale-105 transition-transform duration-1000">
+                </div>
+            </section>
+
+            <!-- 섹션 2: 재료/품질 강조 (일반적인 패턴) -->
+            <section class="flex flex-col md:flex-row items-center gap-12">
+                <div class="w-full md:w-1/2 rounded-2xl overflow-hidden shadow-lg aspect-[4/3] bg-gray-100">
+                    <img src="https://images.unsplash.com/photo-1467003909585-2f8a7270028d?auto=format&fit=crop&w=800&q=80" alt="신선한 재료" class="w-full h-full object-cover">
+                </div>
+                <div class="w-full md:w-1/2 space-y-6">
+                    <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xl mb-2">
+                        <i class="fas fa-carrot"></i>
+                    </div>
+                    <h3 class="text-3xl font-bold text-gray-900">타협하지 않는<br>신선한 원재료</h3>
+                    <p class="text-gray-600 leading-relaxed text-lg">
+                        맛의 기본은 좋은 재료에서 시작됩니다. 산지에서 갓 수확한 신선한 야채와 엄격하게 선별된 고품질 육류만을 사용합니다. 재료 본연의 맛과 식감을 살리기 위해 최적의 온도에서 가공했습니다.
+                    </p>
+                    <div class="flex gap-4 mt-4">
+                        <div class="px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                            <span class="block text-xl font-bold text-gray-900">Fresh</span>
+                            <span class="text-xs text-gray-500">당일 입고 재료</span>
+                        </div>
+                        <div class="px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                            <span class="block text-xl font-bold text-gray-900">Clean</span>
+                            <span class="text-xs text-gray-500">위생 공정</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 섹션 3: 맛/비법 (강조 포인트) -->
+            <section class="bg-gray-900 rounded-3xl p-10 md:p-16 text-white text-center shadow-xl relative overflow-hidden">
+                <!-- 배경 이미지 (어두운 주방/소스 느낌) -->
+                <div class="absolute top-0 left-0 w-full h-full opacity-40 mix-blend-overlay pointer-events-none">
+                     <img src="https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover">
+                </div>
+                <div class="relative z-10 max-w-3xl mx-auto">
+                    <span class="inline-block px-3 py-1 border border-gray-600 text-gray-300 rounded-full text-xs font-bold mb-6">SECRET SAUCE</span>
+                    <h3 class="text-3xl md:text-4xl font-bold mb-6">입안 가득 퍼지는<br>깊은 풍미의 비결</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed mb-8">
+                        수많은 테스트 끝에 완성된 황금 비율 소스.<br>
+                        자극적인 맛 대신, 재료와 어우러지는 깊은 감칠맛을 냅니다.<br>
+                        누구나 호불호 없이 즐길 수 있는 맛을 약속합니다.
+                    </p>
+                    <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-6 py-3 rounded-full border border-white/20">
+                        <i class="fas fa-thumbs-up text-orange-400"></i>
+                        <span>재구매율 1위의 검증된 맛</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 섹션 4: 간편 조리 (아이콘 활용) -->
+            <section class="grid md:grid-cols-2 gap-10 items-center">
+                <div class="order-2 md:order-1 space-y-8">
+                    <div>
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="far fa-clock text-3xl text-orange-600"></i>
+                            <h3 class="text-2xl font-bold text-gray-900">바쁜 일상 속<br>5분이면 충분합니다</h3>
+                        </div>
+                        <p class="text-gray-600 leading-relaxed">
+                            요리할 시간이 부족해도 걱정하지 마세요.<br>
+                            라면만큼 쉽지만, 퀄리티는 레스토랑급입니다.
+                        </p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <div class="bg-white p-2 rounded shadow-sm text-gray-800"><i class="fas fa-microwave text-xl"></i></div>
+                            <div>
+                                <strong class="block text-gray-900 mb-1">전자레인지 조리</strong>
+                                <p class="text-sm text-gray-500">포장을 살짝 뜯은 후 약 4분간 데워주세요. (700W 기준)</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <div class="bg-white p-2 rounded shadow-sm text-gray-800"><i class="fas fa-fire-alt text-xl"></i></div>
+                            <div>
+                                <strong class="block text-gray-900 mb-1">직화/냄비 조리</strong>
+                                <p class="text-sm text-gray-500">내용물을 냄비나 팬에 붓고 중약불에서 3~5분간 볶아주세요.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="order-1 md:order-2 rounded-2xl overflow-hidden shadow-lg h-full min-h-[400px] bg-gray-100">
+                    <img src="https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=800&q=80" alt="간편 조리" class="w-full h-full object-cover">
+                </div>
+            </section>
+
+            <!-- 영양 정보 테이블 (보편적 포맷) -->
+            <section class="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
+                <h3 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-black pb-2">영양정보 및 상품고시</h3>
+                <div class="flex flex-col md:flex-row gap-8">
+                    <div class="w-full md:w-1/2">
+                        <p class="text-sm text-gray-600 mb-4">총 내용량 500g / <strong class="text-black">450 kcal</strong></p>
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-gray-500 uppercase bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2">영양성분</th>
+                                    <th class="px-4 py-2 text-right">함량</th>
+                                    <th class="px-4 py-2 text-right">기준치 비율</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">나트륨</td>
+                                    <td class="px-4 py-3 text-right">980mg</td>
+                                    <td class="px-4 py-3 text-right text-gray-500">49%</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">탄수화물</td>
+                                    <td class="px-4 py-3 text-right">65g</td>
+                                    <td class="px-4 py-3 text-right text-gray-500">20%</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 pl-8 text-gray-400">- 당류</td>
+                                    <td class="px-4 py-3 text-right text-gray-400">8g</td>
+                                    <td class="px-4 py-3 text-right text-gray-400">8%</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">지방</td>
+                                    <td class="px-4 py-3 text-right">15g</td>
+                                    <td class="px-4 py-3 text-right text-gray-500">28%</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">단백질</td>
+                                    <td class="px-4 py-3 text-right">22g</td>
+                                    <td class="px-4 py-3 text-right text-gray-500">40%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p class="text-xs text-gray-400 mt-2">* 1일 영양성분 기준치에 대한 비율(%)은 2,000kcal 기준입니다.</p>
+                    </div>
+                    <div class="w-full md:w-1/2 border-t md:border-t-0 md:border-l border-gray-100 md:pl-8 pt-6 md:pt-0">
+                        <strong class="block text-gray-900 mb-3">상품 필수 정보</strong>
+                        <ul class="text-xs text-gray-500 space-y-2">
+                            <li class="flex justify-between border-b border-gray-100 pb-2">
+                                <span>제품명</span> <span class="text-gray-900 text-right">프리미엄 요리 키트</span>
+                            </li>
+                            <li class="flex justify-between border-b border-gray-100 pb-2">
+                                <span>식품의 유형</span> <span class="text-gray-900 text-right">간편조리세트 (냉동)</span>
+                            </li>
+                            <li class="flex justify-between border-b border-gray-100 pb-2">
+                                <span>포장재질</span> <span class="text-gray-900 text-right">폴리에틸렌(내면)</span>
+                            </li>
+                            <li class="flex justify-between border-b border-gray-100 pb-2">
+                                <span>보관방법</span> <span class="text-gray-900 text-right">-18℃ 이하 냉동보관</span>
+                            </li>
+                            <li class="flex justify-between border-b border-gray-100 pb-2">
+                                <span>유통기한</span> <span class="text-gray-900 text-right">제품 별도 표기일까지</span>
+                            </li>
+                            <li class="flex justify-between pb-2">
+                                <span>알레르기 정보</span> <span class="text-gray-900 text-right w-1/2 break-keep">대두, 밀, 우유, 쇠고기 함유</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- 모바일 하단 바 -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 pb-safe z-50 shadow-inner flex items-center justify-between slide-up">
+        <button class="flex flex-col items-center justify-center w-12 text-gray-400">
+            <i class="far fa-heart text-xl"></i>
+            <span class="text-[10px] mt-1">찜</span>
+        </button>
+        <button onclick="addToCart()" class="flex-1 bg-orange-600 text-white font-bold h-12 rounded-lg ml-3 shadow-md hover:bg-orange-700">
+            구매하기
+        </button>
+    </div>
+
+    <!-- 토스트 -->
+    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-800/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none z-50 flex items-center gap-2">
+        <i class="fas fa-check-circle text-orange-400"></i>
+        <span>장바구니에 담았습니다.</span>
+    </div>
+
+    <script>
+        // 가격 포맷팅
+        function formatPrice(price) {
+            return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        let basePrice = 14900;
+        let optionPrice = 0;
+        let quantity = 1;
+
+        // 수량 변경
+        function updateQuantity(change) {
+            quantity += change;
+            if (quantity < 1) quantity = 1;
+            
+            updateTotal();
+        }
+
+        // 옵션 선택 (범용 로직)
+        function selectFlavor(el, flavorName) {
+            document.getElementById('selected-flavor').innerText = flavorName;
+            
+            // 옵션 가격 추출 (간단한 파싱)
+            if (flavorName.includes('+1,000')) {
+                optionPrice = 1000;
+            } else if (flavorName.includes('+2,000')) {
+                optionPrice = 2000;
+            } else {
+                optionPrice = 0;
+            }
+
+            // 스타일 토글
+            document.querySelectorAll('.flavor-btn').forEach(btn => {
+                btn.classList.remove('bg-orange-50', 'text-orange-700', 'border-orange-600');
+                btn.classList.add('text-gray-600', 'border-gray-200');
+            });
+            el.classList.remove('text-gray-600', 'border-gray-200');
+            el.classList.add('bg-orange-50', 'text-orange-700', 'border-orange-600');
+
+            updateTotal();
+        }
+
+        // 총액 업데이트
+        function updateTotal() {
+            document.getElementById('quantity').value = quantity;
+            const total = (basePrice + optionPrice) * quantity;
+            document.getElementById('total-price').innerText = formatPrice(total);
+        }
+
+        // 이미지 변경
+        function changeImage(el, src) {
+            const mainImg = document.getElementById('main-image');
+            mainImg.parentElement.classList.add('opacity-50');
+            setTimeout(() => {
+                mainImg.src = src;
+                mainImg.parentElement.classList.remove('opacity-50');
+            }, 150);
+
+            document.querySelectorAll('.thumbnail-btn').forEach(btn => {
+                btn.classList.remove('border-gray-900');
+                btn.classList.add('border-transparent');
+            });
+            el.classList.remove('border-transparent');
+            el.classList.add('border-gray-900');
+        }
+
+        function addToCart() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2000);
+        }
+        
+        // 스크롤 옵저버
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in-up');
+                    entry.target.style.opacity = 1;
+                }
+            });
+        });
+
+        document.querySelectorAll('section').forEach(section => {
+            section.style.opacity = 0;
+            section.classList.add('transform', 'translate-y-4', 'transition', 'duration-700');
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>
