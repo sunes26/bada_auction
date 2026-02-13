@@ -93,22 +93,34 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
   const [keywords, setKeywords] = useState<string[]>(parseKeywords((product as any).keywords));
   const [category, setCategory] = useState<Category>(parseCategory(product.category));
 
-  // 마켓별 옵션 파싱 함수
-  const parseMarketOptions = (optionsJson?: string): any[] => {
+  // 조합형 옵션 파싱 함수 (객체 형태)
+  const parseCombinatorialOptions = (optionsJson?: string): Record<string, string[]> => {
+    if (!optionsJson) return {};
+    try {
+      const parsed = JSON.parse(optionsJson);
+      return typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (e) {
+      console.error('조합형 옵션 파싱 실패:', e);
+      return {};
+    }
+  };
+
+  // 독립형 옵션 파싱 함수 (배열 형태)
+  const parseIndependentOptions = (optionsJson?: string): any[] => {
     if (!optionsJson) return [];
     try {
       const parsed = JSON.parse(optionsJson);
       return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
-      console.error('옵션 파싱 실패:', e);
+      console.error('독립형 옵션 파싱 실패:', e);
       return [];
     }
   };
 
-  // 마켓별 DB 옵션 state (배열 형태)
-  const [gmkOpts, setGmkOpts] = useState<any[]>(parseMarketOptions((product as any).gmk_opts));
-  const [coupangOpts, setCoupangOpts] = useState<any[]>(parseMarketOptions((product as any).coupang_opts));
-  const [smartOpts, setSmartOpts] = useState<any[]>(parseMarketOptions((product as any).smart_opts));
+  // 마켓별 DB 옵션 state
+  const [gmkOpts, setGmkOpts] = useState<Record<string, string[]>>(parseCombinatorialOptions((product as any).gmk_opts));
+  const [coupangOpts, setCoupangOpts] = useState<Record<string, string[]>>(parseCombinatorialOptions((product as any).coupang_opts));
+  const [smartOpts, setSmartOpts] = useState<any[]>(parseIndependentOptions((product as any).smart_opts));
 
   // 동적 카테고리 구조
   const [categoryStructure, setCategoryStructure] = useState<Record<string, any>>({});
@@ -631,8 +643,9 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
         c_sale_cd_coupang: formData.c_sale_cd_coupang || undefined,
         keywords: keywords.length > 0 ? keywords : undefined,  // 키워드 전송
         // 마켓별 옵션 저장 (원본 형태 그대로 저장)
-        gmk_opts: gmkOpts.length > 0 ? JSON.stringify(gmkOpts) : undefined,
-        coupang_opts: coupangOpts.length > 0 ? JSON.stringify(coupangOpts) : undefined,
+        // 조합형(객체): {"색상": ["빨강", "파랑"]}, 독립형(배열): [{opt_name, opt_value}]
+        gmk_opts: Object.keys(gmkOpts).length > 0 ? JSON.stringify(gmkOpts) : undefined,
+        coupang_opts: Object.keys(coupangOpts).length > 0 ? JSON.stringify(coupangOpts) : undefined,
         smart_opts: smartOpts.length > 0 ? JSON.stringify(smartOpts) : undefined,
       });
 

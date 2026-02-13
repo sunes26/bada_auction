@@ -504,24 +504,31 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
         if gmk_opts_json:
             # 옵션이 있으면 조합형 단일상품으로 처리
             try:
-                gmk_opts_list = json.loads(gmk_opts_json)
+                gmk_opts_dict = json.loads(gmk_opts_json)
 
-                # 조합형: 여러 옵션을 하나의 객체로 합침
-                # DB 형태: [{"opt_name": "색상", "opt_value": "빨강", "stock_cnt": 999}, ...]
-                # API 형태: [{"opt_sort1": "색상", "opt_sort1_desc": "빨강", "opt_sort2": "사이즈", "opt_sort2_desc": "L", "stock_cnt": 999, "status": "정상"}]
-                combined_opt = {
-                    "stock_cnt": gmk_opts_list[0].get("stock_cnt", 999) if gmk_opts_list else 999,
-                    "status": "정상"
-                }
+                # 조합형: 카테시안 곱 계산
+                # DB 형태: {"색상": ["빨강", "파랑"], "사이즈": ["L", "M"]}
+                # API 형태: [{opt_sort1: "색상", opt_sort1_desc: "빨강", opt_sort2: "사이즈", opt_sort2_desc: "L", ...}, ...]
 
-                for idx, opt in enumerate(gmk_opts_list, start=1):
-                    combined_opt[f"opt_sort{idx}"] = opt.get("opt_name", "")
-                    combined_opt[f"opt_sort{idx}_desc"] = opt.get("opt_value", "")
+                # 옵션명과 옵션값 리스트 추출
+                option_names = list(gmk_opts_dict.keys())
+                option_values_lists = [gmk_opts_dict[name] for name in option_names]
+
+                # 카테시안 곱 계산
+                import itertools
+                combinations = list(itertools.product(*option_values_lists))
+
+                opts = []
+                for combo in combinations:
+                    opt_obj = {"stock_cnt": 999, "status": "정상"}
+                    for idx, (name, value) in enumerate(zip(option_names, combo), start=1):
+                        opt_obj[f"opt_sort{idx}"] = name
+                        opt_obj[f"opt_sort{idx}_desc"] = value
+                    opts.append(opt_obj)
 
                 std_ol_yn = "Y"
                 opt_type = "조합형"
-                opts = [combined_opt]
-                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=조합형 (단일상품), 옵션 {len(gmk_opts_list)}개 조합")
+                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=조합형 (단일상품), {len(opts)}개 조합 생성")
             except Exception as e:
                 logger.error(f"[플레이오토] 지마켓/옥션 옵션 파싱 실패: {e}")
                 std_ol_yn = "Y"
@@ -542,22 +549,29 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
 
         if coupang_opts_json:
             try:
-                coupang_opts_list = json.loads(coupang_opts_json)
+                coupang_opts_dict = json.loads(coupang_opts_json)
 
-                # 조합형: 여러 옵션을 하나의 객체로 합침
-                # DB 형태: [{"opt_name": "수량", "opt_value": "1개", "stock_cnt": 999}, ...]
-                # API 형태: [{"opt_sort1": "수량", "opt_sort1_desc": "1개", "opt_sort2": "개당 중량", "opt_sort2_desc": "500g", "stock_cnt": 999, "status": "정상"}]
-                combined_opt = {
-                    "stock_cnt": coupang_opts_list[0].get("stock_cnt", 999) if coupang_opts_list else 999,
-                    "status": "정상"
-                }
+                # 조합형: 카테시안 곱 계산
+                # DB 형태: {"수량": ["1개", "2개"], "개당 중량": ["500g", "1kg"]}
+                # API 형태: [{opt_sort1: "수량", opt_sort1_desc: "1개", opt_sort2: "개당 중량", opt_sort2_desc: "500g", ...}, ...]
 
-                for idx, opt in enumerate(coupang_opts_list, start=1):
-                    combined_opt[f"opt_sort{idx}"] = opt.get("opt_name", "")
-                    combined_opt[f"opt_sort{idx}_desc"] = opt.get("opt_value", "")
+                # 옵션명과 옵션값 리스트 추출
+                option_names = list(coupang_opts_dict.keys())
+                option_values_lists = [coupang_opts_dict[name] for name in option_names]
 
-                opts = [combined_opt]
-                logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, DB 옵션 {len(coupang_opts_list)}개 조합")
+                # 카테시안 곱 계산
+                import itertools
+                combinations = list(itertools.product(*option_values_lists))
+
+                opts = []
+                for combo in combinations:
+                    opt_obj = {"stock_cnt": 999, "status": "정상"}
+                    for idx, (name, value) in enumerate(zip(option_names, combo), start=1):
+                        opt_obj[f"opt_sort{idx}"] = name
+                        opt_obj[f"opt_sort{idx}_desc"] = value
+                    opts.append(opt_obj)
+
+                logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, {len(opts)}개 조합 생성")
             except Exception as e:
                 logger.error(f"[플레이오토] 쿠팡 옵션 파싱 실패: {e}, 기본값 사용")
                 # 기본값 사용 (하위 호환성)
