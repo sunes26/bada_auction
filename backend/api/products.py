@@ -64,6 +64,10 @@ class UpdateProductRequest(BaseModel):
     c_sale_cd_gmk: Optional[str] = None  # 지마켓/옥션용
     c_sale_cd_smart: Optional[str] = None  # 스마트스토어용
     c_sale_cd_coupang: Optional[str] = None  # 쿠팡용
+    # 마켓별 옵션 (JSON 문자열)
+    gmk_opts: Optional[str] = None  # 지마켓/옥션 옵션
+    coupang_opts: Optional[str] = None  # 쿠팡 옵션
+    smart_opts: Optional[str] = None  # 스마트스토어 옵션
 
 
 # API 엔드포인트
@@ -590,7 +594,10 @@ async def update_product(product_id: int, request: UpdateProductRequest):
             c_sale_cd_gmk=c_sale_cd_gmk,
             c_sale_cd_smart=c_sale_cd_smart,
             c_sale_cd_coupang=c_sale_cd_coupang,
-            keywords=keywords_json
+            keywords=keywords_json,
+            gmk_opts=request.gmk_opts,
+            coupang_opts=request.coupang_opts,
+            smart_opts=request.smart_opts
         )
 
         # 플레이오토 API 업데이트 (변경사항 + 플레이오토 상품인 경우)

@@ -522,7 +522,10 @@ class DatabaseWrapper:
         ship_price_type: Optional[str] = None,
         ship_price: Optional[int] = None,
         is_active: Optional[bool] = None,
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
+        gmk_opts: Optional[str] = None,
+        coupang_opts: Optional[str] = None,
+        smart_opts: Optional[str] = None
     ):
         """판매 상품 수정"""
         with self.db_manager.get_session() as session:
@@ -582,6 +585,12 @@ class DatabaseWrapper:
                 product.is_active = is_active
             if notes is not None:
                 product.notes = notes
+            if gmk_opts is not None:
+                product.gmk_opts = gmk_opts
+            if coupang_opts is not None:
+                product.coupang_opts = coupang_opts
+            if smart_opts is not None:
+                product.smart_opts = smart_opts
 
     def delete_selling_product(self, product_id: int):
         """판매 상품 삭제"""
