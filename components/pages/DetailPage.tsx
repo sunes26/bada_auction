@@ -2342,6 +2342,9 @@ function AddProductFromDetailPageModal({
                               newOpts[e.target.value] = optValues;
                               setGmkOpts(newOpts);
                             }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') e.preventDefault();
+                            }}
                             className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500"
                             placeholder="예: 색상"
                           />
@@ -2354,6 +2357,9 @@ function AddProductFromDetailPageModal({
                             onChange={(e) => {
                               const values = e.target.value.split(',').map(v => v.trim());
                               setGmkOpts({...gmkOpts, [optName]: values});
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') e.preventDefault();
                             }}
                             className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500"
                             placeholder="예: 빨강,파랑,노랑"
@@ -2423,6 +2429,9 @@ function AddProductFromDetailPageModal({
                             newOpts[e.target.value] = optValues;
                             setCoupangOpts(newOpts);
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.preventDefault();
+                          }}
                           className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
                           placeholder="예: 수량"
                         />
@@ -2435,6 +2444,9 @@ function AddProductFromDetailPageModal({
                           onChange={(e) => {
                             const values = e.target.value.split(',').map(v => v.trim());
                             setCoupangOpts({...coupangOpts, [optName]: values});
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.preventDefault();
                           }}
                           className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
                           placeholder="예: 1개,2개,3개"
@@ -2494,6 +2506,9 @@ function AddProductFromDetailPageModal({
                             newOpts[index].opt_name = e.target.value;
                             setSmartOpts(newOpts);
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.preventDefault();
+                          }}
                           className="w-full px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500"
                           placeholder={index === 0 ? "상품선택" : "옵션명"}
                         />
@@ -2508,6 +2523,9 @@ function AddProductFromDetailPageModal({
                             newOpts[index].opt_value = e.target.value;
                             setSmartOpts(newOpts);
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.preventDefault();
+                          }}
                           className="w-full px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500"
                           placeholder={index === 0 ? "상품명" : "옵션값"}
                         />
@@ -2521,6 +2539,9 @@ function AddProductFromDetailPageModal({
                             const newOpts = [...smartOpts];
                             newOpts[index].stock_cnt = parseInt(e.target.value) || 999;
                             setSmartOpts(newOpts);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.preventDefault();
                           }}
                           className="w-full px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500"
                         />
