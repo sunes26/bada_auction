@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Download, Sparkles, CheckCircle, ShoppingCart, RefreshCw, Search, ExternalLink, DollarSign, Plus, Tag, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Download, Sparkles, CheckCircle, ShoppingCart, RefreshCw, Search, ExternalLink, DollarSign, Plus, Tag, AlertCircle, Upload } from 'lucide-react';
 import { templates, getTemplateIcon } from '@/lib/templates';
 import { imageService } from '@/lib/imageService';
 import type { Category, TemplateType } from '@/types';
@@ -12,6 +12,7 @@ import ElectronicsTemplate from '@/components/templates/ElectronicsTemplate';
 import ProcessedFoodTemplate from '@/components/templates/ProcessedFoodTemplate';
 import HygieneTemplate from '@/components/templates/HygieneTemplate';
 import StationeryTemplate from '@/components/templates/StationeryTemplate';
+import PreUploadedTemplate from '@/components/templates/PreUploadedTemplate';
 import TextStyleEditor from '@/components/templates/TextStyleEditor';
 import PropertiesPanel from '@/components/ui/PropertiesPanel';
 import KeywordEditor from '@/components/ui/KeywordEditor';
@@ -63,7 +64,9 @@ export default function DetailPage() {
   const [imageAlignments, setImageAlignments] = useState<Record<string, 'left' | 'center' | 'right'>>({});
   const [containerWidths, setContainerWidths] = useState<Record<string, number>>({}); // 컨테이너 가로 크기 (%)
   const [hiddenSections, setHiddenSections] = useState<Record<string, boolean>>({}); // 숨겨진(삭제된) 섹션
+  const [isUploadingDetailPage, setIsUploadingDetailPage] = useState(false); // 상세페이지 이미지 업로드 중
   const templateRef = useRef<HTMLDivElement>(null);
+  const detailPageInputRef = useRef<HTMLInputElement>(null);
 
   // 카테고리 구조 로드
   useEffect(() => {
@@ -667,6 +670,22 @@ JSON 형식으로 작성하세요:
       return;
     }
 
+    // preUploaded 템플릿: 바로 상품 추가 모달 표시
+    if (selectedTemplate === 'preUploaded') {
+      if (!uploadedImages['detail_page']) {
+        alert('상세페이지 이미지를 먼저 업로드해주세요.');
+        return;
+      }
+
+      // 간단한 content 설정 후 바로 모달 표시
+      setGeneratedContent({
+        productName: productName,
+      });
+      setShowAddProductModal(true);
+      return;
+    }
+
+    // 기존 템플릿: AI 생성 프로세스
     setScreen('generating');
     setLoadingStep(0);
 
@@ -799,6 +818,39 @@ JSON 형식으로 작성하세요:
     } catch (error) {
       console.error('이미지 업로드 오류:', error);
       alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  const handleDetailPageImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingDetailPage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('상세페이지 이미지 업로드 실패');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        setUploadedImages(prev => ({ ...prev, detail_page: data.url }));
+      } else {
+        throw new Error('이미지 URL을 받지 못했습니다');
+      }
+    } catch (error) {
+      console.error('상세페이지 이미지 업로드 오류:', error);
+      alert('상세페이지 이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsUploadingDetailPage(false);
     }
   };
 
@@ -1120,6 +1172,7 @@ JSON 형식으로 작성하세요:
     if (selectedTemplate === 'processedFood') return <ProcessedFoodTemplate {...templateProps} />;
     if (selectedTemplate === 'hygiene') return <HygieneTemplate {...templateProps} />;
     if (selectedTemplate === 'stationery') return <StationeryTemplate {...templateProps} />;
+    if (selectedTemplate === 'preUploaded') return <PreUploadedTemplate {...templateProps} />;
     return null;
   };
 
@@ -1168,6 +1221,10 @@ JSON 형식으로 작성하세요:
           onThumbnailDownload={handleThumbnailDownload}
           onBack={handleReset}
           onGenerate={handleProductSubmit}
+          uploadedDetailPageImage={uploadedImages['detail_page']}
+          isUploadingDetailPage={isUploadingDetailPage}
+          onDetailPageImageUpload={handleDetailPageImageUpload}
+          detailPageInputRef={detailPageInputRef}
         />
       )}
 
@@ -1413,10 +1470,15 @@ function ProductInputScreen({
   onExtractUrlInfo,
   onThumbnailDownload,
   onBack,
-  onGenerate
+  onGenerate,
+  uploadedDetailPageImage,
+  isUploadingDetailPage,
+  onDetailPageImageUpload,
+  detailPageInputRef
 }: any) {
   const template = selectedTemplate ? (templates as any)[selectedTemplate] : null;
   const Icon = selectedTemplate ? getTemplateIcon(selectedTemplate) : Sparkles;
+  const isPreUploaded = selectedTemplate === 'preUploaded';
 
   return (
     <div className="max-w-2xl mx-auto text-center relative min-h-screen py-8">
@@ -1584,6 +1646,62 @@ function ProductInputScreen({
             )}
           </div>
 
+          {/* 상세페이지 업로드 섹션 (preUploaded 템플릿만) */}
+          {isPreUploaded && (
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border-2 border-green-200">
+              <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <Upload className="w-4 h-4 text-green-600" />
+                상세페이지 이미지 업로드
+              </h3>
+              <input
+                ref={detailPageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={onDetailPageImageUpload}
+                className="hidden"
+              />
+              {uploadedDetailPageImage ? (
+                <div className="space-y-3">
+                  <div className="relative w-full max-w-xs mx-auto">
+                    <img
+                      src={uploadedDetailPageImage}
+                      alt="상세페이지"
+                      className="w-full rounded-lg shadow-lg border-2 border-green-300"
+                    />
+                  </div>
+                  <button
+                    onClick={() => detailPageInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-medium shadow-md"
+                  >
+                    <Upload className="w-4 h-4" />
+                    다른 이미지로 변경
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => detailPageInputRef.current?.click()}
+                  disabled={isUploadingDetailPage}
+                  className="w-full h-48 bg-white border-2 border-dashed border-green-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all duration-300 flex flex-col items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploadingDetailPage ? (
+                    <>
+                      <RefreshCw className="w-8 h-8 text-green-600 animate-spin" />
+                      <p className="text-green-600 font-medium">업로드 중...</p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-12 h-12 text-green-600" />
+                      <div className="text-center">
+                        <p className="text-green-600 font-semibold mb-1">상세페이지 이미지 업로드</p>
+                        <p className="text-gray-500 text-sm">클릭하여 이미지 선택</p>
+                      </div>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
+
           {/* 상품명 입력 */}
           <div>
             <label className="block text-left text-sm font-semibold text-gray-700 mb-2">상품명</label>
@@ -1596,13 +1714,23 @@ function ProductInputScreen({
             />
           </div>
 
+          {/* 버튼: preUploaded는 "상품 추가하기", 나머지는 "AI 상세페이지 생성하기" */}
           <button
             onClick={onGenerate}
-            disabled={!productName.trim()}
+            disabled={isPreUploaded ? (!productName.trim() || !uploadedDetailPageImage) : !productName.trim()}
             className="w-full px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl hover:shadow-blue-500/30 transform hover:scale-105 flex items-center justify-center gap-3 group"
           >
-            <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
-            AI 상세페이지 생성하기
+            {isPreUploaded ? (
+              <>
+                <ShoppingCart className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
+                상품 추가하기
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
+                AI 상세페이지 생성하기
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -1894,7 +2022,14 @@ function AddProductFromDetailPageModal({
 
       // 1. 템플릿을 JPG로 렌더링 (position: absolute 등 모든 CSS 보존)
       let detailImageUrl = '';
-      if (templateRef?.current) {
+
+      // preUploaded 템플릿: 이미 업로드된 이미지 사용
+      if (selectedTemplate === 'preUploaded' && uploadedImages['detail_page']) {
+        detailImageUrl = uploadedImages['detail_page'];
+        console.log('✅ preUploaded 템플릿: 업로드된 상세페이지 이미지 사용:', detailImageUrl);
+      }
+      // 기존 템플릿: templateRef로 캡처
+      else if (templateRef?.current) {
         try {
           // 임시로 스타일 백업 및 설정 (너비 강제 고정 + 테두리 제거)
           const originalOutline = templateRef.current.style.outline;

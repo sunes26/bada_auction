@@ -1,4 +1,4 @@
-import { Home, Package, Cpu, UtensilsCrossed, ShieldCheck, PenTool } from 'lucide-react';
+import { Home, Package, Cpu, UtensilsCrossed, ShieldCheck, PenTool, Upload } from 'lucide-react';
 import type { Template, TemplateType } from '@/types';
 
 export const templates: Record<TemplateType, Template> = {
@@ -31,6 +31,11 @@ export const templates: Record<TemplateType, Template> = {
     name: '문구류',
     description: '기록과 창작의',
     placeholder: '예: 노트, 다이어리'
+  },
+  preUploaded: {
+    name: '직접 업로드',
+    description: '이미 만든 상세페이지',
+    placeholder: '예: 준비된 상세페이지 이미지'
   }
 };
 
@@ -41,7 +46,8 @@ export const getTemplateIcon = (type: TemplateType) => {
     electronics: Cpu,
     processedFood: UtensilsCrossed,
     hygiene: ShieldCheck,
-    stationery: PenTool
+    stationery: PenTool,
+    preUploaded: Upload
   };
   return iconMap[type];
 };
