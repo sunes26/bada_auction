@@ -218,6 +218,10 @@ export interface CreateProductRequest {
   weight?: string;  // 상품 중량 (쿠팡 옵션용, 예: "500g", "1kg")
   notes?: string;
   keywords?: string[];  // 검색 키워드 (최대 40개)
+  // 마켓별 옵션 (JSON 문자열)
+  gmk_opts?: string;  // 지마켓/옥션 옵션
+  coupang_opts?: string;  // 쿠팡 옵션
+  smart_opts?: string;  // 스마트스토어 옵션
 }
 
 export interface UpdateProductRequest extends Partial<CreateProductRequest> {

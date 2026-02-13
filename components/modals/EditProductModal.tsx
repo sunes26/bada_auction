@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Search, Package, RefreshCw, Upload, X, Tag } from 'lucide-react';
+import { Search, Package, RefreshCw, Upload, X, Tag, Plus } from 'lucide-react';
 import KeywordEditor from '@/components/ui/KeywordEditor';
 import type { Category } from '@/types';
 import { productsApi, monitorApi, API_BASE_URL, categoriesApi } from '@/lib/api';
@@ -92,6 +92,23 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
   });
   const [keywords, setKeywords] = useState<string[]>(parseKeywords((product as any).keywords));
   const [category, setCategory] = useState<Category>(parseCategory(product.category));
+
+  // 마켓별 옵션 파싱 함수
+  const parseMarketOptions = (optionsJson?: string): any[] => {
+    if (!optionsJson) return [];
+    try {
+      const parsed = JSON.parse(optionsJson);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error('옵션 파싱 실패:', e);
+      return [];
+    }
+  };
+
+  // 마켓별 DB 옵션 state (배열 형태)
+  const [gmkOpts, setGmkOpts] = useState<any[]>(parseMarketOptions((product as any).gmk_opts));
+  const [coupangOpts, setCoupangOpts] = useState<any[]>(parseMarketOptions((product as any).coupang_opts));
+  const [smartOpts, setSmartOpts] = useState<any[]>(parseMarketOptions((product as any).smart_opts));
 
   // 동적 카테고리 구조
   const [categoryStructure, setCategoryStructure] = useState<Record<string, any>>({});
@@ -594,6 +611,16 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
       console.log('[상품수정] keywords.length:', keywords.length);
       console.log('[상품수정] 전송 여부:', keywords.length > 0 ? '전송함' : '전송 안함 (undefined)');
 
+      // 옵션 데이터 변환 (opt_name, opt_value → opt_sortN, opt_sortN_desc)
+      const convertOptions = (opts: any[]) => {
+        const result: any = { stock_cnt: opts[0]?.stock_cnt || 999, status: '정상' };
+        opts.forEach((opt: any, index: number) => {
+          result[`opt_sort${index + 1}`] = opt.opt_name;
+          result[`opt_sort${index + 1}_desc`] = opt.opt_value;
+        });
+        return result;
+      };
+
       // 공통 API 클라이언트 사용
       const data = await productsApi.update(product.id, {
         product_name: formData.product_name,
@@ -611,6 +638,10 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
         c_sale_cd_smart: formData.c_sale_cd_smart || undefined,
         c_sale_cd_coupang: formData.c_sale_cd_coupang || undefined,
         keywords: keywords.length > 0 ? keywords : undefined,  // 키워드 전송
+        // 마켓별 옵션 저장 (JSON)
+        gmk_opts: gmkOpts.length > 0 ? JSON.stringify(gmkOpts.map(opt => convertOptions([opt]))) : undefined,
+        coupang_opts: coupangOpts.length > 0 ? JSON.stringify([convertOptions(coupangOpts)]) : undefined,
+        smart_opts: smartOpts.length > 0 ? JSON.stringify(smartOpts.map(opt => convertOptions([opt]))) : undefined,
       });
 
       if (data.success) {
@@ -625,7 +656,7 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
     } finally {
       setLoading(false);
     }
-  }, [product.id, formData, category, keywords, onSuccess]);
+  }, [product.id, formData, category, keywords, gmkOpts, coupangOpts, smartOpts, onSuccess]);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -1172,11 +1203,249 @@ export default function EditProductModal({ product, onClose, onSuccess }: {
               </p>
             </div>
 
-            {/* 마켓별 옵션 편집 */}
+            {/* DB 저장 옵션 편집 */}
+            <div className="mt-6 border-t border-purple-200 pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="w-4 h-4 text-blue-600" />
+                <h4 className="text-sm font-bold text-blue-800">마켓별 옵션 설정</h4>
+              </div>
+              <p className="text-xs text-blue-600 mb-4 bg-blue-50 rounded-lg p-2 border border-blue-200">
+                💡 상품 등록 시 각 마켓에 전송되는 옵션값입니다. 최대 3개까지 추가 가능합니다.
+              </p>
+
+              {/* 지마켓/옥션 옵션 */}
+              <div className="bg-white border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h5 className="text-sm font-semibold text-blue-800">🏪 지마켓/옥션 옵션 {gmkOpts.length === 0 ? '(옵션없음)' : '(독립형)'}</h5>
+                  {gmkOpts.length < 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setGmkOpts([...gmkOpts, { opt_name: '', opt_value: '', stock_cnt: 999 }])}
+                      className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition"
+                    >
+                      <Plus className="w-3 h-3" />
+                      옵션 추가
+                    </button>
+                  )}
+                </div>
+                {gmkOpts.length === 0 ? (
+                  <p className="text-xs text-gray-500 text-center py-2">옵션이 없으면 단일상품으로 등록됩니다</p>
+                ) : (
+                  <div className="space-y-3">
+                    {gmkOpts.map((opt: any, index: number) => (
+                      <div key={index} className="border border-blue-100 rounded-lg p-3 relative">
+                        <button
+                          type="button"
+                          onClick={() => setGmkOpts(gmkOpts.filter((_, i) => i !== index))}
+                          className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="text-xs text-gray-600">옵션명{index + 1}</label>
+                            <input
+                              type="text"
+                              value={opt.opt_name}
+                              onChange={(e) => {
+                                const newOpts = [...gmkOpts];
+                                newOpts[index].opt_name = e.target.value;
+                                setGmkOpts(newOpts);
+                              }}
+                              className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500"
+                              placeholder="예: 색상"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">옵션값{index + 1}</label>
+                            <input
+                              type="text"
+                              value={opt.opt_value}
+                              onChange={(e) => {
+                                const newOpts = [...gmkOpts];
+                                newOpts[index].opt_value = e.target.value;
+                                setGmkOpts(newOpts);
+                              }}
+                              className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500"
+                              placeholder="예: 빨강"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">재고</label>
+                            <input
+                              type="number"
+                              value={opt.stock_cnt}
+                              onChange={(e) => {
+                                const newOpts = [...gmkOpts];
+                                newOpts[index].stock_cnt = parseInt(e.target.value) || 999;
+                                setGmkOpts(newOpts);
+                              }}
+                              className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 쿠팡 옵션 */}
+              <div className="bg-white border border-orange-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h5 className="text-sm font-semibold text-orange-800">🚀 쿠팡 옵션 (조합형)</h5>
+                  {coupangOpts.length < 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setCoupangOpts([...coupangOpts, { opt_name: '', opt_value: '', stock_cnt: 999 }])}
+                      className="flex items-center gap-1 px-3 py-1 bg-orange-500 text-white text-xs rounded-lg hover:bg-orange-600 transition"
+                    >
+                      <Plus className="w-3 h-3" />
+                      옵션 추가
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {coupangOpts.map((opt: any, index: number) => (
+                    <div key={index} className="border border-orange-100 rounded-lg p-3 relative">
+                      {coupangOpts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setCoupangOpts(coupangOpts.filter((_, i) => i !== index))}
+                          className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-xs text-gray-600">옵션명{index + 1}</label>
+                          <input
+                            type="text"
+                            value={opt.opt_name}
+                            onChange={(e) => {
+                              const newOpts = [...coupangOpts];
+                              newOpts[index].opt_name = e.target.value;
+                              setCoupangOpts(newOpts);
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
+                            placeholder={index === 0 ? "수량" : index === 1 ? "개당 중량" : "옵션명"}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">옵션값{index + 1}</label>
+                          <input
+                            type="text"
+                            value={opt.opt_value}
+                            onChange={(e) => {
+                              const newOpts = [...coupangOpts];
+                              newOpts[index].opt_value = e.target.value;
+                              setCoupangOpts(newOpts);
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
+                            placeholder={index === 0 ? "1개" : index === 1 ? "500g" : "옵션값"}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">재고</label>
+                          <input
+                            type="number"
+                            value={opt.stock_cnt}
+                            onChange={(e) => {
+                              const newOpts = [...coupangOpts];
+                              newOpts[index].stock_cnt = parseInt(e.target.value) || 999;
+                              setCoupangOpts(newOpts);
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 스마트스토어 옵션 */}
+              <div className="bg-white border border-green-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h5 className="text-sm font-semibold text-green-800">🛒 스마트스토어 옵션 (독립형)</h5>
+                  {smartOpts.length < 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setSmartOpts([...smartOpts, { opt_name: '', opt_value: '', stock_cnt: 999 }])}
+                      className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition"
+                    >
+                      <Plus className="w-3 h-3" />
+                      옵션 추가
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {smartOpts.map((opt: any, index: number) => (
+                    <div key={index} className="border border-green-100 rounded-lg p-3 relative">
+                      {smartOpts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setSmartOpts(smartOpts.filter((_, i) => i !== index))}
+                          className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-xs text-gray-600">옵션명{index + 1}</label>
+                          <input
+                            type="text"
+                            value={opt.opt_name}
+                            onChange={(e) => {
+                              const newOpts = [...smartOpts];
+                              newOpts[index].opt_name = e.target.value;
+                              setSmartOpts(newOpts);
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500"
+                            placeholder={index === 0 ? "상품선택" : "옵션명"}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">옵션값{index + 1}</label>
+                          <input
+                            type="text"
+                            value={opt.opt_value}
+                            onChange={(e) => {
+                              const newOpts = [...smartOpts];
+                              newOpts[index].opt_value = e.target.value;
+                              setSmartOpts(newOpts);
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500"
+                            placeholder={index === 0 ? "상품명" : "옵션값"}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">재고</label>
+                          <input
+                            type="number"
+                            value={opt.stock_cnt}
+                            onChange={(e) => {
+                              const newOpts = [...smartOpts];
+                              newOpts[index].stock_cnt = parseInt(e.target.value) || 999;
+                              setSmartOpts(newOpts);
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 마켓별 옵션 편집 (PlayAuto에서 가져온 정보) */}
             <div className="mt-6 border-t border-purple-200 pt-4">
               <div className="flex items-center gap-2 mb-3">
                 <Package className="w-4 h-4 text-orange-600" />
-                <h4 className="text-sm font-bold text-orange-800">마켓별 옵션 수정</h4>
+                <h4 className="text-sm font-bold text-orange-800">PlayAuto 옵션 정보 (참고용)</h4>
                 {loadingOptions && <span className="text-xs text-gray-500">(로딩 중...)</span>}
               </div>
 
