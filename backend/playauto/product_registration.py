@@ -518,10 +518,10 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
                         "status": "정상"
                     })
 
-                std_ol_yn = "N"
-                opt_type = "독립형"
+                std_ol_yn = "Y"
+                opt_type = "조립형"
                 opts = converted_opts
-                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=N, opt_type=독립형, 옵션 {len(opts)}개")
+                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=조립형, 옵션 {len(opts)}개")
             except Exception as e:
                 logger.error(f"[플레이오토] 지마켓/옥션 옵션 파싱 실패: {e}")
                 std_ol_yn = "Y"
