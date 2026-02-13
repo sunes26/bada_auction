@@ -2306,6 +2306,7 @@ function AddProductFromDetailPageModal({
                 <h4 className="text-sm font-semibold text-blue-800">🏪 지마켓/옥션 옵션 {gmkOpts.length === 0 ? '(옵션없음)' : '(독립형)'}</h4>
                 {gmkOpts.length < 3 && (
                   <button
+                    type="button"
                     onClick={() => setGmkOpts([...gmkOpts, { opt_name: '', opt_value: '', stock_cnt: 999 }])}
                     className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition"
                   >
@@ -2321,6 +2322,7 @@ function AddProductFromDetailPageModal({
                   {gmkOpts.map((opt, index) => (
                     <div key={index} className="border border-blue-100 rounded-lg p-3 relative">
                       <button
+                        type="button"
                         onClick={() => setGmkOpts(gmkOpts.filter((_, i) => i !== index))}
                         className="absolute top-2 right-2 text-red-500 hover:text-red-700"
                       >
@@ -2381,6 +2383,7 @@ function AddProductFromDetailPageModal({
                 <h4 className="text-sm font-semibold text-orange-800">🚀 쿠팡 옵션 (조합형)</h4>
                 {coupangOpts.length < 3 && (
                   <button
+                    type="button"
                     onClick={() => setCoupangOpts([...coupangOpts, { opt_name: '', opt_value: '', stock_cnt: 999 }])}
                     className="flex items-center gap-1 px-3 py-1 bg-orange-500 text-white text-xs rounded-lg hover:bg-orange-600 transition"
                   >
@@ -2394,6 +2397,7 @@ function AddProductFromDetailPageModal({
                   <div key={index} className="border border-orange-100 rounded-lg p-3 relative">
                     {coupangOpts.length > 1 && (
                       <button
+                        type="button"
                         onClick={() => setCoupangOpts(coupangOpts.filter((_, i) => i !== index))}
                         className="absolute top-2 right-2 text-red-500 hover:text-red-700"
                       >
@@ -2454,6 +2458,7 @@ function AddProductFromDetailPageModal({
                 <h4 className="text-sm font-semibold text-green-800">🛒 스마트스토어 옵션 (독립형)</h4>
                 {smartOpts.length < 3 && (
                   <button
+                    type="button"
                     onClick={() => setSmartOpts([...smartOpts, { opt_name: '', opt_value: '', stock_cnt: 999 }])}
                     className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition"
                   >
@@ -2467,6 +2472,7 @@ function AddProductFromDetailPageModal({
                   <div key={index} className="border border-green-100 rounded-lg p-3 relative">
                     {smartOpts.length > 1 && (
                       <button
+                        type="button"
                         onClick={() => setSmartOpts(smartOpts.filter((_, i) => i !== index))}
                         className="absolute top-2 right-2 text-red-500 hover:text-red-700"
                       >
