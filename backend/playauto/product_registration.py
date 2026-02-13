@@ -505,10 +505,23 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
             # 옵션이 있으면 독립형으로 처리
             try:
                 gmk_opts_list = json.loads(gmk_opts_json)
-                std_ol_yn = "Y"
-                opt_type = "조합형"
-                opts = gmk_opts_list
-                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=조합형, 옵션 {len(opts)}개")
+
+                # 독립형: 각 옵션이 개별 객체
+                # DB 형태: [{"opt_name": "색상", "opt_value": "빨강", "stock_cnt": 999}, ...]
+                # API 형태: [{"opt_sort1": "색상", "opt_sort1_desc": "빨강", "stock_cnt": 999, "status": "정상"}, ...]
+                converted_opts = []
+                for opt in gmk_opts_list:
+                    converted_opts.append({
+                        "opt_sort1": opt.get("opt_name", ""),
+                        "opt_sort1_desc": opt.get("opt_value", ""),
+                        "stock_cnt": opt.get("stock_cnt", 999),
+                        "status": "정상"
+                    })
+
+                std_ol_yn = "N"
+                opt_type = "독립형"
+                opts = converted_opts
+                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=N, opt_type=독립형, 옵션 {len(opts)}개")
             except Exception as e:
                 logger.error(f"[플레이오토] 지마켓/옥션 옵션 파싱 실패: {e}")
                 std_ol_yn = "Y"
@@ -529,8 +542,22 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
 
         if coupang_opts_json:
             try:
-                opts = json.loads(coupang_opts_json)
-                logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, DB 옵션 사용")
+                coupang_opts_list = json.loads(coupang_opts_json)
+
+                # 조합형: 여러 옵션을 하나의 객체로 합침
+                # DB 형태: [{"opt_name": "수량", "opt_value": "1개", "stock_cnt": 999}, ...]
+                # API 형태: [{"opt_sort1": "수량", "opt_sort1_desc": "1개", "opt_sort2": "개당 중량", "opt_sort2_desc": "500g", "stock_cnt": 999, "status": "정상"}]
+                combined_opt = {
+                    "stock_cnt": coupang_opts_list[0].get("stock_cnt", 999) if coupang_opts_list else 999,
+                    "status": "정상"
+                }
+
+                for idx, opt in enumerate(coupang_opts_list, start=1):
+                    combined_opt[f"opt_sort{idx}"] = opt.get("opt_name", "")
+                    combined_opt[f"opt_sort{idx}_desc"] = opt.get("opt_value", "")
+
+                opts = [combined_opt]
+                logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, DB 옵션 {len(coupang_opts_list)}개 조합")
             except Exception as e:
                 logger.error(f"[플레이오토] 쿠팡 옵션 파싱 실패: {e}, 기본값 사용")
                 # 기본값 사용 (하위 호환성)
@@ -568,8 +595,22 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
 
         if smart_opts_json:
             try:
-                opts = json.loads(smart_opts_json)
-                logger.info(f"[플레이오토] 스마트스토어 설정: std_ol_yn=N, opt_type=독립형, DB 옵션 사용")
+                smart_opts_list = json.loads(smart_opts_json)
+
+                # 독립형: 각 옵션이 개별 객체
+                # DB 형태: [{"opt_name": "상품선택", "opt_value": "기본", "stock_cnt": 999}, ...]
+                # API 형태: [{"opt_sort1": "상품선택", "opt_sort1_desc": "기본", "stock_cnt": 999, "status": "정상"}, ...]
+                converted_opts = []
+                for opt in smart_opts_list:
+                    converted_opts.append({
+                        "opt_sort1": opt.get("opt_name", ""),
+                        "opt_sort1_desc": opt.get("opt_value", ""),
+                        "stock_cnt": opt.get("stock_cnt", 999),
+                        "status": "정상"
+                    })
+
+                opts = converted_opts
+                logger.info(f"[플레이오토] 스마트스토어 설정: std_ol_yn=N, opt_type=독립형, DB 옵션 {len(opts)}개")
             except Exception as e:
                 logger.error(f"[플레이오토] 스마트스토어 옵션 파싱 실패: {e}, 기본값 사용")
                 # 기본값 사용 (하위 호환성)
