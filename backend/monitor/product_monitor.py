@@ -984,7 +984,7 @@ class ProductMonitor:
             }
 
     def _check_dongwonmall_status(self, soup: BeautifulSoup) -> Dict:
-        """동원몰 상품 상태 체크"""
+        """동원몰 상품 상태 체크 - 재고 수량 기반"""
         try:
             status = 'available'
             price = self._extract_price(soup, 'dongwonmall.com')
@@ -995,23 +995,48 @@ class ProductMonitor:
             if original_elem:
                 original_price = self._parse_price(original_elem.get_text())
 
-            # 1. 판매상태 코드 확인 (PB_COM_CD: 01=판매중)
+            # 1. 재고 수량 확인 (leftCnt) - 최우선 체크
+            stock_input = soup.find('input', id='leftCnt')
+            if stock_input:
+                stock_value = stock_input.get('value', '').strip()
+                try:
+                    stock_count = int(stock_value)
+                    if stock_count == 0:
+                        print(f"[DONGWONMALL] 재고 0 감지 → 품절")
+                        return {
+                            'status': 'out_of_stock',
+                            'price': price,
+                            'original_price': original_price,
+                            'details': '일시품절 (재고 0)'
+                        }
+                    elif stock_count > 0:
+                        print(f"[DONGWONMALL] 재고 {stock_count}개 확인 → 판매중")
+                except (ValueError, TypeError):
+                    print(f"[DONGWONMALL] leftCnt 파싱 실패: {stock_value}")
+
+            # 2. 판매상태 코드 확인 (PB_COM_CD: 01=판매중)
             status_input = soup.find('input', id='PB_COM_CD')
             if status_input:
                 status_code = status_input.get('value', '01')
                 if status_code != '01':
+                    print(f"[DONGWONMALL] 판매상태 코드 {status_code} → 품절")
                     status = 'out_of_stock'
 
-            # 2. soldout 클래스 확인
-            soldout_elem = soup.select_one('.soldout')
-            if soldout_elem:
-                status = 'out_of_stock'
-
-            # 3. 구매 버튼 텍스트 확인
-            buy_buttons = soup.select('.btn-buy, .btn_buy, .cart-btn')
+            # 3. 구매 버튼 텍스트 확인 (공백 처리 개선)
+            buy_buttons = soup.select('.btn-buy, .btn_buy, .cart-btn, button')
             for btn in buy_buttons:
-                btn_text = btn.get_text().lower()
+                btn_text = btn.get_text(strip=True).lower()
                 if '품절' in btn_text or 'sold out' in btn_text:
+                    print(f"[DONGWONMALL] 버튼 텍스트에서 품절 감지: '{btn_text}'")
+                    status = 'out_of_stock'
+                    break
+
+            # 4. JavaScript 변수 sold_out 확인 (보조 체크)
+            scripts = soup.find_all('script', string=lambda t: t and 'sold_out' in t)
+            for script in scripts:
+                script_text = script.string or ''
+                if "sold_out = 'out of stock'" in script_text:
+                    print(f"[DONGWONMALL] JavaScript sold_out 변수 감지 → 품절")
                     status = 'out_of_stock'
                     break
 
@@ -1019,7 +1044,7 @@ class ProductMonitor:
                 'status': status,
                 'price': price,
                 'original_price': original_price,
-                'details': '정상' if status == 'available' else status
+                'details': '정상' if status == 'available' else '일시품절'
             }
         except Exception as e:
             return {
