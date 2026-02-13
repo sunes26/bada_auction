@@ -505,10 +505,10 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
             # 옵션이 있으면 독립형으로 처리
             try:
                 gmk_opts_list = json.loads(gmk_opts_json)
-                std_ol_yn = "N"
+                std_ol_yn = "Y"
                 opt_type = "독립형"
                 opts = gmk_opts_list
-                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=N, opt_type=독립형, 옵션 {len(opts)}개")
+                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=독립형, 옵션 {len(opts)}개")
             except Exception as e:
                 logger.error(f"[플레이오토] 지마켓/옥션 옵션 파싱 실패: {e}")
                 std_ol_yn = "Y"
