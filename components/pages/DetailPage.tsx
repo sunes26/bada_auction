@@ -2352,8 +2352,8 @@ function AddProductFromDetailPageModal({
                             type="text"
                             value={optValues.join(',')}
                             onChange={(e) => {
-                              const values = e.target.value.split(',').map(v => v.trim()).filter(v => v);
-                              setGmkOpts({...gmkOpts, [optName]: values.length > 0 ? values : ['']});
+                              const values = e.target.value.split(',').map(v => v.trim());
+                              setGmkOpts({...gmkOpts, [optName]: values});
                             }}
                             className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500"
                             placeholder="예: 빨강,파랑,노랑"
@@ -2433,8 +2433,8 @@ function AddProductFromDetailPageModal({
                           type="text"
                           value={optValues.join(',')}
                           onChange={(e) => {
-                            const values = e.target.value.split(',').map(v => v.trim()).filter(v => v);
-                            setCoupangOpts({...coupangOpts, [optName]: values.length > 0 ? values : ['']});
+                            const values = e.target.value.split(',').map(v => v.trim());
+                            setCoupangOpts({...coupangOpts, [optName]: values});
                           }}
                           className="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500"
                           placeholder="예: 1개,2개,3개"
