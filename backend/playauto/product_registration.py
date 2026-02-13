@@ -492,55 +492,106 @@ def build_product_data_from_db(product: Dict, site_list: List[Dict], channel_typ
     # sale_img2~11은 전송하지 않음 (상세페이지는 JPG로 detail_desc에 포함됨)
     image_fields = {"sale_img1": thumbnail_url}
 
-    # 채널 타입에 따른 옵션 설정
+    # 채널 타입에 따른 옵션 설정 (DB에 저장된 옵션 우선 사용)
+    import json
     product_name = product.get("product_name", "기본")
     option_value = product_name.replace(",", " ").replace("  ", " ").strip()
 
     if channel_type == "gmk_auction":
-        # 지마켓/옥션: 단일상품 필수, 옵션없음
-        std_ol_yn = "Y"
-        opt_type = "옵션없음"
-        opts = []
-        logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=옵션없음")
+        # 지마켓/옥션: DB에 옵션이 있으면 독립형, 없으면 옵션없음
+        gmk_opts_json = product.get("gmk_opts")
+
+        if gmk_opts_json:
+            # 옵션이 있으면 독립형으로 처리
+            try:
+                gmk_opts_list = json.loads(gmk_opts_json)
+                std_ol_yn = "N"
+                opt_type = "독립형"
+                opts = gmk_opts_list
+                logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=N, opt_type=독립형, 옵션 {len(opts)}개")
+            except Exception as e:
+                logger.error(f"[플레이오토] 지마켓/옥션 옵션 파싱 실패: {e}")
+                std_ol_yn = "Y"
+                opt_type = "옵션없음"
+                opts = []
+        else:
+            # 옵션이 없으면 단일상품
+            std_ol_yn = "Y"
+            opt_type = "옵션없음"
+            opts = []
+            logger.info(f"[플레이오토] 지마켓/옥션 설정: std_ol_yn=Y, opt_type=옵션없음")
+
     elif channel_type == "coupang":
-        # 쿠팡: 조합형 옵션 필수
-        # - 옵션1: "수량" (추천단위: 개)
-        # - 옵션2: "개당 중량" (단위: g 또는 kg) - weight 필드가 있을 경우만
+        # 쿠팡: 조합형 옵션 (DB 옵션 사용)
+        coupang_opts_json = product.get("coupang_opts")
         std_ol_yn = "N"
         opt_type = "조합형"
 
-        # 중량 정보 가져오기 (예: "500g", "1kg")
-        weight = product.get("weight", "")
-
-        opt_data = {
-            "opt_sort1": "수량",
-            "opt_sort1_desc": "1개",
-            "stock_cnt": 999,
-            "status": "정상"
-        }
-
-        # weight가 있으면 opt_sort2 추가
-        if weight:
-            opt_data["opt_sort2"] = "개당 중량"
-            opt_data["opt_sort2_desc"] = weight
-            logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, 옵션1='수량/1개', 옵션2='개당 중량/{weight}'")
+        if coupang_opts_json:
+            try:
+                opts = json.loads(coupang_opts_json)
+                logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, DB 옵션 사용")
+            except Exception as e:
+                logger.error(f"[플레이오토] 쿠팡 옵션 파싱 실패: {e}, 기본값 사용")
+                # 기본값 사용 (하위 호환성)
+                weight = product.get("weight", "")
+                opt_data = {
+                    "opt_sort1": "수량",
+                    "opt_sort1_desc": "1개",
+                    "stock_cnt": 999,
+                    "status": "정상"
+                }
+                if weight:
+                    opt_data["opt_sort2"] = "개당 중량"
+                    opt_data["opt_sort2_desc"] = weight
+                opts = [opt_data]
         else:
-            logger.info(f"[플레이오토] 쿠팡 설정: std_ol_yn=N, opt_type=조합형, 옵션명='수량', 옵션값='1개' (중량 미설정)")
-
-        opts = [opt_data]
-    else:
-        # 스마트스토어 등: 독립형 옵션
-        std_ol_yn = "N"
-        opt_type = "독립형"
-        opts = [
-            {
-                "opt_sort1": "상품선택",
-                "opt_sort1_desc": option_value,
+            # DB에 옵션이 없으면 기본값 사용 (하위 호환성)
+            weight = product.get("weight", "")
+            opt_data = {
+                "opt_sort1": "수량",
+                "opt_sort1_desc": "1개",
                 "stock_cnt": 999,
                 "status": "정상"
             }
-        ]
-        logger.info(f"[플레이오토] 스마트스토어 설정: std_ol_yn=N, opt_type=독립형, 옵션값='{option_value}'")
+            if weight:
+                opt_data["opt_sort2"] = "개당 중량"
+                opt_data["opt_sort2_desc"] = weight
+            opts = [opt_data]
+            logger.info(f"[플레이오토] 쿠팡 설정: 기본 옵션 사용 (DB 옵션 없음)")
+
+    else:
+        # 스마트스토어 등: 독립형 옵션 (DB 옵션 사용)
+        smart_opts_json = product.get("smart_opts")
+        std_ol_yn = "N"
+        opt_type = "독립형"
+
+        if smart_opts_json:
+            try:
+                opts = json.loads(smart_opts_json)
+                logger.info(f"[플레이오토] 스마트스토어 설정: std_ol_yn=N, opt_type=독립형, DB 옵션 사용")
+            except Exception as e:
+                logger.error(f"[플레이오토] 스마트스토어 옵션 파싱 실패: {e}, 기본값 사용")
+                # 기본값 사용 (하위 호환성)
+                opts = [
+                    {
+                        "opt_sort1": "상품선택",
+                        "opt_sort1_desc": option_value,
+                        "stock_cnt": 999,
+                        "status": "정상"
+                    }
+                ]
+        else:
+            # DB에 옵션이 없으면 기본값 사용 (하위 호환성)
+            opts = [
+                {
+                    "opt_sort1": "상품선택",
+                    "opt_sort1_desc": option_value,
+                    "stock_cnt": 999,
+                    "status": "정상"
+                }
+            ]
+            logger.info(f"[플레이오토] 스마트스토어 설정: 기본 옵션 사용 (DB 옵션 없음)")
 
     return {
         # 기본 정보

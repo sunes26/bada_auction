@@ -317,7 +317,10 @@ class DatabaseWrapper:
         ship_price_type: Optional[str] = '선결제',
         ship_price: Optional[int] = 3000,
         input_type: Optional[str] = 'auto',
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
+        gmk_opts: Optional[str] = None,
+        coupang_opts: Optional[str] = None,
+        smart_opts: Optional[str] = None
     ) -> int:
         """판매 상품 추가"""
         with self.db_manager.get_session() as session:
@@ -341,7 +344,10 @@ class DatabaseWrapper:
                 ship_price_type=ship_price_type,
                 ship_price=ship_price,
                 input_type=input_type,
-                notes=notes
+                notes=notes,
+                gmk_opts=gmk_opts,
+                coupang_opts=coupang_opts,
+                smart_opts=smart_opts
             )
             session.add(product)
             session.flush()

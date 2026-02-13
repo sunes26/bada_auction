@@ -36,6 +36,10 @@ class CreateProductRequest(BaseModel):
     ship_price: Optional[int] = 3000  # 배송비 (선결제인 경우)
     input_type: Optional[str] = 'auto'  # 입력 방식: auto(자동추출), manual(수동입력)
     notes: Optional[str] = None
+    # 마켓별 옵션 (JSON 문자열)
+    gmk_opts: Optional[str] = None  # 지마켓/옥션 옵션
+    coupang_opts: Optional[str] = None  # 쿠팡 옵션
+    smart_opts: Optional[str] = None  # 스마트스토어 옵션
 
 
 class UpdateProductRequest(BaseModel):
@@ -129,7 +133,10 @@ async def create_product(request: CreateProductRequest):
             ship_price_type=request.ship_price_type,
             ship_price=request.ship_price,
             input_type=request.input_type,
-            notes=request.notes
+            notes=request.notes,
+            gmk_opts=request.gmk_opts,
+            coupang_opts=request.coupang_opts,
+            smart_opts=request.smart_opts
         )
 
         # 캐시 무효화
