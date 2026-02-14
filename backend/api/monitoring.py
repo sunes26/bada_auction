@@ -312,6 +312,8 @@ async def extract_url_info(request: dict):
         source = 'other'
         if 'ssg.com' in product_url:
             source = 'ssg'
+        elif 'mfront.homeplus.co.kr' in product_url:
+            source = 'homeplus'
         elif 'homeplus.co.kr' in product_url or 'traders' in product_url:
             source = 'traders'
         elif '11st.co.kr' in product_url:
@@ -343,6 +345,40 @@ async def extract_url_info(request: dict):
                 "error": "smartstore_captcha",
                 "message": "네이버 스마트스토어가 CAPTCHA로 자동 접근을 차단했습니다. 상품 정보를 수동으로 입력해주세요."
             }
+
+        # 홈플러스 전용 스크래퍼 사용
+        if source == 'homeplus':
+            try:
+                from sourcing.homeplus import HomeplusScraper
+                scraper = HomeplusScraper()
+                result = scraper.extract_product_info(product_url)
+
+                if result.get('success'):
+                    return {
+                        "success": True,
+                        "source": "homeplus",
+                        "product_name": result.get('product_name'),
+                        "price": result.get('price'),
+                        "original_price": result.get('original_price'),
+                        "status": result.get('status'),
+                        "thumbnail": result.get('thumbnail'),
+                        "message": "홈플러스 상품 정보가 추출되었습니다."
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "source": "homeplus",
+                        "error": result.get('error', '상품 정보 추출 실패'),
+                        "message": "홈플러스 상품 정보를 가져올 수 없습니다."
+                    }
+            except Exception as e:
+                print(f"[HOMEPLUS] 상품 정보 추출 실패: {e}")
+                return {
+                    "success": False,
+                    "source": "homeplus",
+                    "error": str(e),
+                    "message": "홈플러스 상품 정보 추출 중 오류가 발생했습니다."
+                }
 
         # 도매꾹 수동 입력 안내
         if source == 'domeggook':

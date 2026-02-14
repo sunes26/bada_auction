@@ -16,5 +16,6 @@
 from .gmarket import GmarketScraper
 from .smartstore import SmartstoreScraper
 from .domeggook import DomeggookScraper
+from .homeplus import HomeplusScraper
 
-__all__ = ['GmarketScraper', 'SmartstoreScraper', 'DomeggookScraper']
+__all__ = ['GmarketScraper', 'SmartstoreScraper', 'DomeggookScraper', 'HomeplusScraper']

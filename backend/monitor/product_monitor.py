@@ -409,6 +409,42 @@ class ProductMonitor:
         try:
             print(f"모니터링: {product_url}")
 
+            # 홈플러스 일반몰(mfront)은 HomeplusScraper 사용 (HTML 가져오기 불필요)
+            if 'mfront.homeplus.co.kr' in product_url:
+                try:
+                    from sourcing.homeplus import HomeplusScraper
+                    logger.info(f"[HOMEPLUS] HomeplusScraper 사용: {product_url}")
+
+                    scraper = HomeplusScraper()
+                    scraper_result = scraper.extract_product_info(product_url)
+
+                    if scraper_result.get('success'):
+                        result = {
+                            'status': scraper_result.get('status', 'available'),
+                            'price': scraper_result.get('price'),
+                            'original_price': scraper_result.get('original_price'),
+                            'details': '정상' if scraper_result.get('status') == 'available' else scraper_result.get('status')
+                        }
+                        logger.info(f"[HOMEPLUS] 추출 성공 - 상태: {result['status']}, 가격: {result['price']}")
+                        return result
+                    else:
+                        logger.error(f"[HOMEPLUS] 추출 실패: {scraper_result.get('error')}")
+                        return {
+                            'status': 'error',
+                            'price': None,
+                            'original_price': None,
+                            'details': scraper_result.get('error', '홈플러스 정보 추출 실패')
+                        }
+                except Exception as e:
+                    logger.error(f"[HOMEPLUS] HomeplusScraper 오류: {e}")
+                    return {
+                        'status': 'error',
+                        'price': None,
+                        'original_price': None,
+                        'details': f'HomeplusScraper 오류: {str(e)}'
+                    }
+
+            # 나머지 사이트는 HTML 가져오기
             # FlareSolverr로 HTML 가져오기
             html = self._get_html_with_flaresolverr(product_url)
 
@@ -430,13 +466,35 @@ class ProductMonitor:
             if 'ssg.com' in product_url:
                 result = self._check_ssg_status(soup)
             elif 'homeplus.co.kr' in product_url or 'traders' in product_url:
+                # Traders → 기존 HTML 파싱 사용
                 result = self._check_homeplus_status(soup)
+            elif 'gmarket.co.kr' in product_url:
+                # G마켓 → GmarketScraper 사용 (정확도 향상)
+                try:
+                    from sourcing.gmarket import GmarketScraper
+                    logger.info(f"[GMARKET] GmarketScraper 사용: {product_url}")
+
+                    scraper = GmarketScraper()
+                    scraper_result = scraper.extract_product_info(product_url)
+
+                    if scraper_result.get('success'):
+                        result = {
+                            'status': scraper_result.get('status', 'available'),
+                            'price': scraper_result.get('price'),
+                            'original_price': scraper_result.get('original_price'),
+                            'details': '정상' if scraper_result.get('status') == 'available' else scraper_result.get('status')
+                        }
+                        logger.info(f"[GMARKET] 추출 성공 - 상태: {result['status']}, 가격: {result['price']}")
+                    else:
+                        logger.warning(f"[GMARKET] 추출 실패, HTML 파싱으로 폴백")
+                        result = self._check_gmarket_status(soup, product_url)
+                except Exception as e:
+                    logger.warning(f"[GMARKET] GmarketScraper 오류, HTML 파싱으로 폴백: {e}")
+                    result = self._check_gmarket_status(soup, product_url)
             elif '11st.co.kr' in product_url:
                 result = self._check_11st_status(soup)
             elif 'lotteon.com' in product_url:
                 result = self._check_lotteon_status(soup)
-            elif 'gmarket.co.kr' in product_url:
-                result = self._check_gmarket_status(soup, product_url)
             elif 'auction.co.kr' in product_url:
                 result = self._check_auction_status(soup, product_url)
             elif 'gsshop.com' in product_url:
