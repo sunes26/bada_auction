@@ -995,22 +995,29 @@ class ProductMonitor:
             if original_elem:
                 original_price = self._parse_price(original_elem.get_text())
 
-            # 1. 재고 수량 확인 (leftCnt) - 최우선 체크
+            # 품절 감지 플래그들
+            has_zero_stock = False
+            has_soldout_button = False
+            has_invalid_status_code = False
+
+            # 1. 재고 수량 확인 (leftCnt)
             stock_input = soup.find('input', id='leftCnt')
             if stock_input:
                 stock_value = stock_input.get('value', '').strip()
                 try:
                     stock_count = int(stock_value)
                     if stock_count == 0:
-                        print(f"[DONGWONMALL] 재고 0 감지 → 품절")
-                        return {
-                            'status': 'out_of_stock',
-                            'price': price,
-                            'original_price': original_price,
-                            'details': '일시품절 (재고 0)'
-                        }
+                        print(f"[DONGWONMALL] 재고 0 감지")
+                        has_zero_stock = True
                     elif stock_count > 0:
                         print(f"[DONGWONMALL] 재고 {stock_count}개 확인 → 판매중")
+                        # 재고가 있으면 확실히 판매중
+                        return {
+                            'status': 'available',
+                            'price': price,
+                            'original_price': original_price,
+                            'details': '정상'
+                        }
                 except (ValueError, TypeError):
                     print(f"[DONGWONMALL] leftCnt 파싱 실패: {stock_value}")
 
@@ -1019,16 +1026,23 @@ class ProductMonitor:
             if status_input:
                 status_code = status_input.get('value', '01')
                 if status_code != '01':
-                    print(f"[DONGWONMALL] 판매상태 코드 {status_code} → 품절")
-                    status = 'out_of_stock'
+                    print(f"[DONGWONMALL] 판매상태 코드 {status_code}")
+                    has_invalid_status_code = True
 
-            # 3. 구매 버튼 텍스트 확인 (공백 처리 개선)
-            buy_buttons = soup.select('.btn-buy, .btn_buy, .cart-btn, button')
+            # 3. 상품 상세 영역 내의 구매 버튼만 확인 (관련 상품 제외)
+            # 상품 상세 영역을 먼저 찾기
+            product_detail_area = soup.select_one('.product-detail, .product_detail, .prd-detail, #product-detail, .detail-area')
+            if product_detail_area:
+                buy_buttons = product_detail_area.select('.btn-buy, .btn_buy, .cart-btn, button[class*="buy"]')
+            else:
+                # 상세 영역을 못 찾으면 상위 영역에서만 검색 (전체 페이지 X)
+                buy_buttons = soup.select('.product-info .btn-buy, .product-info .btn_buy, .product-info .cart-btn, .product_info button[class*="buy"]')
+
             for btn in buy_buttons:
                 btn_text = btn.get_text(strip=True).lower()
                 if '품절' in btn_text or 'sold out' in btn_text:
-                    print(f"[DONGWONMALL] 버튼 텍스트에서 품절 감지: '{btn_text}'")
-                    status = 'out_of_stock'
+                    print(f"[DONGWONMALL] 구매 버튼에서 품절 감지: '{btn_text}'")
+                    has_soldout_button = True
                     break
 
             # 4. JavaScript 변수 sold_out 확인 (보조 체크)
@@ -1036,9 +1050,29 @@ class ProductMonitor:
             for script in scripts:
                 script_text = script.string or ''
                 if "sold_out = 'out of stock'" in script_text:
-                    print(f"[DONGWONMALL] JavaScript sold_out 변수 감지 → 품절")
-                    status = 'out_of_stock'
+                    print(f"[DONGWONMALL] JavaScript sold_out 변수 감지")
+                    has_soldout_button = True
                     break
+
+            # 5. 종합 판단: 가격과 구매 버튼이 정상이면 판매중으로 우선 판정
+            # (leftCnt=0은 동적 로딩 문제일 수 있으므로 보조 지표로 활용)
+            if price and price > 100:
+                # 가격이 정상이고 명시적 품절 표시가 없으면 판매중
+                if not has_soldout_button:
+                    print(f"[DONGWONMALL] 가격 {price}원, 품절 표시 없음 → 판매중")
+                    return {
+                        'status': 'available',
+                        'price': price,
+                        'original_price': original_price,
+                        'details': '정상'
+                    }
+
+            # 명시적 품절 표시가 있으면 품절
+            if has_soldout_button or has_invalid_status_code:
+                status = 'out_of_stock'
+            # 재고 0이고 다른 긍정 지표가 없으면 품절
+            elif has_zero_stock and not price:
+                status = 'out_of_stock'
 
             return {
                 'status': status,
