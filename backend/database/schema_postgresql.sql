@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 -- 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_monitored_products_active ON monitored_products(is_active, last_checked_at);
+CREATE INDEX IF NOT EXISTS idx_monitored_products_source ON monitored_products(source);
 CREATE INDEX IF NOT EXISTS idx_price_history_product ON price_history(product_id, checked_at DESC);
 CREATE INDEX IF NOT EXISTS idx_status_changes_product ON status_changes(product_id, changed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(is_read, created_at DESC);
@@ -138,6 +139,7 @@ CREATE TABLE IF NOT EXISTS sourcing_accounts (
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(order_status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_market ON orders(market, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders(order_number);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_rpa_status ON order_items(rpa_status);
 CREATE INDEX IF NOT EXISTS idx_order_items_tracking ON order_items(tracking_number);
@@ -277,7 +279,10 @@ CREATE TABLE IF NOT EXISTS margin_change_logs (
 
 -- 인덱스 생성 (판매 상품 관리)
 CREATE INDEX IF NOT EXISTS idx_my_selling_products_active ON my_selling_products(is_active, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_my_selling_products_active_updated ON my_selling_products(is_active, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_my_selling_products_monitored ON my_selling_products(monitored_product_id);
+CREATE INDEX IF NOT EXISTS idx_my_selling_products_sourcing_url ON my_selling_products(sourcing_url);
+CREATE INDEX IF NOT EXISTS idx_my_selling_products_playauto_no ON my_selling_products(playauto_product_no);
 CREATE INDEX IF NOT EXISTS idx_margin_change_logs_product ON margin_change_logs(selling_product_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_margin_change_logs_notification ON margin_change_logs(notification_sent, created_at DESC);
 
