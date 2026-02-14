@@ -72,7 +72,10 @@ async def update_selling_products_sourcing_price():
         price_adjusted_count = 0
         error_count = 0
 
-        for product in products:
+        # 병렬 처리를 위한 단일 상품 체크 함수
+        async def check_single_product(product):
+            nonlocal success_count, updated_count, price_adjusted_count, error_count
+
             product_id = product['id']
             product_name = product['product_name']
             sourcing_url = product['sourcing_url']
@@ -175,11 +178,21 @@ async def update_selling_products_sourcing_price():
 
                     error_count += 1
 
-                await asyncio.sleep(3)
-
             except Exception as e:
                 print(f"[ERROR] ID#{product_id} 체크 실패: {str(e)}")
                 error_count += 1
+
+        # 병렬 처리 실행 (최대 5개씩 동시 처리)
+        print(f"[SELLING_MONITOR] 병렬 처리 시작 (최대 5개씩 동시 처리)")
+        batch_size = 5
+        for i in range(0, len(products), batch_size):
+            batch = products[i:i + batch_size]
+            tasks = [check_single_product(product) for product in batch]
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+            # 배치 간 짧은 대기 (서버 부하 방지)
+            if i + batch_size < len(products):
+                await asyncio.sleep(2)
 
         print(f"\n[SELLING_MONITOR] ===== 소싱가 업데이트 완료 =====")
         print(f"[SELLING_MONITOR] 성공: {success_count}건, 소싱가 업데이트: {updated_count}건, 판매가 조정: {price_adjusted_count}건, 실패: {error_count}건")
@@ -218,8 +231,10 @@ async def auto_check_products_job():
         success_count = 0
         error_count = 0
 
-        # 각 상품 체크
-        for product in products:
+        # 병렬 처리를 위한 단일 상품 체크 함수
+        async def check_single_monitored_product(product):
+            nonlocal success_count, error_count
+
             product_id = product['id']
             product_name = product['product_name']
             product_url = product['product_url']
@@ -245,9 +260,6 @@ async def auto_check_products_job():
                 print(f"[OK] ID#{product_id}: {result['status']}, {result['price']}원")
                 success_count += 1
 
-                # 각 상품 체크 사이에 약간의 지연 (서버 부하 방지)
-                await asyncio.sleep(2)
-
             except Exception as e:
                 print(f"[ERROR] ID#{product_id} 체크 실패: {str(e)}")
                 error_count += 1
@@ -261,6 +273,18 @@ async def auto_check_products_job():
                     )
                 except:
                     pass
+
+        # 병렬 처리 실행 (최대 5개씩 동시 처리)
+        print(f"[MONITOR] 병렬 처리 시작 (최대 5개씩 동시 처리)")
+        batch_size = 5
+        for i in range(0, len(products), batch_size):
+            batch = products[i:i + batch_size]
+            tasks = [check_single_monitored_product(product) for product in batch]
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+            # 배치 간 짧은 대기 (서버 부하 방지)
+            if i + batch_size < len(products):
+                await asyncio.sleep(2)
 
         print(f"\n[MONITOR] ===== 자동 체크 완료: 성공 {success_count}건, 실패 {error_count}건 =====\n")
 

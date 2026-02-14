@@ -67,21 +67,40 @@ class Database:
             indexes = [
                 # 주문 조회 최적화
                 "CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders(order_number)",
+                "CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_orders_market_created ON orders(market, created_at DESC)",
+
                 # 송장번호 조회 최적화
                 "CREATE INDEX IF NOT EXISTS idx_order_items_tracking ON order_items(tracking_number)",
+
                 # 알림 복합 조회 최적화
-                "CREATE INDEX IF NOT EXISTS idx_notifications_product_type ON notifications(product_id, notification_type, created_at DESC)"
+                "CREATE INDEX IF NOT EXISTS idx_notifications_product_type ON notifications(product_id, notification_type, created_at DESC)",
+
+                # 모니터링 상품 조회 최적화 (활성 상품 필터링)
+                "CREATE INDEX IF NOT EXISTS idx_monitored_active ON monitored_products(is_active, created_at DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_monitored_source ON monitored_products(source)",
+
+                # 판매 상품 조회 최적화
+                "CREATE INDEX IF NOT EXISTS idx_selling_active ON my_selling_products(is_active, updated_at DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_selling_sourcing_url ON my_selling_products(sourcing_url)",
+                "CREATE INDEX IF NOT EXISTS idx_selling_playauto_no ON my_selling_products(playauto_product_no)",
+
+                # 카테고리 매핑 조회 최적화
+                "CREATE INDEX IF NOT EXISTS idx_category_mappings_my ON category_mappings(my_category_id)",
+                "CREATE INDEX IF NOT EXISTS idx_category_mappings_playauto ON category_mappings(playauto_category_id)"
             ]
 
+            index_count = 0
             for index_sql in indexes:
                 try:
                     conn.execute(index_sql)
+                    index_count += 1
                 except sqlite3.Error as e:
                     # 인덱스가 이미 존재하는 경우 무시
                     pass
 
             conn.commit()
-            print(f"[OK] 성능 최적화 인덱스 생성 완료")
+            print(f"[OK] 성능 최적화 인덱스 생성 완료 ({index_count}개)")
         except Exception as e:
             print(f"[WARN] 인덱스 생성 실패: {e}")
 
